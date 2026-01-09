@@ -1,20 +1,20 @@
-/* ============================================================
-   CONFIGURACIÓN GLOBAL Y VARIABLES
-   ============================================================ */
+/* ==========================================
+   CONFIGURACIÓN Y VARIABLES
+   ========================================== */
 :root {
     --primary: #6366f1;
     --primary-dark: #4f46e5;
-    --secondary: #94a3b8;
     --success: #166534;
     --danger: #991b1b;
     --warning: #92400e;
-    --bg-app: #f8fafc;
-    --bg-white: #ffffff;
+    --bg-main: #f8fafc;
+    --white: #ffffff;
     --border: #e2e8f0;
-    --radius-lg: 1rem;
-    --radius-xl: 1.5rem;
-    --radius-2xl: 2rem;
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --text-dark: #1e293b;
+    --text-light: #94a3b8;
+    --radius-lg: 1.25rem;
+    --radius-xl: 2rem;
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 * {
@@ -26,47 +26,44 @@
 
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: var(--bg-app);
-    color: #1e293b;
+    background-color: var(--bg-main);
+    color: var(--text-dark);
     line-height: 1.5;
     overflow-x: hidden;
 }
 
-/* ============================================================
-   ELEMENTOS DE FORMULARIO (INPUTS Y BOTONES)
-   ============================================================ */
+/* ==========================================
+   INPUTS Y FORMULARIOS
+   ========================================== */
 .input-light {
     width: 100%;
     background-color: #f1f5f9;
     border: 2px solid transparent;
-    padding: 0.85rem 1.25rem;
+    padding: 1rem 1.25rem;
     border-radius: var(--radius-lg);
     font-size: 1rem;
+    font-weight: 500;
     outline: none;
     transition: all 0.3s ease;
 }
 
 .input-light:focus {
-    background-color: var(--bg-white);
+    background-color: var(--white);
     border-color: var(--primary);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
-button {
+select.input-light {
+    appearance: none;
     cursor: pointer;
-    transition: all 0.2s ease;
 }
 
-button:active {
-    transform: scale(0.95);
-}
-
-/* ============================================================
+/* ==========================================
    SIDEBAR (MENÚ LATERAL)
-   ============================================================ */
+   ========================================== */
 #sidebar {
+    box-shadow: 5px 0 25px rgba(0,0,0,0.03);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 4px 0 20px rgba(0,0,0,0.02);
 }
 
 #menu-dinamico button {
@@ -80,6 +77,8 @@ button:active {
     font-weight: 600;
     border: none;
     background: transparent;
+    text-align: left;
+    transition: 0.2s;
 }
 
 #menu-dinamico button:hover {
@@ -87,12 +86,12 @@ button:active {
     color: var(--primary);
 }
 
-/* ============================================================
-   TARJETAS Y MÉTRICAS (DASHBOARD)
-   ============================================================ */
+/* ==========================================
+   TARJETAS Y MÉTRICAS
+   ========================================== */
 .card-metrica {
-    background: var(--bg-white);
-    padding: 1.5rem;
+    background: var(--white);
+    padding: 1.75rem;
     border-radius: var(--radius-xl);
     border: 1px solid var(--border);
     display: flex;
@@ -103,71 +102,87 @@ button:active {
 .card-metrica span {
     font-size: 0.75rem;
     font-weight: 800;
-    color: var(--secondary);
+    color: var(--text-light);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.5rem;
 }
 
 .card-metrica h2 {
-    font-size: 2.25rem;
+    font-size: 2.5rem;
     font-weight: 900;
-    color: #0f172a;
+    letter-spacing: -0.02em;
 }
 
-/* ============================================================
-   ESTADOS DE PEDIDOS (BADGES)
-   ============================================================ */
+/* ==========================================
+   BADGES DE ESTADO (CONEXIÓN CON JS)
+   ========================================== */
 .badge {
     display: inline-block;
-    padding: 0.35rem 0.85rem;
-    border-radius: 2rem;
-    font-size: 0.7rem;
+    padding: 0.4rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.025em;
 }
 
-.status-pendiente { background: #fef3c7; color: var(--warning); border: 1px solid #fde68a; }
-.status-aprobado { background: #dcfce7; color: var(--success); border: 1px solid #bbf7d0; }
-.status-rechazado { background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; }
+.status-pendiente { 
+    background: #fef3c7; 
+    color: var(--warning); 
+    border: 1px solid #fde68a; 
+}
 
-/* ============================================================
-   NOTIFICACIONES
-   ============================================================ */
+.status-aprobado { 
+    background: #dcfce7; 
+    color: var(--success); 
+    border: 1px solid #bbf7d0; 
+}
+
+.status-rechazado { 
+    background: #fee2e2; 
+    color: var(--danger); 
+    border: 1px solid #fecaca; 
+}
+
+/* ==========================================
+   NOTIFICACIONES Y LISTAS
+   ========================================== */
 .notif-card {
-    background: var(--bg-white);
-    padding: 1rem;
-    border-radius: 1.25rem;
-    border-left: 5px solid var(--primary);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    background: var(--white);
+    padding: 1.25rem;
+    border-radius: 1.5rem;
+    border-left: 6px solid var(--primary);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 0.75rem;
-    animation: slideIn 0.3s ease-out;
 }
 
-.notif-card p {
-    font-size: 0.9rem;
-    font-weight: 600;
+.user-card {
+    background: var(--white);
+    padding: 1.25rem;
+    border-radius: 1.5rem;
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.notif-card small {
-    color: var(--secondary);
-    font-size: 0.75rem;
-}
-
-/* ============================================================
+/* ==========================================
    MODALES Y CAPAS
-   ============================================================ */
-.backdrop-blur-sm {
+   ========================================== */
+#modal-insumo {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
 }
 
-/* ============================================================
+/* ==========================================
    ANIMACIONES
-   ============================================================ */
+   ========================================== */
 .view {
-    animation: fadeIn 0.4s ease-out;
+    animation: fadeIn 0.4s ease-out forwards;
 }
 
 @keyframes fadeIn {
@@ -175,41 +190,23 @@ button:active {
     to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideIn {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* ============================================================
-   ADAPTACIÓN MÓVIL (RESPONSIVE)
-   ============================================================ */
+/* ==========================================
+   RESPONSIVE (MÓVILES)
+   ========================================== */
 @media (max-width: 768px) {
     main {
-        padding: 1.25rem !important;
+        padding: 1.5rem 1rem !important;
     }
     
-    .card-metrica h2 {
-        font-size: 1.75rem;
-    }
-
     #sidebar {
         width: 80%;
     }
-    
-    /* Evitar que el contenido se pegue al header móvil */
-    .view {
-        margin-top: 0.5rem;
-    }
-}
 
-/* Scrollbar personalizado para una apariencia limpia */
-::-webkit-scrollbar {
-    width: 6px;
-}
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
+    .card-metrica h2 {
+        font-size: 1.8rem;
+    }
+    
+    .grid {
+        gap: 0.75rem !important;
+    }
 }

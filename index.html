@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>InsuManager Pro - FCILog</title>
+    <title>FCILog - Gestión de Insumos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -17,25 +17,22 @@
             <div class="text-6xl mb-4">📦</div>
             <h1 class="text-3xl font-bold mb-8">FCILog System</h1>
             <div class="space-y-4">
-                <input id="login-user" type="text" placeholder="Usuario" class="input-light">
+                <input id="login-user" type="text" placeholder="Usuario ID" class="input-light">
                 <input id="login-pass" type="password" placeholder="Contraseña" class="input-light">
-                <button onclick="iniciarSesion()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg">Entrar</button>
+                <button onclick="iniciarSesion()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg hover:bg-indigo-700 transition">Entrar</button>
             </div>
         </div>
     </div>
 
     <div id="interfaz-app" class="hidden min-h-screen flex flex-col">
         <header class="md:hidden bg-white border-b p-4 flex justify-between items-center sticky top-0 z-[100]">
-            <span class="font-bold text-indigo-600">FCILog</span>
-            <button onclick="toggleMenu()" class="text-2xl text-slate-600"><i class="fas fa-bars"></i></button>
+            <span class="font-bold text-indigo-600">FCILog v2.0</span>
+            <button onclick="toggleMenu()" class="text-2xl"><i class="fas fa-bars"></i></button>
         </header>
 
         <div class="flex flex-1">
             <aside id="sidebar" class="fixed inset-y-0 left-0 z-[150] w-72 bg-white border-r p-6 flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300">
-                <div class="flex justify-between items-center mb-10">
-                    <h1 class="text-xl font-bold italic">📦 InsuManager</h1>
-                    <button onclick="toggleMenu()" class="md:hidden text-slate-400"><i class="fas fa-times"></i></button>
-                </div>
+                <h1 class="text-xl font-bold italic text-indigo-600 mb-10">📦 InsuManager</h1>
                 <nav id="menu-dinamico" class="space-y-2 flex-1"></nav>
                 <button onclick="cerrarSesion()" class="mt-auto flex items-center gap-3 p-4 text-red-500 font-bold hover:bg-red-50 rounded-xl transition">
                     <i class="fas fa-sign-out-alt"></i> Salir
@@ -44,27 +41,27 @@
 
             <div id="sidebar-overlay" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/50 z-[140] hidden md:hidden backdrop-blur-sm"></div>
 
-            <main class="flex-1 p-4 md:p-10 md:ml-72 w-full overflow-x-hidden">
+            <main class="flex-1 p-4 md:p-10 md:ml-72 w-full">
                 <section id="pag-stats" class="view hidden space-y-6">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="card-metrica"><span>Items</span><h2 id="metrica-total">0</h2></div>
+                        <div class="card-metrica"><span>Total Items</span><h2 id="metrica-total">0</h2></div>
                         <div class="card-metrica"><span>Stock Global</span><h2 id="metrica-stock" class="text-indigo-600">0</h2></div>
                         <div class="card-metrica"><span>Pendientes</span><h2 id="metrica-pedidos" class="text-amber-500">0</h2></div>
                     </div>
-                    <div class="bg-white p-6 rounded-3xl border shadow-sm"><canvas id="stockChart"></canvas></div>
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm mt-6"><canvas id="stockChart"></canvas></div>
                 </section>
 
                 <section id="pag-stock" class="view hidden space-y-6">
                     <div class="flex justify-between items-center">
-                        <h2 class="text-2xl font-bold">Inventario</h2>
-                        <button id="btn-admin-stock" onclick="abrirModalInsumo()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold">+ Agregar</button>
+                        <h2 class="text-2xl font-bold">Inventario Real</h2>
+                        <button id="btn-admin-stock" onclick="abrirModalInsumo()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg">+ Agregar</button>
                     </div>
                     <div id="lista-inventario" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </section>
 
                 <section id="pag-usuarios" class="view hidden space-y-6">
                     <div class="bg-white p-6 rounded-3xl border shadow-sm">
-                        <h3 class="font-bold mb-4">Nuevo Usuario</h3>
+                        <h3 class="font-bold mb-4">Registrar Nuevo Acceso</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                             <input id="new-user" placeholder="ID Usuario" class="input-light">
                             <input id="new-pass" type="password" placeholder="Clave" class="input-light">
@@ -73,30 +70,29 @@
                             <button onclick="crearUsuario()" class="bg-indigo-600 text-white py-3 rounded-xl font-bold">Crear</button>
                         </div>
                     </div>
-                    <div id="lista-usuarios-db" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    <div id="lista-usuarios-db" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>
                 </section>
 
                 <section id="pag-solicitar" class="view hidden max-w-md mx-auto space-y-6">
                     <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm text-center">
-                        <h2 class="text-2xl font-bold mb-6">Solicitar Insumo</h2>
+                        <h2 class="text-2xl font-bold mb-6">Nueva Solicitud</h2>
                         <div class="space-y-4">
-                            <input id="sol-ubicacion" placeholder="Tu Ubicación" class="input-light">
-                            <input id="sol-insumo" placeholder="Nombre Insumo" list="productos-sugeridos" class="input-light">
+                            <input id="sol-ubicacion" placeholder="Área / Ubicación" class="input-light">
+                            <input id="sol-insumo" placeholder="Nombre del Insumo" class="input-light">
                             <input id="sol-cantidad" type="number" placeholder="Cantidad" class="input-light">
                             <button onclick="procesarSolicitud()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold">Enviar Pedido</button>
                         </div>
                     </div>
-                    <datalist id="productos-sugeridos"></datalist>
-                </section>
-
-                <section id="pag-solicitudes" class="view hidden space-y-4">
-                    <h2 class="text-2xl font-bold">Por Procesar</h2>
-                    <div id="lista-pendientes-admin" class="space-y-4"></div>
                 </section>
 
                 <section id="pag-notificaciones" class="view hidden space-y-4">
-                    <h2 class="text-2xl font-bold">Notificaciones</h2>
+                    <h2 class="text-2xl font-bold">Estado de mis Pedidos</h2>
                     <div id="lista-notificaciones" class="space-y-3"></div>
+                </section>
+
+                <section id="pag-solicitudes" class="view hidden space-y-4">
+                    <h2 class="text-2xl font-bold">Solicitudes Entrantes</h2>
+                    <div id="lista-pendientes-admin" class="space-y-4"></div>
                 </section>
             </main>
         </div>
@@ -104,12 +100,12 @@
 
     <div id="modal-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
-            <h3 class="text-xl font-bold mb-6 text-center">Gestionar Stock</h3>
+            <h3 class="text-xl font-bold mb-6 text-center">Actualizar Stock</h3>
             <div class="space-y-4">
                 <input id="nombre-prod" placeholder="Nombre" class="input-light">
                 <input id="cantidad-prod" type="number" placeholder="Cantidad" class="input-light">
                 <button onclick="agregarProducto()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Guardar</button>
-                <button onclick="cerrarModalInsumo()" class="w-full py-3 bg-slate-100 rounded-xl font-bold">Cerrar</button>
+                <button onclick="cerrarModalInsumo()" class="w-full py-3 bg-slate-100 rounded-xl font-bold mt-2">Cerrar</button>
             </div>
         </div>
     </div>
