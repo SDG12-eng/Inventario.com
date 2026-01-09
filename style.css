@@ -1,134 +1,331 @@
-/* --- VARIABLES Y BASE --- */
+/* ============================================================
+   VARIABLE Y RESET BASE
+   ============================================================ */
 :root {
-  --primary: #4f46e5;
-  --bg-app: #f8fafc;
-  --sidebar-w: 288px;
-  --border: #e2e8f0;
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --sidebar-width: 288px;
+    --radius-xl: 1.5rem;
+    --radius-2xl: 2rem;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent; /* Evita el flash azul en móviles */
 }
 
 body {
-  background-color: var(--bg-app);
-  font-family: 'Inter', sans-serif;
-  color: #1e293b;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    overflow-x: hidden;
 }
 
-/* --- COMPONENTES DE INTERFAZ --- */
-
-/* Entradas de texto */
+/* ============================================================
+   COMPONENTES DE ENTRADA (FORMULARIOS)
+   ============================================================ */
 .input-light {
-  width: 100%;
-  background-color: #ffffff;
-  border: 1.5px solid var(--border);
-  padding: 0.8rem 1rem;
-  border-radius: 1rem;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-  outline: none;
+    width: 100%;
+    background-color: #f1f5f9;
+    border: 2px solid transparent;
+    padding: 1rem 1.25rem;
+    border-radius: 1.25rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-main);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
 }
 
 .input-light:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    background-color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
 }
 
-/* Tarjetas de Dashboard */
+.input-light::placeholder {
+    color: #94a3b8;
+}
+
+select.input-light {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.25rem;
+    padding-right: 3rem;
+}
+
+/* ============================================================
+   SIDEBAR Y NAVEGACIÓN
+   ============================================================ */
+#sidebar {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-md);
+}
+
+/* Botones del menú lateral */
+#menu-dinamico button {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.5rem;
+    border-radius: 1.1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+#menu-dinamico button:hover {
+    background-color: #f5f3ff;
+    color: var(--primary);
+}
+
+#menu-dinamico button i {
+    font-size: 1.2rem;
+    width: 1.5rem;
+    text-align: center;
+}
+
+/* Estado activo del botón (puedes añadir esta clase vía JS si quieres) */
+#menu-dinamico button.active {
+    background-color: var(--primary);
+    color: white;
+}
+
+/* ============================================================
+   TARJETAS Y MÉTRICAS
+   ============================================================ */
 .card-metrica {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 1.5rem;
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
 }
 
 .card-metrica span {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
 }
 
 .card-metrica h2 {
-  font-size: 2.25rem;
-  font-weight: 800;
-  margin-top: 0.25rem;
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--text-main);
+    line-height: 1;
 }
 
-/* Estados (Badges) */
+/* ============================================================
+   SISTEMA DE ESTADOS (BADGES)
+   ============================================================ */
 .badge {
-  padding: 0.4rem 0.8rem;
-  border-radius: 2rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  display: inline-flex;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
 }
 
-.status-pendiente { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
-.status-aprobado { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-.status-rechazado { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-
-/* --- NAVEGACIÓN Y RESPONSIVE --- */
-
-/* Ajuste del Sidebar en móviles */
-@media (max-width: 768px) {
-  #sidebar {
-    width: 80%;
-    max-width: 300px;
-    box-shadow: 20px 0 50px rgba(0,0,0,0.1);
-  }
-  
-  /* Evitar que el contenido se encime con el header móvil */
-  main {
-    padding-top: 1.5rem !important;
-  }
+.status-pendiente {
+    background-color: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a;
 }
 
-/* Tabla del Historial adaptable */
+.status-aprobado {
+    background-color: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.status-rechazado {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* ============================================================
+   NOTIFICACIONES INTERNAS
+   ============================================================ */
+.notif-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 1.25rem;
+    border-left: 5px solid var(--primary);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1rem;
+    animation: slideRight 0.3s ease-out;
+}
+
+.notif-card p {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.notif-card small {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* ============================================================
+   TABLAS RESPONSIVAS
+   ============================================================ */
 .overflow-x-auto {
-  -webkit-overflow-scrolling: touch;
-  border-radius: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 th {
-  background: #f8fafc;
-  padding: 1rem;
-  font-size: 0.75rem;
-  color: #64748b;
-  text-align: left;
-  border-bottom: 2px solid var(--border);
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
 }
 
 td {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.9rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
 }
 
-/* Animaciones de cambio de página */
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* ============================================================
+   MODALES Y OVERLAYS
+   ============================================================ */
+.backdrop-blur-sm {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+#modal-insumo > div {
+    animation: modalScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalScale {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================================
+   BOTONES GENERALES
+   ============================================================ */
+button:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    font-weight: 700;
+    padding: 1rem 1.5rem;
+    border-radius: 1.25rem;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+}
+
+/* ============================================================
+   ANIMACIONES
+   ============================================================ */
 .view {
-  animation: slideUp 0.3s ease-out;
+    animation: fadeInPage 0.4s ease-out;
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes fadeInPage {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-/* Modales */
-.backdrop-blur {
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+@keyframes slideRight {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   AJUSTES MÓVILES EXTRAS
+   ============================================================ */
+@media (max-width: 768px) {
+    /* Ajuste de márgenes para que nada se encime con el header pegajoso */
+    main {
+        padding-top: 1.5rem !important;
+        padding-bottom: 5rem !important;
+    }
+
+    /* Tarjetas de inventario en lista para mejor lectura */
+    #lista-inventario > div {
+        padding: 1.25rem;
+    }
+
+    /* Hacer que los botones de acción en solicitudes sean grandes y fáciles de tocar */
+    #lista-pendientes-admin button {
+        padding: 0.75rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
