@@ -6,45 +6,32 @@
   --bg: #f4f7f6;
   --card: #ffffff;
 }
-
 body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; color: #333; }
-
 .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.login-card { width: 350px; text-align: center; padding: 40px !important; border-radius: 20px !important; }
+.login-card { width: 350px; text-align: center; padding: 40px !important; border-radius: 20px !important; background: white; }
 .logo-login { font-size: 2rem; font-weight: 800; color: var(--primary); margin-bottom: 20px; }
-
 .main-nav { background: var(--primary); color: white; padding: 0.8rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 .menu-items button { background: transparent; border: none; color: white; margin-left: 8px; cursor: pointer; font-size: 0.85rem; padding: 10px; border-radius: 8px; transition: 0.3s; }
 .menu-items button:hover { background: rgba(255,255,255,0.2); }
 .btn-logout { background: #e74c3c !important; }
-
 .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 .header-section { margin-bottom: 30px; text-align: center; }
 .card { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 8px 25px rgba(0,0,0,0.05); margin-bottom: 30px; }
-
 .formulario-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .formulario-col { display: flex; flex-direction: column; gap: 15px; }
 input, select { padding: 12px; border: 2px solid #edf2f7; border-radius: 10px; font-size: 1rem; outline: none; }
-.input-group { display: flex; gap: 10px; }
-
 .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 10px; cursor: pointer; }
 .btn-success { background: var(--success); color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; }
-
 .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
 .prod-card { background: white; padding: 20px; border-radius: 14px; border-left: 6px solid var(--primary); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
 .prod-card-simple { background: white; padding: 20px; border-radius: 14px; border: 1px solid #ddd; text-align: center; }
-
-.pedido-card { background: white; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; margin-bottom: 10px; }
+.pedido-card { background: white; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .pedido-info h4 { margin: 0; color: var(--primary); text-transform: uppercase; font-size: 0.9rem; }
 .pedido-info p { margin: 2px 0; font-size: 0.8rem; color: #666; }
-
 .badge { padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
 .status-pendiente { background: #fff3cd; color: #856404; }
 .status-aprobado { background: #d4edda; color: #155724; }
 .status-rechazado { background: #f8d7da; color: #721c24; }
-
 .acciones { display: flex; gap: 5px; }
 .btn-aprobar { background: var(--success); color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; }
 .btn-rechazar { background: var(--danger); color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; }
-
-@media (max-width: 768px) { .main-nav { flex-direction: column; } .menu-items { margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center; } }

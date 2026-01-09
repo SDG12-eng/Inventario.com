@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { 
-  getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, addDoc, query, where, orderBy 
+  getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, addDoc, query, where 
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -28,7 +28,7 @@ window.iniciarSesion = async () => {
 
   if (userSnap.exists() && userSnap.data().pass === pass) {
     cargarSesion({ id: user, ...userSnap.data() });
-  } else { alert("Error de credenciales"); }
+  } else { alert("Usuario o contraseña incorrectos"); }
 };
 
 function cargarSesion(datos) {
@@ -38,30 +38,29 @@ function cargarSesion(datos) {
   document.getElementById("sol-usuario").value = datos.id.toUpperCase();
 
   const isAdmin = (datos.rol === "admin");
-  const adminIds = ["nav-admin", "nav-pedidos", "nav-historial", "nav-usuarios"];
-  const userIds = ["nav-ver-stock", "nav-solicitar", "nav-mis-pedidos"];
-
-  adminIds.forEach(id => document.getElementById(id).style.display = isAdmin ? "inline-block" : "none");
-  userIds.forEach(id => document.getElementById(id).style.display = isAdmin ? "none" : "inline-block");
+  
+  // Control de visibilidad de botones
+  document.getElementById("nav-admin").style.display = isAdmin ? "inline-block" : "none";
+  document.getElementById("nav-pedidos").style.display = isAdmin ? "inline-block" : "none";
+  document.getElementById("nav-historial").style.display = isAdmin ? "inline-block" : "none";
+  document.getElementById("nav-usuarios").style.display = isAdmin ? "inline-block" : "none";
+  
+  document.getElementById("nav-ver-stock").style.display = isAdmin ? "none" : "inline-block";
+  document.getElementById("nav-solicitar").style.display = isAdmin ? "none" : "inline-block";
+  document.getElementById("nav-mis-pedidos").style.display = isAdmin ? "none" : "inline-block";
 
   verPagina(isAdmin ? 'admin' : 'ver-stock');
-  escucharDatos(isAdmin);
+  escucharTodo();
 }
 
 window.cerrarSesion = () => location.reload();
+
 window.verPagina = (id) => {
   document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
   document.getElementById(`pag-${id}`).style.display = 'block';
 };
 
-// --- ACCIONES ADMIN ---
-window.crearUsuario = async () => {
-  const user = document.getElementById("new-user").value.trim().toLowerCase();
-  const pass = document.getElementById("new-pass").value.trim();
-  const rol = document.getElementById("new-role").value;
-  if (user && pass) await setDoc(doc(db, "usuarios", user), { pass, rol });
-};
-
+// --- GESTIÓN DE DATOS ---
 window.agregarProducto = async () => {
   const nom = document.getElementById("nombre").value.trim().toLowerCase();
   const cant = parseInt(document.getElementById("cantidad").value);
@@ -69,6 +68,36 @@ window.agregarProducto = async () => {
   const ref = doc(db, "inventario", nom);
   const snap = await getDoc(ref);
   snap.exists() ? await updateDoc(ref, { cantidad: snap.data().cantidad + cant }) : await setDoc(ref, { nombre: nom, cantidad: cant });
+  document.getElementById("nombre").value = ""; document.getElementById("cantidad").value = "";
+};
+
+window.crearUsuario = async () => {
+  const user = document.getElementById("new-user").value.trim().toLowerCase();
+  const pass = document.getElementById("new-pass").value.trim();
+  const rol = document.getElementById("new-role").value;
+  if (user && pass) {
+    await setDoc(doc(db, "usuarios", user), { pass, rol });
+    alert("Usuario creado");
+    document.getElementById("new-user").value = ""; document.getElementById("new-pass").value = "";
+  }
+};
+
+window.procesarSolicitud = async () => {
+  const ubi = document.getElementById("sol-ubicacion").value.trim();
+  const ins = document.getElementById("sol-insumo").value.trim().toLowerCase();
+  const cant = parseInt(document.getElementById("sol-cantidad").value);
+  if (!ins || isNaN(cant) || !ubi) return alert("Completa todos los campos");
+
+  await addDoc(collection(db, "pedidos"), {
+    usuarioId: usuarioActual.id,
+    ubicacion: ubi,
+    insumoNom: ins,
+    cantidad: cant,
+    estado: "pendiente",
+    fecha: new Date().toLocaleString()
+  });
+  alert("Solicitud enviada");
+  document.getElementById("sol-insumo").value = ""; document.getElementById("sol-cantidad").value = "";
 };
 
 window.gestionarPedido = async (id, accion, insumo, cant) => {
@@ -85,28 +114,9 @@ window.gestionarPedido = async (id, accion, insumo, cant) => {
   }
 };
 
-// --- ACCIONES USUARIO ---
-window.procesarSolicitud = async () => {
-  const ubi = document.getElementById("sol-ubicacion").value.trim();
-  const ins = document.getElementById("sol-insumo").value.trim().toLowerCase();
-  const cant = parseInt(document.getElementById("sol-cantidad").value);
-  if (!ins || isNaN(cant) || !ubi) return alert("Faltan datos");
-
-  await addDoc(collection(db, "pedidos"), {
-    usuarioId: usuarioActual.id,
-    ubicacion: ubi,
-    insumoNom: ins,
-    cantidad: cant,
-    estado: "pendiente",
-    fecha: new Date().toLocaleString(),
-    timestamp: Date.now()
-  });
-  alert("Solicitud Enviada");
-};
-
-// --- TIEMPO REAL ---
-function escucharDatos(isAdmin) {
-  // 1. Inventario
+// --- ESCUCHA DE DATOS EN TIEMPO REAL ---
+function escucharTodo() {
+  // Inventario
   onSnapshot(collection(db, "inventario"), (snap) => {
     const lA = document.getElementById("lista-inventario");
     const lU = document.getElementById("lista-solo-lectura");
@@ -114,52 +124,56 @@ function escucharDatos(isAdmin) {
     lA.innerHTML = ""; lU.innerHTML = ""; sug.innerHTML = "";
     snap.forEach(d => {
       const p = d.data();
-      const style = p.cantidad < 5 ? 'color:red; font-weight:bold' : '';
-      lA.innerHTML += `<div class="prod-card"><div><strong>${d.id.toUpperCase()}</strong><br><span style="${style}">Cant: ${p.cantidad}</span></div><button onclick="eliminarDato('inventario','${d.id}')" style="color:red;border:none;background:none">🗑️</button></div>`;
-      lU.innerHTML += `<div class="prod-card-simple"><strong>${d.id.toUpperCase()}</strong><br><span style="${style}">Stock: ${p.cantidad}</span></div>`;
+      const st = p.cantidad < 5 ? 'color:red;font-weight:bold' : '';
+      lA.innerHTML += `<div class="prod-card"><div><strong>${d.id.toUpperCase()}</strong><br><span style="${st}">Cant: ${p.cantidad}</span></div><button onclick="eliminarDato('inventario','${d.id}')" style="color:red;border:none;background:none">🗑️</button></div>`;
+      lU.innerHTML += `<div class="prod-card-simple"><strong>${d.id.toUpperCase()}</strong><br><span style="${st}">Stock: ${p.cantidad}</span></div>`;
       sug.innerHTML += `<option value="${d.id}">`;
     });
   });
 
-  if (isAdmin) {
-    // 2. Pendientes Admin
-    onSnapshot(query(collection(db, "pedidos"), where("estado", "==", "pendiente")), (snap) => {
-      const div = document.getElementById("lista-pendientes-admin");
-      div.innerHTML = "";
-      snap.forEach(d => {
-        const p = d.data();
-        div.innerHTML += `<div class="pedido-card"><div class="pedido-info"><h4>${p.insumoNom} (${p.cantidad})</h4><p>${p.usuarioId.toUpperCase()} - ${p.ubicacion}</p></div><div class="acciones"><button class="btn-aprobar" onclick="gestionarPedido('${d.id}','aprobar','${p.insumoNom}',${p.cantidad})">✔</button><button class="btn-rechazar" onclick="gestionarPedido('${d.id}','rechazar')">✖</button></div></div>`;
-      });
-    });
-
-    // 3. Historial Admin
-    onSnapshot(query(collection(db, "pedidos"), where("estado", "!=", "pendiente")), (snap) => {
-      const div = document.getElementById("lista-historial-admin");
-      div.innerHTML = "";
-      snap.forEach(d => {
-        const p = d.data();
-        div.innerHTML += `<div class="pedido-card"><div class="pedido-info"><h4>${p.insumoNom} (${p.cantidad})</h4><p>${p.usuarioId.toUpperCase()} | ${p.fecha}</p></div><span class="badge status-${p.estado}">${p.estado}</span></div>`;
-      });
-    });
-
-    // 4. Usuarios
+  // Usuarios (Solo para Admin)
+  if (usuarioActual.rol === "admin") {
     onSnapshot(collection(db, "usuarios"), (snap) => {
       const div = document.getElementById("lista-usuarios-db");
       div.innerHTML = "";
-      snap.forEach(d => div.innerHTML += `<div class="pedido-card"><div><strong>${d.id.toUpperCase()}</strong> - ${d.data().rol}</div><button onclick="eliminarDato('usuarios','${d.id}')">🗑️</button></div>`);
-    });
-
-  } else {
-    // 5. Mis Pedidos Usuario
-    onSnapshot(query(collection(db, "pedidos"), where("usuarioId", "==", usuarioActual.id)), (snap) => {
-      const div = document.getElementById("lista-mis-pedidos");
-      div.innerHTML = "";
-      snap.forEach(d => {
-        const p = d.data();
-        div.innerHTML += `<div class="pedido-card"><div class="pedido-info"><h4>${p.insumoNom} (${p.cantidad})</h4><p>${p.fecha}</p></div><span class="badge status-${p.estado}">${p.estado}</span></div>`;
-      });
+      snap.forEach(d => div.innerHTML += `<div class="pedido-card"><div><strong>${d.id.toUpperCase()}</strong> - ${d.data().rol}</div><button onclick="eliminarDato('usuarios','${d.id}')">🗑️ Borrar</button></div>`);
     });
   }
+
+  // Pedidos (Lógica unificada para evitar errores de índice)
+  onSnapshot(collection(db, "pedidos"), (snap) => {
+    const pAdmin = document.getElementById("lista-pendientes-admin");
+    const hAdmin = document.getElementById("lista-historial-admin");
+    const uMis = document.getElementById("lista-mis-pedidos");
+
+    if(pAdmin) pAdmin.innerHTML = "";
+    if(hAdmin) hAdmin.innerHTML = "";
+    if(uMis) uMis.innerHTML = "";
+
+    snap.forEach(d => {
+      const p = d.data();
+      const html = `<div class="pedido-card">
+        <div class="pedido-info"><h4>${p.insumoNom} (${p.cantidad})</h4><p>${p.usuarioId.toUpperCase()} | ${p.ubicacion || ''}</p><p style="font-size:10px">${p.fecha}</p></div>
+        ${usuarioActual.rol === 'admin' && p.estado === 'pendiente' ? 
+          `<div class="acciones">
+            <button class="btn-aprobar" onclick="gestionarPedido('${d.id}','aprobar','${p.insumoNom}',${p.cantidad})">✔</button>
+            <button class="btn-rechazar" onclick="gestionarPedido('${d.id}','rechazar')">✖</button>
+          </div>` : 
+          `<span class="badge status-${p.estado}">${p.estado}</span>`
+        }
+      </div>`;
+
+      // Si soy admin, clasifico en Pendientes o Historial
+      if (usuarioActual.rol === "admin") {
+        if (p.estado === "pendiente") pAdmin.innerHTML += html;
+        else hAdmin.innerHTML += html;
+      } 
+      // Si soy usuario, solo muestro los míos
+      else if (p.usuarioId === usuarioActual.id) {
+        uMis.innerHTML += html;
+      }
+    });
+  });
 }
 
 window.eliminarDato = async (coll, id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, coll, id)); };
