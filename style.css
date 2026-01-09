@@ -1,75 +1,306 @@
+/* --- VARIABLES Y CONFIGURACIÓN BASE --- */
 :root {
   --primary: #4361ee;
   --secondary: #3f37c9;
-  --success: #4cc9f0;
-  --danger: #f72585;
-  --bg: #f8f9fa;
+  --success: #2ecc71;
+  --danger: #e74c3c;
+  --warning: #f1c40f;
+  --bg: #f4f7f6;
   --card: #ffffff;
+  --text: #2d3436;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg);
   margin: 0;
-  color: #333;
+  color: var(--text);
+  line-height: 1.6;
 }
 
-/* --- LOGIN SCREEN --- */
+/* --- PANTALLA DE LOGIN --- */
 .login-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: var(--primary);
-  display: flex; align-items: center; justify-content: center; z-index: 1000;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
-.login-card { width: 350px; text-align: center; padding: 40px !important; }
-.logo-login { font-size: 2rem; font-weight: bold; color: var(--primary); margin-bottom: 20px; }
 
-/* --- NAVEGACIÓN --- */
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  padding: 40px !important;
+  border-radius: 20px !important;
+}
+
+.logo-login {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+/* --- NAVEGACIÓN PRINCIPAL --- */
 .main-nav {
-  background: var(--primary); color: white; padding: 1rem 2rem;
-  display: flex; justify-content: space-between; align-items: center;
-  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  background: var(--primary);
+  color: white;
+  padding: 0.8rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-.logo { font-weight: bold; font-size: 1.4rem; }
-.menu-items button {
-  background: transparent; border: none; color: white; margin-left: 10px;
-  cursor: pointer; font-size: 0.9rem; padding: 8px 12px; border-radius: 6px; transition: 0.3s;
-}
-.menu-items button:hover { background: rgba(255,255,255,0.2); }
-.btn-logout { background: #e74c3c !important; }
 
-/* --- CONTENEDORES Y CARDS --- */
-.container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
-.header-section { margin-bottom: 25px; text-align: center; }
+.logo {
+  font-weight: bold;
+  font-size: 1.3rem;
+  letter-spacing: 1px;
+}
+
+.menu-items button {
+  background: transparent;
+  border: none;
+  color: white;
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.menu-items button:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.btn-logout {
+  background: rgba(231, 76, 60, 0.8) !important;
+  margin-left: 15px !important;
+}
+
+.btn-logout:hover {
+  background: var(--danger) !important;
+}
+
+/* --- CONTENEDORES --- */
+.container {
+  max-width: 1000px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+.header-section {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.header-section h1 {
+  margin-bottom: 5px;
+  color: #1a1a1a;
+}
+
+.header-section p {
+  color: #636e72;
+  margin-top: 0;
+}
+
+/* --- TARJETAS (CARDS) --- */
 .card {
-  background: var(--card); padding: 25px; border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 30px;
+  background: var(--card);
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+  margin-bottom: 30px;
 }
 
 /* --- FORMULARIOS --- */
-.formulario-row { display: flex; gap: 10px; flex-wrap: wrap; }
-.formulario-col { display: flex; flex-direction: column; gap: 15px; }
-input, select { padding: 12px; border: 2px solid #eee; border-radius: 8px; outline: none; font-size: 1rem; transition: 0.3s; }
-input:focus { border-color: var(--primary); }
-.input-group { display: flex; gap: 10px; }
+.formulario-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.formulario-col {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+input, select {
+  padding: 12px 15px;
+  border: 2px solid #edf2f7;
+  border-radius: 10px;
+  outline: none;
+  font-size: 1rem;
+  transition: all 0.3s;
+  background-color: #fcfcfc;
+}
+
+input:focus {
+  border-color: var(--primary);
+  background-color: #fff;
+  box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
+}
+
+.input-group {
+  display: flex;
+  gap: 12px;
+}
 
 /* --- BOTONES --- */
-button.btn-primary { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; }
-button.btn-success { background: #2ecc71; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+button {
+  font-weight: 600;
+  transition: transform 0.1s active;
+}
 
-/* --- GRID Y LISTAS --- */
-.grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+button:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn-success {
+  background: var(--success);
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* --- GRID DE PRODUCTOS --- */
+.grid-productos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
 .prod-card {
-  background: white; padding: 15px; border-radius: 12px; border-left: 5px solid var(--primary);
-  display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  background: white;
+  padding: 20px;
+  border-radius: 14px;
+  border-left: 6px solid var(--primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  transition: transform 0.2s;
 }
+
+.prod-card:hover {
+  transform: translateY(-3px);
+}
+
+.prod-card-simple {
+  background: white;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.prod-card-simple strong {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+}
+
+/* --- LISTA DE PEDIDOS / SOLICITUDES --- */
+.lista-pedidos {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
 .pedido-card {
-  background: white; margin-bottom: 15px; padding: 20px; border-radius: 12px;
-  display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee;
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
-.pedido-info h4 { margin: 0; color: var(--primary); text-transform: uppercase; }
-.pedido-info p { margin: 5px 0; font-size: 0.9rem; color: #666; }
+
+.pedido-info h4 {
+  margin: 0;
+  color: var(--primary);
+  text-transform: uppercase;
+  font-size: 1rem;
+}
+
+.pedido-info p {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
+
+/* --- ESTADOS Y BADGES --- */
+.badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-pendiente { background: #fff3cd; color: #856404; }
+.status-aprobado { background: #d4edda; color: #155724; }
+.status-rechazado { background: #f8d7da; color: #721c24; }
 
 /* --- ACCIONES --- */
-.acciones { display: flex; gap: 10px; }
-.btn-aprobar { background: #2ecc71; border: none; color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
-.btn-rechazar { background: #e74c3c; border: none; color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
+.acciones {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-aprobar { background: var(--success); border: none; color: white; padding: 10px; border-radius: 8px; cursor: pointer; }
+.btn-rechazar { background: var(--danger); border: none; color: white; padding: 10px; border-radius: 8px; cursor: pointer; }
+
+/* --- RESPONSIVO --- */
+@media (max-width: 768px) {
+  .main-nav {
+    flex-direction: column;
+    padding: 15px;
+  }
+  
+  .menu-items {
+    margin-top: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+  }
+  
+  .menu-items button {
+    margin-left: 0;
+    font-size: 0.75rem;
+    padding: 8px 10px;
+  }
+  
+  .formulario-row {
+    flex-direction: column;
+  }
+  
+  .input-group {
+    flex-direction: column;
+  }
+}
