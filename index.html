@@ -1,145 +1,89 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>InsuManager | Inventario</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Fuente Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <script>
-    tailwind.config = {
-      theme: {
-        fontFamily: {
-          sans: ['Inter', 'sans-serif']
-        }
-      }
-    }
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsuManager | Sistema de Gestión</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
 </head>
+<body>
 
-<body class="bg-gray-100 font-sans text-gray-800">
-
-<!-- NAVBAR -->
-<nav class="bg-slate-900 text-white shadow-lg">
-  <div class="max-w-7xl mx-auto px-4">
-    <div class="flex justify-between items-center h-16">
-
-      <!-- Logo -->
-      <div class="flex items-center gap-2 text-lg font-bold">
-        📦 <span>InsuManager</span>
-      </div>
-
-      <!-- Menu Desktop -->
-      <div class="hidden md:flex gap-4">
-        <button class="nav-btn">Inventario</button>
-        <button class="nav-btn">Pedidos</button>
-        <button class="nav-btn">Historial</button>
-        <button class="nav-btn">Usuarios</button>
-        <button class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md transition">Salir</button>
-      </div>
-
-      <!-- Mobile Menu Button -->
-      <div class="md:hidden">
-        <button id="menuBtn" class="text-white text-2xl">☰</button>
-      </div>
+    <div id="pantalla-login" class="login-overlay">
+        <div class="login-card glass">
+            <h1>InsuManager</h1>
+            <p>Ingresa tus credenciales</p>
+            <div class="form-grid" style="grid-template-columns: 1fr;">
+                <input type="text" id="login-user" placeholder="Usuario">
+                <input type="password" id="login-pass" placeholder="Contraseña">
+                <button onclick="iniciarSesion()" class="btn-primary">Entrar al Sistema</button>
+            </div>
+        </div>
     </div>
-  </div>
-</nav>
 
-<!-- MOBILE MENU -->
-<div id="mobileMenu" class="hidden md:hidden bg-slate-800 text-white px-4 py-3 space-y-2">
-  <button class="block w-full text-left nav-btn">Inventario</button>
-  <button class="block w-full text-left nav-btn">Pedidos</button>
-  <button class="block w-full text-left nav-btn">Historial</button>
-  <button class="block w-full text-left nav-btn">Usuarios</button>
-</div>
+    <div id="interfaz-app" style="display: none;">
+        <aside class="sidebar glass">
+            <div class="brand">📦 InsuManager</div>
+            
+            <nav id="menu-navegacion" class="flex-grow">
+                <button id="nav-admin" onclick="verPagina('admin')">🏠 Dashboard</button>
+                <button id="nav-pedidos" onclick="verPagina('pedidos')">📋 Pedidos Pendientes</button>
+                <button id="nav-historial" onclick="verPagina('historial')">🕒 Historial</button>
+                <button id="nav-ver-stock" onclick="verPagina('ver-stock')">📦 Ver Stock</button>
+                <button id="nav-solicitar" onclick="verPagina('solicitar')">✍️ Solicitar Insumo</button>
+                <button id="nav-usuarios" onclick="verPagina('usuarios')">👥 Usuarios</button>
+            </nav>
 
-<!-- CONTENIDO -->
-<main class="max-w-7xl mx-auto p-4 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <button class="btn-logout" onclick="cerrarSesion()">Salir del Sistema</button>
+        </aside>
 
-  <!-- FORM CARD -->
-  <section class="lg:col-span-1 bg-white rounded-xl shadow-lg p-6">
-    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-      ➕ Agregar Producto
-    </h2>
+        <main class="content">
+            <div id="pag-admin" class="view">
+                <h2>Gestión de Inventario</h2>
+                <div class="card glass interactive">
+                    <h3>➕ Agregar Nuevo Producto</h3>
+                    <div class="form-grid mt-4">
+                        <input type="text" id="nombre" placeholder="Nombre del insumo">
+                        <input type="number" id="cantidad" placeholder="Cantidad inicial">
+                        <button onclick="agregarProducto()" class="btn-primary">Guardar Producto</button>
+                    </div>
+                </div>
+                <div id="lista-inventario" class="grid-productos">
+                    </div>
+            </div>
 
-    <div class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-1">Nombre del producto</label>
-        <input id="nombre" type="text"
-          class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-      </div>
+            <div id="pag-solicitar" class="view">
+                <h2>Realizar Solicitud</h2>
+                <div class="card glass">
+                    <div class="form-grid">
+                        <input type="text" id="sol-usuario" readonly>
+                        <input type="text" id="sol-insumo" list="productos-sugeridos" placeholder="¿Qué necesitas?">
+                        <datalist id="productos-sugeridos"></datalist>
+                        <input type="number" id="sol-cantidad" placeholder="Cantidad">
+                        <input type="text" id="sol-ubicacion" placeholder="Ubicación/Destino">
+                        <button onclick="procesarSolicitud()" class="btn-success">Enviar Solicitud</button>
+                    </div>
+                </div>
+            </div>
 
-      <div>
-        <label class="block text-sm font-medium mb-1">Cantidad</label>
-        <input id="cantidad" type="number"
-          class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-      </div>
+            <div id="pag-pedidos" class="view">
+                <h2>Pedidos por Aprobar</h2>
+                <div id="lista-pendientes-admin"></div>
+            </div>
 
-      <button onclick="agregarProducto()"
-        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-md shadow-md transition">
-        Guardar
-      </button>
+            <div id="pag-historial" class="view">
+                <h2>Historial de Movimientos</h2>
+                <div id="lista-historial-admin"></div>
+            </div>
+            
+            <div id="pag-ver-stock" class="view">
+                <h2>Inventario Disponible</h2>
+                <div id="lista-solo-lectura" class="grid-productos"></div>
+            </div>
+
+        </main>
     </div>
-  </section>
 
-  <!-- INVENTARIO -->
-  <section class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6 overflow-x-auto">
-    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-      📦 Inventario
-    </h2>
-
-    <table class="min-w-full border border-gray-200 rounded-lg overflow-hidden">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-4 py-2 text-left text-sm font-semibold">Producto</th>
-          <th class="px-4 py-2 text-left text-sm font-semibold">Cantidad</th>
-          <th class="px-4 py-2 text-center text-sm font-semibold">Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="lista-inventario" class="divide-y">
-        <!-- Firebase render -->
-        <tr>
-          <td class="px-4 py-2">Ejemplo</td>
-          <td class="px-4 py-2">10</td>
-          <td class="px-4 py-2 text-center">
-            <button class="text-red-600 hover:text-red-800 transition">
-              🗑️
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
-
-</main>
-
-<!-- NAV BUTTON STYLE -->
-<style>
-  .nav-btn {
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    transition: background 0.2s;
-  }
-  .nav-btn:hover {
-    background-color: rgba(255,255,255,0.1);
-  }
-</style>
-
-<!-- MENU SCRIPT -->
-<script>
-  const btn = document.getElementById("menuBtn");
-  const menu = document.getElementById("mobileMenu");
-
-  btn?.addEventListener("click", () => {
-    menu.classList.toggle("hidden");
-  });
-</script>
-
+    <script type="module" src="app.js"></script>
 </body>
 </html>

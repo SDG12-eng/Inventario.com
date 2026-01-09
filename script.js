@@ -1,18 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  onSnapshot,
-  deleteDoc,
-  updateDoc,
-  addDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-/* 🔧 Firebase */
 const firebaseConfig = {
   apiKey: "AIzaSyA3cRmakg2dV2YRuNV1fY7LE87artsLmB8",
   authDomain: "mi-web-db.firebaseapp.com",
@@ -23,10 +11,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 let usuarioActual = null;
 
-/* 🔐 LOGIN */
 window.iniciarSesion = async () => {
-  const user = loginUser().toLowerCase();
-  const pass = loginPass();
+  const user = el("login-user").value.toLowerCase();
+  const pass = el("login-pass").value;
 
   if (user === "admin" && pass === "1130") {
     iniciarApp({ id: "admin", rol: "admin" });
@@ -38,181 +25,96 @@ window.iniciarSesion = async () => {
     alert("Credenciales incorrectas");
     return;
   }
-
   iniciarApp({ id: user, ...snap.data() });
 };
 
 function iniciarApp(user) {
   usuarioActual = user;
-  ocultarLogin();
+  el("pantalla-login").style.display = "none";
+  el("interfaz-app").style.display = "flex";
   configurarMenu();
-  document.getElementById("sol-usuario").value = `USUARIO: ${user.id.toUpperCase()}`;
+  if(el("sol-usuario")) el("sol-usuario").value = `USUARIO: ${user.id.toUpperCase()}`;
   verPagina(user.rol === "admin" ? "admin" : "ver-stock");
   iniciarSincronizacion();
 }
 
-/* 🧭 NAVEGACIÓN */
 window.verPagina = (id) => {
   document.querySelectorAll(".view").forEach(v => v.style.display = "none");
-  document.getElementById(`pag-${id}`).style.display = "block";
+  const target = el(`pag-${id}`);
+  if(target) target.style.display = "block";
 };
 
-/* 📦 INVENTARIO */
 window.agregarProducto = async () => {
-  const nombre = val("nombre").toLowerCase();
-  const cantidad = num("cantidad");
+  const nombre = el("nombre").value.trim().toLowerCase();
+  const cantidad = parseInt(el("cantidad").value) || 0;
   if (!nombre || cantidad <= 0) return;
-
-  await addDoc(collection(db, "inventario"), {
-    nombre,
-    cantidad,
-    creado: serverTimestamp()
-  });
+  await addDoc(collection(db, "inventario"), { nombre, cantidad, creado: serverTimestamp() });
+  el("nombre").value = ""; el("cantidad").value = "";
 };
 
-/* 🧾 SOLICITUD */
-window.procesarSolicitud = async () => {
-  const insumo = val("sol-insumo").toLowerCase();
-  const cantidad = num("sol-cantidad");
-  const ubicacion = val("sol-ubicacion");
-
-  if (!insumo || cantidad <= 0 || !ubicacion) {
-    alert("Completa los datos");
-    return;
-  }
-
-  await addDoc(collection(db, "pedidos"), {
-    usuarioId: usuarioActual.id,
-    insumoNom: insumo,
-    cantidad,
-    ubicacion,
-    estado: "pendiente",
-    fecha: serverTimestamp()
-  });
-
-  alert("Solicitud enviada");
-  verPagina("mis-pedidos");
-};
-
-/* ✔ / ✖ PEDIDOS */
-window.gestionarPedido = async (id, accion, insumo, cantidad) => {
-  const pedidoRef = doc(db, "pedidos", id);
-
-  if (accion === "aprobar") {
-    const q = await getDocs(collection(db, "inventario"));
-    const prod = q.docs.find(d => d.data().nombre === insumo);
-
-    if (!prod || prod.data().cantidad < cantidad) {
-      alert("Stock insuficiente");
-      return;
-    }
-
-    await updateDoc(doc(db, "inventario", prod.id), {
-      cantidad: prod.data().cantidad - cantidad
-    });
-
-    await updateDoc(pedidoRef, { estado: "aprobado" });
-  } else {
-    await updateDoc(pedidoRef, { estado: "rechazado" });
-  }
-};
-
-/* ❌ ELIMINAR */
-window.eliminarDato = async (coleccion, id) => {
-  if (!confirm("¿Eliminar definitivamente?")) return;
-  await deleteDoc(doc(db, coleccion, id));
-};
-
-/* 👥 USUARIOS */
-window.crearUsuario = async () => {
-  const u = val("new-user").toLowerCase();
-  const p = val("new-pass");
-  const r = document.getElementById("new-role").value;
-  if (!u || !p) return;
-
-  await setDoc(doc(db, "usuarios", u), { pass: p, rol: r });
-};
-
-/* 🔄 SINCRONIZACIÓN REAL */
 function iniciarSincronizacion() {
-
-  /* INVENTARIO */
   onSnapshot(collection(db, "inventario"), snap => {
-    const admin = el("lista-inventario");
-    const user = el("lista-solo-lectura");
+    const adminList = el("lista-inventario");
+    const userList = el("lista-solo-lectura");
     const sug = el("productos-sugeridos");
 
-    admin.innerHTML = user.innerHTML = sug.innerHTML = "";
+    if(adminList) adminList.innerHTML = "";
+    if(userList) userList.innerHTML = "";
+    if(sug) sug.innerHTML = "";
 
     snap.forEach(d => {
       const p = d.data();
-
-      admin.insertAdjacentHTML("beforeend", `
-        <div class="prod-card">
-          <strong>${p.nombre.toUpperCase()}</strong> (${p.cantidad})
-          <button onclick="eliminarDato('inventario','${d.id}')">🗑️</button>
-        </div>
-      `);
-
-      user.insertAdjacentHTML("beforeend", `
-        <div class="prod-card">
-          <strong>${p.nombre.toUpperCase()}</strong> (${p.cantidad})
-        </div>
-      `);
-
-      sug.insertAdjacentHTML("beforeend", `<option value="${p.nombre}">`);
+      const card = `
+        <div class="prod-card glass">
+          <div>
+            <div style="font-size: 0.8rem; color: #94a3b8;">PRODUCTO</div>
+            <div style="font-weight: bold; text-transform: uppercase;">${p.nombre}</div>
+            <div style="color: var(--success); font-weight: bold;">${p.cantidad} unidades</div>
+          </div>
+          <button onclick="eliminarDato('inventario','${d.id}')" style="background: none; border: none; cursor: pointer; font-size: 1.2rem;">🗑️</button>
+        </div>`;
+      
+      if(adminList) adminList.insertAdjacentHTML("beforeend", card);
+      if(userList) userList.insertAdjacentHTML("beforeend", card.replace('🗑️', ''));
+      if(sug) sug.insertAdjacentHTML("beforeend", `<option value="${p.nombre}">`);
     });
   });
 
-  /* PEDIDOS */
   onSnapshot(collection(db, "pedidos"), snap => {
     const pA = el("lista-pendientes-admin");
     const hA = el("lista-historial-admin");
-    const uM = el("lista-mis-pedidos");
-
-    pA.innerHTML = hA.innerHTML = uM.innerHTML = "";
+    if(pA) pA.innerHTML = ""; if(hA) hA.innerHTML = "";
 
     snap.forEach(d => {
       const p = d.data();
-      const base = `
-        <div class="pedido-card">
+      const card = `
+        <div class="prod-card glass" style="margin-bottom: 10px;">
           <div>
-            <strong>${p.insumoNom.toUpperCase()}</strong> (${p.cantidad})
-            <br><small>${p.usuarioId}</small>
+            <strong>${p.insumoNom.toUpperCase()}</strong> (${p.cantidad})<br>
+            <small>${p.usuarioId} - ${p.ubicacion}</small>
           </div>
-      `;
-
-      if (usuarioActual.rol === "admin" && p.estado === "pendiente") {
-        pA.innerHTML += base + `
           <div>
-            <button onclick="gestionarPedido('${d.id}','aprobar','${p.insumoNom}',${p.cantidad})">✔</button>
-            <button onclick="gestionarPedido('${d.id}','rechazar')">✖</button>
-          </div></div>`;
-      } else {
-        const html = base + `<span class="badge status-${p.estado}">${p.estado}</span></div>`;
-        hA.innerHTML += html;
-        if (p.usuarioId === usuarioActual.id) uM.innerHTML += html;
-      }
+            ${p.estado === 'pendiente' && usuarioActual.rol === 'admin' ? 
+              `<button onclick="gestionarPedido('${d.id}','aprobar')" class="badge status-aprobado">✔</button>
+               <button onclick="gestionarPedido('${d.id}','rechazar')" class="badge status-rechazado">✖</button>` :
+              `<span class="badge status-${p.estado}">${p.estado}</span>`
+            }
+          </div>
+        </div>`;
+      if(p.estado === 'pendiente' && pA) pA.innerHTML += card;
+      else if(hA) hA.innerHTML += card;
     });
   });
 }
 
-/* 🧰 UTILIDADES */
 const el = id => document.getElementById(id);
-const val = id => el(id).value.trim();
-const num = id => parseInt(val(id)) || 0;
-const loginUser = () => val("login-user");
-const loginPass = () => val("login-pass");
-const ocultarLogin = () => {
-  el("pantalla-login").style.display = "none";
-  el("interfaz-app").style.display = "block";
-};
+window.eliminarDato = async (col, id) => confirm("¿Eliminar?") && await deleteDoc(doc(db, col, id));
+window.cerrarSesion = () => location.reload();
+
 const configurarMenu = () => {
   const isAdmin = usuarioActual.rol === "admin";
-  document.querySelectorAll("[id^='nav-']").forEach(btn => {
-    const adminOnly = ["nav-admin","nav-pedidos","nav-historial","nav-usuarios"].includes(btn.id);
-    btn.style.display = isAdmin === adminOnly ? "inline-block" : "none";
+  const adminIds = ["nav-admin", "nav-pedidos", "nav-historial", "nav-usuarios"];
+  adminIds.forEach(id => {
+      if(el(id)) el(id).style.display = isAdmin ? "block" : "none";
   });
 };
-
-window.cerrarSesion = () => location.reload();
