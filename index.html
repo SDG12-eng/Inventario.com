@@ -9,65 +9,76 @@
 </head>
 <body>
 
-  <nav class="main-nav">
-    <div class="logo">📦 InsuManager</div>
-    <div class="menu-items">
-      <button onclick="verPagina('admin')"><i class="fas fa-boxes"></i> Inventario</button>
-      <button onclick="verPagina('solicitar')"><i class="fas fa-plus-circle"></i> Solicitar</button>
-      <button onclick="verPagina('historial')"><i class="fas fa-clipboard-list"></i> Solicitudes</button>
+  <div id="pantalla-login" class="login-overlay">
+    <div class="card login-card">
+      <div class="logo-login">📦 InsuManager</div>
+      <h2>Iniciar Sesión</h2>
+      <div class="formulario-col">
+        <input id="login-user" placeholder="Usuario">
+        <input id="login-pass" type="password" placeholder="Contraseña">
+        <button class="btn-primary" onclick="iniciarSesion()">Entrar</button>
+      </div>
     </div>
-  </nav>
+  </div>
 
-  <div class="container">
-    <section id="pag-admin" class="view">
-      <div class="header-section">
-        <h1>Gestión de Inventario</h1>
-        <p>Agrega o actualiza los productos disponibles.</p>
+  <div id="interfaz-app" style="display:none;">
+    <nav class="main-nav">
+      <div class="logo">📦 InsuManager</div>
+      <div class="menu-items">
+        <button id="nav-admin" onclick="verPagina('admin')"><i class="fas fa-boxes"></i> Inventario</button>
+        <button id="nav-solicitar" onclick="verPagina('solicitar')"><i class="fas fa-plus-circle"></i> Solicitar</button>
+        <button id="nav-historial" onclick="verPagina('historial')"><i class="fas fa-clipboard-list"></i> Solicitudes</button>
+        <button id="nav-usuarios" onclick="verPagina('usuarios')"><i class="fas fa-users-cog"></i> Usuarios</button>
+        <button onclick="cerrarSesion()" class="btn-logout"><i class="fas fa-sign-out-alt"></i></button>
       </div>
-      <div class="card">
-        <div class="formulario-row">
-          <input id="nombre" placeholder="Nombre del producto" list="productos-sugeridos" autocomplete="off">
-          <datalist id="productos-sugeridos"></datalist>
-          <input id="cantidad" type="number" placeholder="Cantidad">
-          <button class="btn-primary" onclick="agregarProducto()">
-            <i class="fas fa-save"></i> Guardar
-          </button>
-        </div>
-      </div>
-      <div id="lista-inventario" class="grid-productos"></div>
-    </section>
+    </nav>
 
-    <section id="pag-solicitar" class="view" style="display:none;">
-      <div class="header-section">
-        <h1>Solicitud de Insumos</h1>
-        <p>Ingresa los detalles para realizar un retiro de material.</p>
-      </div>
-      <div class="card">
-        <div class="formulario-col">
-          <label>Datos del Solicitante</label>
-          <input id="sol-usuario" placeholder="Tu Nombre Completo">
-          <input id="sol-ubicacion" placeholder="Departamento / Ubicación">
-          <hr>
-          <label>Detalles del Insumo</label>
-          <div class="input-group">
-            <input id="sol-insumo" placeholder="¿Qué insumo necesitas?" list="productos-sugeridos">
-            <input id="sol-cantidad" type="number" placeholder="Cant.">
+    <div class="container">
+      <section id="pag-admin" class="view">
+        <div class="header-section"><h1>Gestión de Inventario</h1></div>
+        <div class="card">
+          <div class="formulario-row">
+            <input id="nombre" placeholder="Producto" list="productos-sugeridos" autocomplete="off">
+            <datalist id="productos-sugeridos"></datalist>
+            <input id="cantidad" type="number" placeholder="Cant.">
+            <button class="btn-primary" onclick="agregarProducto()">Guardar</button>
           </div>
-          <button class="btn-success" onclick="procesarSolicitud()">
-            <i class="fas fa-paper-plane"></i> Enviar Solicitud
-          </button>
         </div>
-      </div>
-    </section>
+        <div id="lista-inventario" class="grid-productos"></div>
+      </section>
 
-    <section id="pag-historial" class="view" style="display:none;">
-      <div class="header-section">
-        <h1>Panel de Solicitudes</h1>
-        <p>Revisa, aprueba o rechaza las peticiones pendientes.</p>
-      </div>
-      <div id="lista-pedidos" class="lista-pedidos">
+      <section id="pag-solicitar" class="view" style="display:none;">
+        <div class="header-section"><h1>Nueva Solicitud</h1></div>
+        <div class="card formulario-col">
+          <input id="sol-usuario" placeholder="Nombre" readonly style="background:#f0f0f0">
+          <input id="sol-ubicacion" placeholder="Ubicación / Departamento">
+          <div class="input-group">
+            <input id="sol-insumo" placeholder="Insumo solicitado" list="productos-sugeridos">
+            <input id="sol-cantidad" type="number" placeholder="Cantidad">
+          </div>
+          <button class="btn-success" onclick="procesarSolicitud()">Enviar Solicitud</button>
         </div>
-    </section>
+      </section>
+
+      <section id="pag-historial" class="view" style="display:none;">
+        <div class="header-section"><h1>Solicitudes Pendientes</h1></div>
+        <div id="lista-pedidos" class="lista-pedidos"></div>
+      </section>
+
+      <section id="pag-usuarios" class="view" style="display:none;">
+        <div class="header-section"><h1>Administrar Usuarios</h1></div>
+        <div class="card formulario-row">
+          <input id="new-user" placeholder="Nuevo Usuario">
+          <input id="new-pass" type="text" placeholder="Contraseña">
+          <select id="new-role">
+            <option value="user">Rol: Usuario</option>
+            <option value="admin">Rol: Admin</option>
+          </select>
+          <button class="btn-primary" onclick="crearUsuario()">Crear</button>
+        </div>
+        <div id="lista-usuarios-db" class="lista-pedidos"></div>
+      </section>
+    </div>
   </div>
 
   <script type="module" src="script.js"></script>

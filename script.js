@@ -12,115 +12,154 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+let usuarioActual = null;
+
+// --- LOGIN Y SESIÓN ---
+window.iniciarSesion = async () => {
+  const user = document.getElementById("login-user").value.trim().toLowerCase();
+  const pass = document.getElementById("login-pass").value.trim();
+
+  // Usuario maestro de emergencia
+  if (user === "admin" && pass === "1234") {
+    cargarSesion({ id: "admin", rol: "admin" });
+    return;
+  }
+
+  const userRef = doc(db, "usuarios", user);
+  const userSnap = await getDoc(userRef);
+
+  if (userSnap.exists() && userSnap.data().pass === pass) {
+    cargarSesion({ id: user, ...userSnap.data() });
+  } else {
+    alert("Usuario o contraseña incorrectos");
+  }
+};
+
+function cargarSesion(datos) {
+  usuarioActual = datos;
+  document.getElementById("pantalla-login").style.display = "none";
+  document.getElementById("interfaz-app").style.display = "block";
+  document.getElementById("sol-usuario").value = datos.id.toUpperCase();
+
+  // Control de Roles: Si no es admin, ocultamos opciones
+  if (datos.rol !== "admin") {
+    document.getElementById("nav-admin").style.display = "none";
+    document.getElementById("nav-historial").style.display = "none";
+    document.getElementById("nav-usuarios").style.display = "none";
+    verPagina('solicitar');
+  } else {
+    verPagina('admin');
+  }
+}
+
+window.cerrarSesion = () => location.reload();
+
 // --- NAVEGACIÓN ---
 window.verPagina = (id) => {
   document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
   document.getElementById(`pag-${id}`).style.display = 'block';
 };
 
-// --- GESTIÓN INVENTARIO ---
-window.agregarProducto = async () => {
-  const nombre = document.getElementById("nombre").value.trim().toLowerCase();
-  const cantidad = parseInt(document.getElementById("cantidad").value);
+// --- GESTIÓN DE USUARIOS (ADMIN) ---
+window.crearUsuario = async () => {
+  const user = document.getElementById("new-user").value.trim().toLowerCase();
+  const pass = document.getElementById("new-pass").value.trim();
+  const rol = document.getElementById("new-role").value;
 
-  if (!nombre || isNaN(cantidad)) return alert("Datos inválidos");
-
-  const docRef = doc(db, "inventario", nombre);
-  const docSnap = await getDoc(docRef);
-
-  if (docSnap.exists()) {
-    await updateDoc(docRef, { cantidad: docSnap.data().cantidad + cantidad });
-  } else {
-    await setDoc(docRef, { nombre, cantidad });
-  }
-  document.getElementById("nombre").value = "";
-  document.getElementById("cantidad").value = "";
+  if (!user || !pass) return alert("Llena todos los campos");
+  await setDoc(doc(db, "usuarios", user), { pass, rol });
+  alert("Usuario creado correctamente");
+  document.getElementById("new-user").value = "";
+  document.getElementById("new-pass").value = "";
 };
 
-// --- PROCESAR SOLICITUD (PENDIENTE) ---
+// --- INVENTARIO ---
+window.agregarProducto = async () => {
+  const nom = document.getElementById("nombre").value.trim().toLowerCase();
+  const cant = parseInt(document.getElementById("cantidad").value);
+  if (!nom || isNaN(cant)) return;
+
+  const ref = doc(db, "inventario", nom);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    await updateDoc(ref, { cantidad: snap.data().cantidad + cant });
+  } else {
+    await setDoc(ref, { nombre: nom, cantidad: cant });
+  }
+  document.getElementById("nombre").value = ""; document.getElementById("cantidad").value = "";
+};
+
+// --- SOLICITUDES ---
 window.procesarSolicitud = async () => {
-  const usuario = document.getElementById("sol-usuario").value;
-  const ubicacion = document.getElementById("sol-ubicacion").value;
-  const insumoNom = document.getElementById("sol-insumo").value.trim().toLowerCase();
-  const cantSolicitada = parseInt(document.getElementById("sol-cantidad").value);
+  const ubi = document.getElementById("sol-ubicacion").value;
+  const ins = document.getElementById("sol-insumo").value.trim().toLowerCase();
+  const cant = parseInt(document.getElementById("sol-cantidad").value);
 
-  if (!usuario || !insumoNom || isNaN(cantSolicitada)) return alert("Completa todos los campos");
+  if (!ins || isNaN(cant)) return alert("Elige un insumo y cantidad");
 
-  // Solo guardamos la solicitud, NO restamos del stock todavía hasta aprobar
   await addDoc(collection(db, "pedidos"), {
-    usuario,
-    ubicacion,
-    insumoNom,
-    cantidad: cantSolicitada,
+    usuario: usuarioActual.id,
+    ubicacion: ubi,
+    insumoNom: ins,
+    cantidad: cant,
     estado: "pendiente",
     fecha: new Date().toLocaleString()
   });
-
-  alert("🚀 Solicitud enviada al panel de control.");
+  alert("Solicitud enviada");
   document.getElementById("sol-insumo").value = "";
   document.getElementById("sol-cantidad").value = "";
 };
 
-// --- APROBAR / RECHAZAR ---
 window.gestionarPedido = async (id, accion, insumo, cant) => {
-  const pedidoRef = doc(db, "pedidos", id);
-  
+  const pRef = doc(db, "pedidos", id);
   if (accion === 'aprobar') {
-    const invRef = doc(db, "inventario", insumo);
-    const invSnap = await getDoc(invRef);
-
-    if (invSnap.exists() && invSnap.data().cantidad >= cant) {
-      await updateDoc(invRef, { cantidad: invSnap.data().cantidad - cant });
-      await deleteDoc(pedidoRef); // O puedes marcarlo como 'aprobado'
-      alert("✅ Aprobado y stock descontado.");
-    } else {
-      alert("❌ No hay suficiente stock para aprobar.");
-    }
+    const iRef = doc(db, "inventario", insumo);
+    const iSnap = await getDoc(iRef);
+    if (iSnap.exists() && iSnap.data().cantidad >= cant) {
+      await updateDoc(iRef, { cantidad: iSnap.data().cantidad - cant });
+      await deleteDoc(pRef);
+      alert("✅ Aprobado");
+    } else alert("❌ Stock insuficiente");
   } else {
-    await deleteDoc(pedidoRef);
-    alert("🗑️ Solicitud rechazada y eliminada.");
+    await deleteDoc(pRef);
+    alert("Rechazado");
   }
 };
 
-// --- TIEMPO REAL: INVENTARIO Y SUGERENCIAS ---
-onSnapshot(collection(db, "inventario"), (snapshot) => {
-  const listaInv = document.getElementById("lista-inventario");
-  const datalist = document.getElementById("productos-sugeridos");
-  listaInv.innerHTML = "";
-  datalist.innerHTML = "";
+// --- ACTUALIZACIONES EN TIEMPO REAL ---
 
-  snapshot.forEach(doc => {
-    const p = doc.data();
-    listaInv.innerHTML += `
-      <div class="prod-card">
-        <div><strong>${p.nombre.toUpperCase()}</strong><br>Stock: ${p.cantidad}</div>
-        <button onclick="eliminarProd('${doc.id}')" style="background:none; border:none; color:red; cursor:pointer">🗑️</button>
-      </div>`;
-    datalist.innerHTML += `<option value="${p.nombre}">`;
-  });
-});
-
-// --- TIEMPO REAL: SOLICITUDES ---
-onSnapshot(collection(db, "pedidos"), (snapshot) => {
-  const listaPedidos = document.getElementById("lista-pedidos");
-  listaPedidos.innerHTML = "";
-
-  snapshot.forEach(docSnap => {
-    const ped = docSnap.data();
-    const id = docSnap.id;
-    listaPedidos.innerHTML += `
+// Usuarios
+onSnapshot(collection(db, "usuarios"), (snap) => {
+  const div = document.getElementById("lista-usuarios-db");
+  div.innerHTML = "";
+  snap.forEach(d => {
+    div.innerHTML += `
       <div class="pedido-card">
-        <div class="pedido-info">
-          <h4>${ped.insumoNom} (${ped.cantidad} ud)</h4>
-          <p><i class="fas fa-user"></i> ${ped.usuario} | <i class="fas fa-map-marker-alt"></i> ${ped.ubicacion}</p>
-          <span class="status-badge status-pendiente">${ped.estado}</span>
-        </div>
-        <div class="acciones">
-          <button class="btn-aprobar" onclick="gestionarPedido('${id}', 'aprobar', '${ped.insumoNom}', ${ped.cantidad})"><i class="fas fa-check"></i></button>
-          <button class="btn-rechazar" onclick="gestionarPedido('${id}', 'rechazar')"><i class="fas fa-times"></i></button>
-        </div>
+        <div><strong>${d.id.toUpperCase()}</strong> - Rol: ${d.data().rol}</div>
+        <button class="btn-rechazar" onclick="eliminarDato('usuarios', '${d.id}')">🗑️</button>
       </div>`;
   });
 });
 
-window.eliminarProd = async (id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, "inventario", id)); };
+// Inventario
+onSnapshot(collection(db, "inventario"), (snap) => {
+  const list = document.getElementById("lista-inventario");
+  const suger = document.getElementById("productos-sugeridos");
+  list.innerHTML = ""; suger.innerHTML = "";
+  snap.forEach(doc => {
+    list.innerHTML += `<div class="prod-card"><div><strong>${doc.id.toUpperCase()}</strong><br>Stock: ${doc.data().cantidad}</div><button onclick="eliminarDato('inventario','${doc.id}')" style="color:red;background:none;border:none;cursor:pointer">🗑️</button></div>`;
+    suger.innerHTML += `<option value="${doc.id}">`;
+  });
+});
+
+// Pedidos
+onSnapshot(collection(db, "pedidos"), (snap) => {
+  const list = document.getElementById("lista-pedidos");
+  list.innerHTML = "";
+  snap.forEach(d => {
+    const p = d.data();
+    list.innerHTML += `<div class="pedido-card"><div class="pedido-info"><h4>${p.insumoNom} (${p.cantidad})</h4><p>${p.usuario} - ${p.ubicacion}</p></div><div class="acciones"><button class="btn-aprobar" onclick="gestionarPedido('${d.id}', 'aprobar', '${p.insumoNom}', ${p.cantidad})">✔</button><button class="btn-rechazar" onclick="gestionarPedido('${d.id}', 'rechazar')">✖</button></div></div>`;
+  });
+});
+
+window.eliminarDato = async (coll, id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, coll, id)); };
