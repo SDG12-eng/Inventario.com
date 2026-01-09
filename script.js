@@ -12,14 +12,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// NAVEGACIÓN ENTRE PÁGINAS
+// --- NAVEGACIÓN ---
 window.verPagina = (id) => {
-  document.getElementById('pag-admin').style.display = id === 'admin' ? 'block' : 'none';
-  document.getElementById('pag-solicitar').style.display = id === 'solicitar' ? 'block' : 'none';
+  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+  document.getElementById(`pag-${id}`).style.display = 'block';
 };
 
-// --- LOGICA DE INVENTARIO (ADMIN) ---
-
+// --- GESTIÓN INVENTARIO ---
 window.agregarProducto = async () => {
   const nombre = document.getElementById("nombre").value.trim().toLowerCase();
   const cantidad = parseInt(document.getElementById("cantidad").value);
@@ -38,8 +37,7 @@ window.agregarProducto = async () => {
   document.getElementById("cantidad").value = "";
 };
 
-// --- LOGICA DE SOLICITUD (RESTAR STOCK) ---
-
+// --- PROCESAR SOLICITUD (PENDIENTE) ---
 window.procesarSolicitud = async () => {
   const usuario = document.getElementById("sol-usuario").value;
   const ubicacion = document.getElementById("sol-ubicacion").value;
@@ -48,53 +46,81 @@ window.procesarSolicitud = async () => {
 
   if (!usuario || !insumoNom || isNaN(cantSolicitada)) return alert("Completa todos los campos");
 
-  const docRef = doc(db, "inventario", insumoNom);
-  const docSnap = await getDoc(docRef);
-
-  if (!docSnap.exists()) {
-    return alert("El producto no existe en el inventario.");
-  }
-
-  const stockActual = docSnap.data().cantidad;
-
-  if (stockActual < cantSolicitada) {
-    return alert(`Stock insuficiente. Solo quedan ${stockActual} unidades.`);
-  }
-
-  // 1. Restar del inventario
-  await updateDoc(docRef, { cantidad: stockActual - cantSolicitada });
-
-  // 2. Opcional: Guardar un registro del pedido
+  // Solo guardamos la solicitud, NO restamos del stock todavía hasta aprobar
   await addDoc(collection(db, "pedidos"), {
-    usuario, ubicacion, insumoNom, cantidad: cantSolicitada, fecha: new Date()
+    usuario,
+    ubicacion,
+    insumoNom,
+    cantidad: cantSolicitada,
+    estado: "pendiente",
+    fecha: new Date().toLocaleString()
   });
 
-  alert("✅ Solicitud procesada y stock descontado.");
-  
-  // Limpiar campos
+  alert("🚀 Solicitud enviada al panel de control.");
   document.getElementById("sol-insumo").value = "";
   document.getElementById("sol-cantidad").value = "";
 };
 
-// --- RENDERIZADO EN TIEMPO REAL ---
+// --- APROBAR / RECHAZAR ---
+window.gestionarPedido = async (id, accion, insumo, cant) => {
+  const pedidoRef = doc(db, "pedidos", id);
+  
+  if (accion === 'aprobar') {
+    const invRef = doc(db, "inventario", insumo);
+    const invSnap = await getDoc(invRef);
 
-onSnapshot(collection(db, "inventario"), (querySnapshot) => {
-  const lista = document.getElementById("lista");
-  const sugerencias = document.getElementById("productos-sugeridos");
-  lista.innerHTML = "";
-  sugerencias.innerHTML = "";
+    if (invSnap.exists() && invSnap.data().cantidad >= cant) {
+      await updateDoc(invRef, { cantidad: invSnap.data().cantidad - cant });
+      await deleteDoc(pedidoRef); // O puedes marcarlo como 'aprobado'
+      alert("✅ Aprobado y stock descontado.");
+    } else {
+      alert("❌ No hay suficiente stock para aprobar.");
+    }
+  } else {
+    await deleteDoc(pedidoRef);
+    alert("🗑️ Solicitud rechazada y eliminada.");
+  }
+};
 
-  querySnapshot.forEach((doc) => {
+// --- TIEMPO REAL: INVENTARIO Y SUGERENCIAS ---
+onSnapshot(collection(db, "inventario"), (snapshot) => {
+  const listaInv = document.getElementById("lista-inventario");
+  const datalist = document.getElementById("productos-sugeridos");
+  listaInv.innerHTML = "";
+  datalist.innerHTML = "";
+
+  snapshot.forEach(doc => {
     const p = doc.data();
-    lista.innerHTML += `
-      <li>
-        <div><strong style="text-transform:uppercase">${p.nombre}</strong><br>Stock: ${p.cantidad}</div>
-        <button class="btn-eliminar" onclick="eliminarProducto('${doc.id}')">🗑️</button>
-      </li>`;
-    sugerencias.innerHTML += `<option value="${p.nombre}">`;
+    listaInv.innerHTML += `
+      <div class="prod-card">
+        <div><strong>${p.nombre.toUpperCase()}</strong><br>Stock: ${p.cantidad}</div>
+        <button onclick="eliminarProd('${doc.id}')" style="background:none; border:none; color:red; cursor:pointer">🗑️</button>
+      </div>`;
+    datalist.innerHTML += `<option value="${p.nombre}">`;
   });
 });
 
-window.eliminarProducto = async (id) => {
-  if(confirm("¿Borrar?")) await deleteDoc(doc(db, "inventario", id));
-};
+// --- TIEMPO REAL: SOLICITUDES ---
+onSnapshot(collection(db, "pedidos"), (snapshot) => {
+  const listaPedidos = document.getElementById("lista-pedidos");
+  listaPedidos.innerHTML = "";
+
+  snapshot.forEach(docSnap => {
+    const ped = docSnap.data();
+    const id = docSnap.id;
+    listaPedidos.innerHTML += `
+      <div class="pedido-card">
+        <div class="pedido-info">
+          <h4>${ped.insumoNom} (${ped.cantidad} ud)</h4>
+          <p><i class="fas fa-user"></i> ${ped.usuario} | <i class="fas fa-map-marker-alt"></i> ${ped.ubicacion}</p>
+          <span class="status-badge status-pendiente">${ped.estado}</span>
+        </div>
+        <div class="acciones">
+          <button class="btn-aprobar" onclick="gestionarPedido('${id}', 'aprobar', '${ped.insumoNom}', ${ped.cantidad})"><i class="fas fa-check"></i></button>
+          <button class="btn-rechazar" onclick="gestionarPedido('${id}', 'rechazar')"><i class="fas fa-times"></i></button>
+        </div>
+      </div>`;
+  });
+});
+
+window.eliminarProd = async (id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, "inventario", id)); };

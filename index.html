@@ -3,39 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Gestión</title>
+  <title>Sistema de Gestión Pro</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
-  <nav class="navbar">
-    <button onclick="verPagina('admin')">📦 Inventario</button>
-    <button onclick="verPagina('solicitar')">📝 Solicitar</button>
+  <nav class="main-nav">
+    <div class="logo">📦 InsuManager</div>
+    <div class="menu-items">
+      <button onclick="verPagina('admin')"><i class="fas fa-boxes"></i> Inventario</button>
+      <button onclick="verPagina('solicitar')"><i class="fas fa-plus-circle"></i> Solicitar</button>
+      <button onclick="verPagina('historial')"><i class="fas fa-clipboard-list"></i> Solicitudes</button>
+    </div>
   </nav>
 
   <div class="container">
-    <section id="pag-admin">
-      <h1>📦 Administración</h1>
-      <div class="formulario">
-        <input id="nombre" placeholder="Producto" list="productos-sugeridos" autocomplete="off">
-        <datalist id="productos-sugeridos"></datalist>
-        <input id="cantidad" type="number" placeholder="Cant.">
-        <button class="btn-principal" onclick="agregarProducto()">Actualizar Stock</button>
+    <section id="pag-admin" class="view">
+      <div class="header-section">
+        <h1>Gestión de Inventario</h1>
+        <p>Agrega o actualiza los productos disponibles.</p>
       </div>
-      <ul id="lista"></ul>
+      <div class="card">
+        <div class="formulario-row">
+          <input id="nombre" placeholder="Nombre del producto" list="productos-sugeridos" autocomplete="off">
+          <datalist id="productos-sugeridos"></datalist>
+          <input id="cantidad" type="number" placeholder="Cantidad">
+          <button class="btn-primary" onclick="agregarProducto()">
+            <i class="fas fa-save"></i> Guardar
+          </button>
+        </div>
+      </div>
+      <div id="lista-inventario" class="grid-productos"></div>
     </section>
 
-    <section id="pag-solicitar" style="display:none;">
-      <h1>📝 Solicitar Insumo</h1>
-      <p>Completa los datos para retirar del inventario.</p>
-      <div class="formulario">
-        <input id="sol-usuario" placeholder="Tu Nombre">
-        <input id="sol-ubicacion" placeholder="Ubicación / Departamento">
-        <input id="sol-insumo" placeholder="Tipo de insumo" list="productos-sugeridos">
-        <input id="sol-cantidad" type="number" placeholder="Cantidad a retirar">
-        <button class="btn-solicitar" onclick="procesarSolicitud()">Confirmar Retiro</button>
+    <section id="pag-solicitar" class="view" style="display:none;">
+      <div class="header-section">
+        <h1>Solicitud de Insumos</h1>
+        <p>Ingresa los detalles para realizar un retiro de material.</p>
       </div>
-      <div id="mensaje-solicitud"></div>
+      <div class="card">
+        <div class="formulario-col">
+          <label>Datos del Solicitante</label>
+          <input id="sol-usuario" placeholder="Tu Nombre Completo">
+          <input id="sol-ubicacion" placeholder="Departamento / Ubicación">
+          <hr>
+          <label>Detalles del Insumo</label>
+          <div class="input-group">
+            <input id="sol-insumo" placeholder="¿Qué insumo necesitas?" list="productos-sugeridos">
+            <input id="sol-cantidad" type="number" placeholder="Cant.">
+          </div>
+          <button class="btn-success" onclick="procesarSolicitud()">
+            <i class="fas fa-paper-plane"></i> Enviar Solicitud
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="pag-historial" class="view" style="display:none;">
+      <div class="header-section">
+        <h1>Panel de Solicitudes</h1>
+        <p>Revisa, aprueba o rechaza las peticiones pendientes.</p>
+      </div>
+      <div id="lista-pedidos" class="lista-pedidos">
+        </div>
     </section>
   </div>
 
