@@ -2,107 +2,125 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Inventario Web</title>
+  <title>Inventario | Sistema</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
 
-<!-- 🔐 LOGIN -->
+<!-- LOGIN -->
 <div id="pantalla-login" class="login-overlay">
   <div class="login-card">
-    <h2>Iniciar sesión</h2>
+    <h2>📦 Inventario</h2>
+    <p>Acceso al sistema</p>
     <input id="login-user" placeholder="Usuario">
     <input id="login-pass" type="password" placeholder="Contraseña">
-    <button class="btn-primary" onclick="iniciarSesion()">Entrar</button>
+    <button class="btn-primary" onclick="iniciarSesion()">Ingresar</button>
   </div>
 </div>
 
-<!-- 🧠 APP -->
+<!-- APP -->
 <div id="interfaz-app" style="display:none">
 
   <!-- NAV -->
-  <nav class="main-nav">
-    <strong>📦 Inventario</strong>
-    <div class="menu-items">
+  <header class="topbar">
+    <div class="logo">📦 Inventario</div>
+    <nav class="menu-items">
       <button id="nav-admin" onclick="verPagina('admin')">Inventario</button>
       <button id="nav-pedidos" onclick="verPagina('pedidos')">Pedidos</button>
       <button id="nav-historial" onclick="verPagina('historial')">Historial</button>
       <button id="nav-usuarios" onclick="verPagina('usuarios')">Usuarios</button>
-      <button onclick="verPagina('ver-stock')">Ver stock</button>
+      <button onclick="verPagina('ver-stock')">Stock</button>
       <button onclick="verPagina('solicitud')">Solicitar</button>
       <button onclick="verPagina('mis-pedidos')">Mis pedidos</button>
       <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
-    </div>
-  </nav>
+    </nav>
+  </header>
 
-  <div class="container">
+  <main class="container">
 
-    <!-- ADMIN INVENTARIO -->
-    <section id="pag-admin" class="view card">
-      <h3>Agregar producto</h3>
-      <div class="formulario-row">
-        <input id="nombre" placeholder="Producto">
-        <input id="cantidad" type="number" placeholder="Cantidad">
-        <button class="btn-primary" onclick="agregarProducto()">Agregar</button>
+    <!-- INVENTARIO ADMIN -->
+    <section id="pag-admin" class="view">
+      <div class="card">
+        <h3>➕ Agregar producto</h3>
+        <div class="form-grid">
+          <input id="nombre" placeholder="Nombre del producto">
+          <input id="cantidad" type="number" placeholder="Cantidad">
+          <button class="btn-primary" onclick="agregarProducto()">Guardar</button>
+        </div>
       </div>
-      <h4>Inventario</h4>
-      <div id="lista-inventario" class="grid-productos"></div>
+
+      <div class="card">
+        <h3>📦 Inventario</h3>
+        <div id="lista-inventario" class="grid-productos"></div>
+      </div>
     </section>
 
-    <!-- VER STOCK -->
-    <section id="pag-ver-stock" class="view card">
-      <h3>Stock disponible</h3>
-      <div id="lista-solo-lectura" class="grid-productos"></div>
+    <!-- STOCK -->
+    <section id="pag-ver-stock" class="view">
+      <div class="card">
+        <h3>📊 Stock disponible</h3>
+        <div id="lista-solo-lectura" class="grid-productos"></div>
+      </div>
     </section>
 
     <!-- SOLICITUD -->
-    <section id="pag-solicitud" class="view card">
-      <h3>Solicitud de insumos</h3>
-      <div class="formulario-col">
-        <input id="sol-usuario" disabled>
-        <input id="sol-ubicacion" placeholder="Ubicación">
-        <input id="sol-cantidad" type="number" placeholder="Cantidad">
-        <input list="productos-sugeridos" id="sol-insumo" placeholder="Producto">
-        <datalist id="productos-sugeridos"></datalist>
-        <button class="btn-success" onclick="procesarSolicitud()">Enviar solicitud</button>
+    <section id="pag-solicitud" class="view">
+      <div class="card">
+        <h3>📝 Solicitud de insumos</h3>
+        <div class="form-column">
+          <input id="sol-usuario" disabled>
+          <input id="sol-ubicacion" placeholder="Ubicación">
+          <input id="sol-cantidad" type="number" placeholder="Cantidad">
+          <input list="productos-sugeridos" id="sol-insumo" placeholder="Producto">
+          <datalist id="productos-sugeridos"></datalist>
+          <button class="btn-success" onclick="procesarSolicitud()">Enviar solicitud</button>
+        </div>
       </div>
     </section>
 
-    <!-- PEDIDOS ADMIN -->
-    <section id="pag-pedidos" class="view card">
-      <h3>Pedidos pendientes</h3>
-      <div id="lista-pendientes-admin"></div>
+    <!-- PEDIDOS -->
+    <section id="pag-pedidos" class="view">
+      <div class="card">
+        <h3>📥 Pedidos pendientes</h3>
+        <div id="lista-pendientes-admin"></div>
+      </div>
     </section>
 
     <!-- HISTORIAL -->
-    <section id="pag-historial" class="view card">
-      <h3>Historial</h3>
-      <div id="lista-historial-admin"></div>
-    </section>
-
-    <!-- MIS PEDIDOS -->
-    <section id="pag-mis-pedidos" class="view card">
-      <h3>Mis solicitudes</h3>
-      <div id="lista-mis-pedidos"></div>
-    </section>
-
-    <!-- USUARIOS -->
-    <section id="pag-usuarios" class="view card">
-      <h3>Crear usuario</h3>
-      <div class="formulario-row">
-        <input id="new-user" placeholder="Usuario">
-        <input id="new-pass" placeholder="Contraseña">
-        <select id="new-role">
-          <option value="user">Usuario</option>
-          <option value="admin">Admin</option>
-        </select>
-        <button class="btn-primary" onclick="crearUsuario()">Crear</button>
+    <section id="pag-historial" class="view">
+      <div class="card">
+        <h3>📚 Historial</h3>
+        <div id="lista-historial-admin"></div>
       </div>
     </section>
 
-  </div>
+    <!-- MIS PEDIDOS -->
+    <section id="pag-mis-pedidos" class="view">
+      <div class="card">
+        <h3>📄 Mis solicitudes</h3>
+        <div id="lista-mis-pedidos"></div>
+      </div>
+    </section>
+
+    <!-- USUARIOS -->
+    <section id="pag-usuarios" class="view">
+      <div class="card">
+        <h3>👤 Crear usuario</h3>
+        <div class="form-grid">
+          <input id="new-user" placeholder="Usuario">
+          <input id="new-pass" placeholder="Contraseña">
+          <select id="new-role">
+            <option value="user">Usuario</option>
+            <option value="admin">Administrador</option>
+          </select>
+          <button class="btn-primary" onclick="crearUsuario()">Crear</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
 </div>
 
 <script type="module" src="script.js"></script>
