@@ -45,7 +45,7 @@
             <div id="sidebar-overlay" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/50 z-[140] hidden md:hidden backdrop-blur-sm"></div>
 
             <main class="flex-1 p-4 md:p-10 md:ml-72 w-full overflow-x-hidden">
-                
+
                 <section id="pag-stats" class="view hidden space-y-6">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="card-metrica"><span>Items Unicos</span><h2 id="metrica-total">0</h2></div>
@@ -108,7 +108,8 @@
                         <h2 class="text-2xl font-bold mb-6">Nueva Solicitud</h2>
                         <div class="space-y-4">
                             <input id="sol-ubicacion" placeholder="Área Destino" class="input-light">
-                            <input id="sol-insumo" placeholder="Insumo" class="input-light">
+                            <input id="sol-insumo" list="datalist-insumos" placeholder="Insumo" class="input-light">
+                            <datalist id="datalist-insumos"></datalist>
                             <input id="sol-cantidad" type="number" placeholder="Cantidad" class="input-light">
                             <button onclick="procesarSolicitud()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold">Enviar</button>
                         </div>
@@ -128,7 +129,8 @@
         <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
             <h3 class="text-xl font-bold mb-6 text-center">Actualizar Inventario</h3>
             <div class="space-y-4">
-                <input id="nombre-prod" placeholder="Nombre Item" class="input-light">
+                <input id="nombre-prod" list="datalist-admin-stock" placeholder="Nombre Item" class="input-light">
+                <datalist id="datalist-admin-stock"></datalist>
                 <input id="cantidad-prod" type="number" placeholder="Stock" class="input-light">
                 <button onclick="agregarProducto()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Guardar</button>
                 <button onclick="cerrarModalInsumo()" class="w-full py-3 bg-slate-100 rounded-xl font-bold">Cancelar</button>
