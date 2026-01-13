@@ -1,6 +1,3 @@
-/* ==========================================
-   1. VARIABLES Y RESET
-   ========================================== */
 :root {
     --primary: #6366f1;
     --primary-hover: #4f46e5;
@@ -32,9 +29,6 @@ body {
     overflow-x: hidden;
 }
 
-/* ==========================================
-   2. COMPONENTES DE FORMULARIO
-   ========================================== */
 .input-light {
     width: 100%;
     background-color: #f1f5f9;
@@ -53,45 +47,10 @@ body {
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
-button {
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
+button:active { transform: scale(0.96); }
 
-button:active {
-    transform: scale(0.96);
-}
+#sidebar { box-shadow: 5px 0 25px rgba(0,0,0,0.03); }
 
-/* ==========================================
-   3. SIDEBAR Y NAVEGACIÓN
-   ========================================== */
-#sidebar {
-    box-shadow: 5px 0 25px rgba(0,0,0,0.03);
-    transition: transform 0.3s ease-in-out;
-}
-
-#menu-dinamico button {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    width: 100%;
-    padding: 1rem 1.25rem;
-    border-radius: 1rem;
-    color: #64748b;
-    font-weight: 600;
-    border: none;
-    background: transparent;
-    text-align: left;
-}
-
-#menu-dinamico button:hover {
-    background-color: #f5f3ff;
-    color: var(--primary);
-}
-
-/* ==========================================
-   4. DASHBOARD Y MÉTRICAS
-   ========================================== */
 .card-metrica {
     background: var(--white);
     padding: 1.75rem;
@@ -107,19 +66,11 @@ button:active {
     font-weight: 800;
     color: var(--text-light);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
     margin-bottom: 0.5rem;
 }
 
-.card-metrica h2 {
-    font-size: 2.5rem;
-    font-weight: 900;
-    letter-spacing: -0.02em;
-}
+.card-metrica h2 { font-size: 2.5rem; font-weight: 900; }
 
-/* ==========================================
-   5. SISTEMA DE BADGES Y ESTADOS
-   ========================================== */
 .badge {
     display: inline-block;
     padding: 0.4rem 1rem;
@@ -127,120 +78,31 @@ button:active {
     font-size: 0.75rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.025em;
 }
 
 .status-pendiente { background: #fef3c7; color: var(--warning); border: 1px solid #fde68a; }
 .status-aprobado { background: #dcfce7; color: var(--success); border: 1px solid #bbf7d0; }
 .status-rechazado { background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; }
 
-/* ==========================================
-   6. TABLAS E HISTORIAL
-   ========================================== */
-.overflow-x-auto {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-table {
-    width: 100%;
-    border-spacing: 0;
-}
-
-th {
-    background-color: #f8fafc;
-    color: #64748b;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    padding: 1rem;
-    border-bottom: 1px solid var(--border);
-}
-
-td {
-    padding: 1rem;
-    border-bottom: 1px solid #f1f5f9;
-}
-
-tr:last-child td {
-    border-bottom: none;
-}
-
-/* ==========================================
-   7. TARJETAS DE USUARIO Y NOTIF
-   ========================================== */
-.user-card {
+.user-card, .notif-card {
     background: var(--white);
     padding: 1.25rem;
     border-radius: 1.5rem;
     border: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
 
-.notif-card {
-    background: var(--white);
-    padding: 1.25rem;
-    border-radius: 1.5rem;
-    border-left: 6px solid var(--primary);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.04);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+.notif-card { border-left: 6px solid var(--primary); }
 
-/* ==========================================
-   8. MODALES Y ANIMACIONES
-   ========================================== */
-#modal-insumo {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
+#modal-insumo { backdrop-filter: blur(8px); }
 
-.view {
-    animation: fadeIn 0.4s ease-out forwards;
-}
+.view { animation: fadeIn 0.4s ease-out forwards; }
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ==========================================
-   9. RESPONSIVE
-   ========================================== */
 @media (max-width: 768px) {
-    main {
-        padding: 1.5rem 1rem !important;
-    }
-    
-    .card-metrica h2 {
-        font-size: 1.8rem;
-    }
-
-    #sidebar {
-        width: 85%;
-    }
-    
-    .grid {
-        gap: 0.75rem !important;
-    }
-
-    table {
-        min-width: 600px; /* Asegura que la tabla no se aplaste en móviles */
-    }
-}
-
-/* Scrollbar personalizado */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
+    main { padding: 1.5rem 1rem !important; }
+    #sidebar { width: 85%; }
 }
