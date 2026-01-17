@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FCI Pro - InsuManager</title>
+    <title>FCILog Pro - InsuManager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -15,7 +15,7 @@
     <div id="pantalla-login" class="fixed inset-0 z-[200] bg-white flex items-center justify-center p-6">
         <div class="w-full max-w-sm text-center">
             <div class="text-6xl mb-4">📦</div>
-            <h1 class="text-3xl font-bold mb-8 text-indigo-900">FCILog System</h1>
+            <h1 class="text-3xl font-bold mb-8 text-indigo-900">FCI System</h1>
             <div class="space-y-4">
                 <input id="login-user" type="text" placeholder="Usuario ID" class="input-light">
                 <input id="login-pass" type="password" placeholder="Contraseña" class="input-light">
@@ -45,7 +45,6 @@
             <div id="sidebar-overlay" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/50 z-[140] hidden md:hidden backdrop-blur-sm"></div>
 
             <main class="flex-1 p-4 md:p-10 md:ml-72 w-full overflow-x-hidden">
-
                 <section id="pag-stats" class="view hidden space-y-6">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="card-metrica"><span>Items Unicos</span><h2 id="metrica-total">0</h2></div>
@@ -69,7 +68,7 @@
                 </section>
 
                 <section id="pag-historial" class="view hidden space-y-4">
-                    <h2 class="text-2xl font-bold">Historial de Movimientos</h2>
+                    <h2 class="text-2xl font-bold">Historial</h2>
                     <div class="bg-white rounded-3xl border shadow-sm overflow-x-auto">
                         <table class="w-full text-left min-w-[600px]">
                             <thead class="bg-slate-50 border-b">
@@ -109,7 +108,7 @@
                         <div class="space-y-4">
                             <input id="sol-ubicacion" placeholder="Área Destino" class="input-light">
                             <select id="sol-insumo" class="input-light">
-                                <option value="">Seleccionar Insumo...</option>
+                                <option value="">Cargando insumos...</option>
                             </select>
                             <input id="sol-cantidad" type="number" placeholder="Cantidad" class="input-light">
                             <button onclick="procesarSolicitud()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold">Enviar</button>
@@ -118,21 +117,20 @@
                 </section>
 
                 <section id="pag-notificaciones" class="view hidden space-y-4">
-                    <h2 class="text-2xl font-bold">Estado de mis Solicitudes</h2>
+                    <h2 class="text-2xl font-bold">Mis Pedidos</h2>
                     <div id="lista-notificaciones" class="space-y-3"></div>
                 </section>
-
             </main>
         </div>
     </div>
 
     <div id="modal-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
-            <h3 class="text-xl font-bold mb-6 text-center">Actualizar Inventario</h3>
+            <h3 class="text-xl font-bold mb-6 text-center">Gestionar Stock</h3>
             <div class="space-y-4">
-                <input id="nombre-prod" list="admin-stock-datalist" placeholder="Nombre Item" class="input-light">
-                <datalist id="admin-stock-datalist"></datalist>
-                <input id="cantidad-prod" type="number" placeholder="Stock" class="input-light">
+                <input id="nombre-prod" list="admin-stock-dl" placeholder="Nombre Item" class="input-light">
+                <datalist id="admin-stock-dl"></datalist>
+                <input id="cantidad-prod" type="number" placeholder="Nueva Cantidad" class="input-light">
                 <button onclick="agregarProducto()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Guardar</button>
                 <button onclick="cerrarModalInsumo()" class="w-full py-3 bg-slate-100 rounded-xl font-bold">Cancelar</button>
             </div>
