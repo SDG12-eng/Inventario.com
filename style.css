@@ -29,6 +29,7 @@ body {
     overflow-x: hidden;
 }
 
+/* Campos de entrada estilizados */
 .input-light {
     width: 100%;
     background-color: #f1f5f9;
@@ -39,6 +40,16 @@ body {
     font-weight: 500;
     outline: none;
     transition: all 0.3s ease;
+    appearance: none; /* Quita estilo nativo de select */
+}
+
+/* Estilo específico para Select para que tenga flecha */
+select.input-light {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236366f1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1.25rem center;
+    background-size: 1.5rem;
+    padding-right: 3rem;
 }
 
 .input-light:focus {
@@ -49,8 +60,7 @@ body {
 
 button:active { transform: scale(0.96); }
 
-#sidebar { box-shadow: 5px 0 25px rgba(0,0,0,0.03); }
-
+/* Tarjetas y Métricas */
 .card-metrica {
     background: var(--white);
     padding: 1.75rem;
@@ -66,11 +76,13 @@ button:active { transform: scale(0.96); }
     font-weight: 800;
     color: var(--text-light);
     text-transform: uppercase;
+    letter-spacing: 0.05em;
     margin-bottom: 0.5rem;
 }
 
 .card-metrica h2 { font-size: 2.5rem; font-weight: 900; }
 
+/* Estatus Badges */
 .badge {
     display: inline-block;
     padding: 0.4rem 1rem;
@@ -84,6 +96,7 @@ button:active { transform: scale(0.96); }
 .status-aprobado { background: #dcfce7; color: var(--success); border: 1px solid #bbf7d0; }
 .status-rechazado { background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; }
 
+/* Contenedores de Notificaciones y Usuarios */
 .user-card, .notif-card {
     background: var(--white);
     padding: 1.25rem;
@@ -93,8 +106,7 @@ button:active { transform: scale(0.96); }
 
 .notif-card { border-left: 6px solid var(--primary); }
 
-#modal-insumo { backdrop-filter: blur(8px); }
-
+/* Animaciones */
 .view { animation: fadeIn 0.4s ease-out forwards; }
 
 @keyframes fadeIn {
@@ -106,3 +118,6 @@ button:active { transform: scale(0.96); }
     main { padding: 1.5rem 1rem !important; }
     #sidebar { width: 85%; }
 }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
