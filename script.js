@@ -89,12 +89,31 @@ window.gestionarPedido = async (pid, accion, ins, cant) => {
     }
 };
 
+// --- FUNCIÓN ACTUALIZADA: SUMA STOCK EN LUGAR DE REEMPLAZAR ---
 window.agregarProducto = async () => {
     const n = document.getElementById("nombre-prod").value.trim().toLowerCase();
     const c = parseInt(document.getElementById("cantidad-prod").value);
+    
     if(n && !isNaN(c)) {
-        await setDoc(doc(db, "inventario", n), { cantidad: c });
+        const docRef = doc(db, "inventario", n);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            // Si el insumo existe, sumamos la nueva cantidad a la existente
+            const cantidadActual = docSnap.data().cantidad || 0;
+            await updateDoc(docRef, {
+                cantidad: cantidadActual + c
+            });
+        } else {
+            // Si el insumo es nuevo, lo creamos
+            await setDoc(docRef, { cantidad: c });
+        }
+        
         window.cerrarModalInsumo();
+        document.getElementById("nombre-prod").value = "";
+        document.getElementById("cantidad-prod").value = "";
+    } else {
+        alert("Ingresa un nombre y cantidad válida.");
     }
 };
 
@@ -139,7 +158,6 @@ function configurarMenu() {
 }
 
 function activarSincronizacion() {
-    // Inventario y Selectores
     onSnapshot(collection(db, "inventario"), snap => {
         const list = document.getElementById("lista-inventario");
         const sel = document.getElementById("sol-insumo");
@@ -170,7 +188,6 @@ function activarSincronizacion() {
         }
     });
 
-    // Pedidos
     onSnapshot(collection(db, "pedidos"), snap => {
         const lAdmin = document.getElementById("lista-pendientes-admin");
         const lUser = document.getElementById("lista-notificaciones");
@@ -200,7 +217,6 @@ function activarSincronizacion() {
         if(usuarioActual.rol === 'admin') document.getElementById("metrica-pedidos").innerText = pCnt;
     });
 
-    // Usuarios (solo admin)
     if(usuarioActual.rol === 'admin') {
         onSnapshot(collection(db, "usuarios"), snap => {
             const list = document.getElementById("lista-usuarios-db"); if(!list) return;
