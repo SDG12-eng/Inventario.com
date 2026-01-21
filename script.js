@@ -19,7 +19,16 @@ let insumoChart = null;
 
 emailjs.init("2jVnfkJKKG0bpKN-U");
 
-// --- FUNCIONES DE SESIÓN ---
+// --- PERSISTENCIA DE SESIÓN ---
+// Al cargar el documento, verificamos si hay una sesión guardada
+window.addEventListener('DOMContentLoaded', () => {
+    const sesionGuardada = localStorage.getItem("fcilog_session");
+    if (sesionGuardada) {
+        cargarSesion(JSON.parse(sesionGuardada));
+    }
+});
+
+// --- FUNCIONES GLOBALES ---
 
 window.iniciarSesion = async () => {
     const user = document.getElementById("login-user").value.trim().toLowerCase();
@@ -37,7 +46,7 @@ window.iniciarSesion = async () => {
 
 function cargarSesion(datos) {
     usuarioActual = datos;
-    // Guardamos en localStorage para persistencia
+    // Guardamos en el almacenamiento local del navegador
     localStorage.setItem("fcilog_session", JSON.stringify(datos));
     
     document.getElementById("pantalla-login").classList.add("hidden");
@@ -54,17 +63,10 @@ function cargarSesion(datos) {
 }
 
 window.cerrarSesion = () => {
+    // Borramos la sesión de la memoria y recargamos
     localStorage.removeItem("fcilog_session");
     location.reload();
 };
-
-// --- AUTO-LOGUEO AL CARGAR (FIXED) ---
-const sesionGuardada = localStorage.getItem("fcilog_session");
-if (sesionGuardada) {
-    cargarSesion(JSON.parse(sesionGuardada));
-}
-
-// --- NAVEGACIÓN Y MODALES ---
 
 window.verPagina = (id) => {
     document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
@@ -85,7 +87,6 @@ window.abrirModalInsumo = () => document.getElementById("modal-insumo").classLis
 window.cerrarModalInsumo = () => document.getElementById("modal-insumo").classList.add("hidden");
 
 // --- GESTIÓN DE STOCK ---
-
 window.agregarProducto = async () => {
     const n = document.getElementById("nombre-prod").value.trim().toLowerCase();
     const c = parseInt(document.getElementById("cantidad-prod").value);
@@ -111,20 +112,19 @@ window.agregarProducto = async () => {
         window.cerrarModalInsumo();
         document.getElementById("nombre-prod").value = "";
         document.getElementById("cantidad-prod").value = "";
-        alert("Stock actualizado.");
+        alert("Stock registrado con éxito.");
     } else {
-        alert("Datos inválidos.");
+        alert("Ingresa datos válidos.");
     }
 };
 
-// --- PEDIDOS Y REPORTES ---
-
+// --- PROCESAR PEDIDOS ---
 window.procesarSolicitud = async () => {
     const ins = document.getElementById("sol-insumo").value;
     const cant = parseInt(document.getElementById("sol-cantidad").value);
     const ubi = document.getElementById("sol-ubicacion").value;
 
-    if(!ins || isNaN(cant) || cant <= 0 || !ubi) return alert("Faltan datos.");
+    if(!ins || isNaN(cant) || cant <= 0 || !ubi) return alert("Selecciona sede, insumo y cantidad.");
 
     await addDoc(collection(db, "pedidos"), {
         usuarioId: usuarioActual.id,
@@ -137,7 +137,7 @@ window.procesarSolicitud = async () => {
     });
     
     enviarMail("archivos@fcipty.com", { usuario: usuarioActual.id, insumo: ins, cantidad: cant, estado: "SOLICITUD NUEVA", ubicacion: ubi });
-    alert("Solicitud enviada.");
+    alert("Solicitud enviada correctamente.");
     document.getElementById("sol-cantidad").value = "";
     document.getElementById("sol-ubicacion").value = "";
     
@@ -164,33 +164,36 @@ window.gestionarPedido = async (pid, accion, ins, cant) => {
     }
 };
 
+// --- EXPORTAR REPORTE ---
 window.descargarReporte = async () => {
+    if(!confirm("¿Descargar historial completo en CSV?")) return;
+
     const pedidosSnap = await getDocs(collection(db, "pedidos"));
     const entradasSnap = await getDocs(collection(db, "entradas_stock"));
     let data = [];
 
     pedidosSnap.forEach(doc => {
         const d = doc.data();
-        data.push({ timestamp: d.timestamp, fila: `${d.fecha.replace(/,/g, '')},SALIDA,${d.insumoNom},${d.cantidad},${d.usuarioId},${d.ubicacion},${d.estado}` });
+        data.push({ timestamp: d.timestamp || 0, fila: `${d.fecha.replace(/,/g, '')},SALIDA,${d.insumoNom},${d.cantidad},${d.usuarioId},${d.ubicacion},${d.estado}` });
     });
 
     entradasSnap.forEach(doc => {
         const d = doc.data();
-        data.push({ timestamp: d.timestamp, fila: `${d.fecha.replace(/,/g, '')},ENTRADA,${d.insumo},${d.cantidad},${d.usuario},ALMACEN,APROBADO` });
+        data.push({ timestamp: d.timestamp || 0, fila: `${d.fecha.replace(/,/g, '')},ENTRADA,${d.insumo},${d.cantidad},${d.usuario},ALMACEN,APROBADO` });
     });
 
     data.sort((a, b) => b.timestamp - a.timestamp);
-    let csv = "data:text/csv;charset=utf-8,FECHA,TIPO,INSUMO,CANTIDAD,USUARIO,UBICACION,ESTADO\r\n" + data.map(r => r.fila).join("\r\n");
+
+    let csvContent = "data:text/csv;charset=utf-8,FECHA,TIPO,INSUMO,CANTIDAD,USUARIO,UBICACION,ESTADO\r\n";
+    data.forEach(row => csvContent += row.fila + "\r\n");
 
     const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csv));
+    link.setAttribute("href", encodeURI(csvContent));
     link.setAttribute("download", "reporte_fcilog.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 };
-
-// --- USUARIOS Y SYNC ---
 
 window.crearUsuario = async () => {
     const id = document.getElementById("new-user").value.trim().toLowerCase();
@@ -205,6 +208,8 @@ window.crearUsuario = async () => {
 };
 
 window.eliminarDato = async (col, id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, col, id)); };
+
+// --- LÓGICA DE INTERFAZ ---
 
 function configurarMenu() {
     const menu = document.getElementById("menu-dinamico");
@@ -266,7 +271,7 @@ function activarSincronizacion() {
             if(usuarioActual.rol === 'admin' && p.estado === 'pendiente') {
                 pCnt++;
                 lAdmin.innerHTML += `<div class="bg-white p-5 rounded-2xl border flex justify-between items-center border-l-4 border-l-amber-400">
-                    <div><b>${p.insumoNom.toUpperCase()} (x${p.cantidad})</b><br><small class="font-bold text-indigo-600">${p.ubicacion}</small></div>
+                    <div><b>${p.insumoNom.toUpperCase()} (x${p.cantidad})</b><br><small class="text-indigo-600 font-bold">${p.ubicacion}</small></div>
                     <div class="flex gap-2">
                         <button onclick="gestionarPedido('${d.id}','aprobar','${p.insumoNom}',${p.cantidad})" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Aprobar</button>
                         <button onclick="gestionarPedido('${d.id}','rechazar','${p.insumoNom}',${p.cantidad})" class="bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold">X</button>
