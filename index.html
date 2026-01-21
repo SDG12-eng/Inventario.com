@@ -8,7 +8,21 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .input-light { width: 100%; padding: 1rem; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; outline: none; transition: all 0.3s; }
+        .input-light:focus { background-color: #fff; border-color: #6366f1; ring: 2px; ring-color: #e0e7ff; }
+        .card-metrica { background: white; padding: 1.5rem; border-radius: 1.5rem; border: 1px solid #f1f5f9; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .card-metrica span { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+        .card-metrica h2 { font-size: 2.25rem; font-weight: 800; margin-top: 0.5rem; color: #1e293b; }
+        .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .status-pendiente { background: #fffbeb; color: #d97706; }
+        .status-aprobado { background: #f0fdf4; color: #16a34a; }
+        .status-rechazado { background: #fef2f2; color: #dc2626; }
+        .user-card { background: #f8fafc; padding: 1rem; border-radius: 1rem; border: 1px solid #e2e8f0; }
+        .notif-card { background: white; padding: 1rem; border-radius: 1rem; border: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
 
@@ -46,18 +60,46 @@
 
             <main class="flex-1 p-4 md:p-10 md:ml-72 w-full overflow-x-hidden">
                 <section id="pag-stats" class="view hidden space-y-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="card-metrica"><span>Items Unicos</span><h2 id="metrica-total">0</h2></div>
-                        <div class="card-metrica"><span>Stock Global</span><h2 id="metrica-stock" class="text-indigo-600">0</h2></div>
-                        <div class="card-metrica"><span>Pendientes</span><h2 id="metrica-pedidos" class="text-amber-500">0</h2></div>
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold">Panel de Control</h2>
+                        <select id="filtro-fecha" class="input-light !w-48 text-sm" onchange="activarSincronizacion()">
+                            <option value="actual">Este Mes</option>
+                            <option value="anterior">Mes Anterior</option>
+                            <option value="todos">Todo el Historial</option>
+                        </select>
                     </div>
-                    <div class="bg-white p-6 rounded-3xl border shadow-sm"><canvas id="stockChart"></canvas></div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="card-metrica"><span>Items Únicos</span><h2 id="metrica-total">0</h2></div>
+                        <div class="card-metrica"><span>Stock Global</span><h2 id="metrica-stock" class="text-indigo-600">0</h2></div>
+                        <div class="card-metrica"><span>Solicitudes (Filtro)</span><h2 id="metrica-pedidos" class="text-amber-500">0</h2></div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-400 uppercase mb-4">Estado del Inventario</h3>
+                        <canvas id="stockChart"></canvas>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-3xl border shadow-sm">
+                            <h3 class="text-sm font-bold text-slate-400 uppercase mb-4">Top Solicitantes</h3>
+                            <canvas id="userChart"></canvas>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl border shadow-sm">
+                            <h3 class="text-sm font-bold text-slate-400 uppercase mb-4">Consumo por Área</h3>
+                            <canvas id="locationChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-400 uppercase mb-4">Insumos más Pedidos</h3>
+                        <canvas id="insumoChart"></canvas>
+                    </div>
                 </section>
 
                 <section id="pag-stock" class="view hidden space-y-6">
                     <div class="flex justify-between items-center">
                         <h2 class="text-2xl font-bold">Stock Actual</h2>
-                        <button id="btn-admin-stock" onclick="abrirModalInsumo()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg">+ Agregar/Sumar Stock</button>
+                        <button id="btn-admin-stock" onclick="abrirModalInsumo()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg">+ Agregar Stock</button>
                     </div>
                     <div id="lista-inventario" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </section>
@@ -67,22 +109,42 @@
                     <div id="lista-pendientes-admin" class="space-y-4"></div>
                 </section>
 
-                <section id="pag-historial" class="view hidden space-y-4">
-                    <h2 class="text-2xl font-bold">Historial de Movimientos</h2>
-                    <div class="bg-white rounded-3xl border shadow-sm overflow-x-auto">
-                        <table class="w-full text-left min-w-[700px]">
-                            <thead class="bg-slate-50 border-b">
-                                <tr>
-                                    <th class="p-4 text-xs font-bold text-slate-500 uppercase">Fecha</th>
-                                    <th class="p-4 text-xs font-bold text-slate-500 uppercase">Insumo</th>
-                                    <th class="p-4 text-xs font-bold text-slate-500 uppercase">Cant.</th>
-                                    <th class="p-4 text-xs font-bold text-slate-500 uppercase text-indigo-600">Destino</th>
-                                    <th class="p-4 text-xs font-bold text-slate-500 uppercase">Solicitante</th>
-                                    <th class="p-4 text-xs font-bold text-slate-500 uppercase">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-historial-body" class="divide-y text-sm"></tbody>
-                        </table>
+                <section id="pag-historial" class="view hidden space-y-8">
+                    
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4 text-indigo-900">Historial de Salidas (Pedidos)</h2>
+                        <div class="bg-white rounded-3xl border shadow-sm overflow-x-auto">
+                            <table class="w-full text-left min-w-[700px]">
+                                <thead class="bg-slate-50 border-b">
+                                    <tr>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase">Fecha</th>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase">Insumo</th>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase">Cant.</th>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase text-indigo-600">Destino</th>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase">Solicitante</th>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-historial-body" class="divide-y text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4 text-emerald-700">Historial de Entradas (Reabastecimiento)</h2>
+                        <div class="bg-white rounded-3xl border shadow-sm overflow-x-auto">
+                            <table class="w-full text-left min-w-[600px]">
+                                <thead class="bg-emerald-50 border-b border-emerald-100">
+                                    <tr>
+                                        <th class="p-4 text-xs font-bold text-emerald-600 uppercase">Fecha Registro</th>
+                                        <th class="p-4 text-xs font-bold text-emerald-600 uppercase">Insumo Agregado</th>
+                                        <th class="p-4 text-xs font-bold text-emerald-600 uppercase">Cantidad Sumada</th>
+                                        <th class="p-4 text-xs font-bold text-emerald-600 uppercase">Responsable</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-entradas-body" class="divide-y text-sm"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -128,12 +190,12 @@
     <div id="modal-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl">
             <h3 class="text-xl font-bold mb-6 text-center text-indigo-900">Actualizar Inventario</h3>
-            <p class="text-xs text-slate-400 mb-4 text-center">Si el insumo ya existe, la cantidad se sumará a la actual.</p>
+            <p class="text-xs text-slate-400 mb-4 text-center">Si el insumo ya existe, la cantidad se sumará y se guardará en el historial de entradas.</p>
             <div class="space-y-4">
                 <input id="nombre-prod" list="admin-stock-dl" placeholder="Nombre del Insumo" class="input-light">
                 <datalist id="admin-stock-dl"></datalist>
                 <input id="cantidad-prod" type="number" placeholder="Cantidad a sumar" class="input-light">
-                <button onclick="agregarProducto()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Guardar Cambios</button>
+                <button onclick="agregarProducto()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Guardar Entrada</button>
                 <button onclick="cerrarModalInsumo()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold">Cancelar</button>
             </div>
         </div>
