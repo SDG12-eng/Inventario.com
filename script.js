@@ -20,13 +20,26 @@ let insumoChart = null;
 emailjs.init("2jVnfkJKKG0bpKN-U");
 
 // --- PERSISTENCIA DE SESIÓN ---
-// Al cargar el documento, verificamos si hay una sesión guardada
 window.addEventListener('DOMContentLoaded', () => {
     const sesionGuardada = localStorage.getItem("fcilog_session");
     if (sesionGuardada) {
         cargarSesion(JSON.parse(sesionGuardada));
     }
 });
+
+// --- LÓGICA DE NOTIFICACIONES ---
+window.solicitarPermisoNotificaciones = () => {
+    if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+};
+
+const enviarNotificacionNavegador = (titulo, cuerpo) => {
+    if ("Notification" in window && Notification.permission === "granted") {
+        // Icono genérico de caja
+        new Notification(titulo, { body: cuerpo, icon: "https://cdn-icons-png.flaticon.com/512/679/679720.png" });
+    }
+};
 
 // --- FUNCIONES GLOBALES ---
 
@@ -46,7 +59,6 @@ window.iniciarSesion = async () => {
 
 function cargarSesion(datos) {
     usuarioActual = datos;
-    // Guardamos en el almacenamiento local del navegador
     localStorage.setItem("fcilog_session", JSON.stringify(datos));
     
     document.getElementById("pantalla-login").classList.add("hidden");
@@ -60,10 +72,10 @@ function cargarSesion(datos) {
     configurarMenu();
     window.verPagina(datos.rol === 'admin' ? 'stats' : 'stock');
     activarSincronizacion();
+    window.solicitarPermisoNotificaciones(); // Solicitar permiso al entrar
 }
 
 window.cerrarSesion = () => {
-    // Borramos la sesión de la memoria y recargamos
     localStorage.removeItem("fcilog_session");
     location.reload();
 };
@@ -164,7 +176,7 @@ window.gestionarPedido = async (pid, accion, ins, cant) => {
     }
 };
 
-// --- EXPORTAR REPORTE ---
+// --- EXPORTAR REPORTE CSV ---
 window.descargarReporte = async () => {
     if(!confirm("¿Descargar historial completo en CSV?")) return;
 
@@ -225,6 +237,7 @@ function configurarMenu() {
 }
 
 function activarSincronizacion() {
+    // Escuchar Inventario
     onSnapshot(collection(db, "inventario"), snap => {
         const list = document.getElementById("lista-inventario");
         const sel = document.getElementById("sol-insumo");
@@ -252,7 +265,28 @@ function activarSincronizacion() {
         }
     });
 
+    // Escuchar Pedidos (y Notificar)
     onSnapshot(collection(db, "pedidos"), snap => {
+        
+        // LOGICA DE NOTIFICACIONES (Solo cambios)
+        snap.docChanges().forEach(change => {
+            if (change.type === "modified") {
+                const p = change.doc.data();
+                // Si el pedido es del usuario actual y cambió de estado
+                if (usuarioActual && p.usuarioId === usuarioActual.id) {
+                    enviarNotificacionNavegador(
+                        `Pedido ${p.estado.toUpperCase()}`,
+                        `Tu solicitud de ${p.insumoNom.toUpperCase()} ha cambiado a: ${p.estado}`
+                    );
+                }
+            }
+        });
+
+        const filtro = document.getElementById("filtro-fecha") ? document.getElementById("filtro-fecha").value : 'actual';
+        const ahora = new Date();
+        const mesActual = ahora.getMonth();
+        const añoActual = ahora.getFullYear();
+
         const lAdmin = document.getElementById("lista-pendientes-admin");
         const lUser = document.getElementById("lista-notificaciones");
         const tHist = document.getElementById("tabla-historial-body");
@@ -263,7 +297,13 @@ function activarSincronizacion() {
 
         snap.forEach(d => {
             const p = d.data();
-            if(p.estado === 'aprobado' && usuarioActual.rol === 'admin') {
+            const pFecha = new Date(p.timestamp || Date.now());
+
+            let pasaFiltro = true;
+            if(filtro === 'actual') pasaFiltro = pFecha.getMonth() === mesActual && pFecha.getFullYear() === añoActual;
+            if(filtro === 'anterior') pasaFiltro = pFecha.getMonth() === (mesActual - 1 === -1 ? 11 : mesActual - 1);
+
+            if(pasaFiltro && p.estado === 'aprobado' && usuarioActual.rol === 'admin') {
                 sUsr[p.usuarioId] = (sUsr[p.usuarioId] || 0) + 1;
                 sLoc[p.ubicacion] = (sLoc[p.ubicacion] || 0) + 1;
                 sIns[p.insumoNom] = (sIns[p.insumoNom] || 0) + 1;
