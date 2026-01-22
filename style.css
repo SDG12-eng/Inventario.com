@@ -1,21 +1,18 @@
-/* IMPORTAR FUENTE */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ESTILOS GENERALES */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #f8fafc; /* Slate-50 */
-    color: #0f172a; /* Slate-900 */
+    background-color: #f8fafc;
+    color: #0f172a;
     -webkit-font-smoothing: antialiased;
 }
 
-/* INPUTS PERSONALIZADOS */
 .input-light {
     width: 100%;
     padding: 1rem;
     background-color: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 0.75rem; /* 12px */
+    border-radius: 0.75rem;
     outline: none;
     transition: all 0.3s ease;
     font-size: 0.95rem;
@@ -24,15 +21,14 @@ body {
 
 .input-light:focus {
     background-color: #ffffff;
-    border-color: #6366f1; /* Indigo-500 */
+    border-color: #6366f1;
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
-/* TARJETAS DE MÉTRICAS */
 .card-metrica {
     background: white;
     padding: 1.5rem;
-    border-radius: 1.5rem; /* 24px */
+    border-radius: 1.5rem;
     border: 1px solid #f1f5f9;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     display: flex;
@@ -56,7 +52,6 @@ body {
     color: #1e293b;
 }
 
-/* BADGES (ETIQUETAS DE ESTADO) */
 .badge {
     padding: 0.35rem 0.85rem;
     border-radius: 9999px;
@@ -67,32 +62,11 @@ body {
     display: inline-block;
 }
 
-.status-pendiente {
-    background: #fffbeb;
-    color: #d97706; /* Amber-600 */
-    border: 1px solid #fcd34d;
-}
+.status-pendiente { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
+.status-aprobado { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+.status-rechazado { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
 
-.status-aprobado {
-    background: #f0fdf4;
-    color: #16a34a; /* Green-600 */
-    border: 1px solid #86efac;
-}
-
-.status-rechazado {
-    background: #fef2f2;
-    color: #dc2626; /* Red-600 */
-    border: 1px solid #fca5a5;
-}
-
-.status-nueva { /* Para solicitudes recién creadas */
-    background: #eff6ff;
-    color: #2563eb;
-    border: 1px solid #bfdbfe;
-}
-
-/* TARJETAS DE USUARIO Y NOTIFICACIONES */
-.user-card {
+.user-card, .notif-card {
     background: #ffffff;
     padding: 1.25rem;
     border-radius: 1rem;
@@ -100,16 +74,9 @@ body {
     transition: transform 0.2s;
 }
 
-.user-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
+.user-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
 
 .notif-card {
-    background: white;
-    padding: 1.25rem;
-    border-radius: 1rem;
-    border: 1px solid #f1f5f9;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -117,42 +84,18 @@ body {
     margin-bottom: 0.75rem;
 }
 
-/* UTILIDADES VISUALES */
-.view {
-    animation: fadeIn 0.4s ease-out;
-}
+.view { animation: fadeIn 0.4s ease-out; }
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* TABLAS RESPONSIVAS */
-table {
-    border-collapse: separate;
-    border-spacing: 0;
-}
+table { border-collapse: separate; border-spacing: 0; }
+th { letter-spacing: 0.05em; }
+tr:last-child td { border-bottom: none; }
 
-th {
-    letter-spacing: 0.05em;
-}
-
-tr:last-child td {
-    border-bottom: none;
-}
-
-/* SCROLLBAR PERSONALIZADO (Chrome/Safari) */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
