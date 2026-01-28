@@ -2,211 +2,219 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FCILog Pro v6.1 - Adaptive</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario Pro 2026</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .input-light { width: 100%; padding: 0.75rem; background: #f8fafc; border-radius: 0.75rem; border: 1px solid #e2e8f0; outline: none; transition: 0.2s; font-size: 16px; }
-        .input-light:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 4px rgba(99,102,241,0.1); }
-        .card-metrica { background: white; padding: 1.25rem; border-radius: 1.25rem; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: center; }
-        .badge { padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
-        .status-pendiente { background: #fef3c7; color: #92400e; }
-        .status-aprobado { background: #dcfce7; color: #166534; }
-        .status-rechazado { background: #fee2e2; color: #991b1b; }
-        .status-recibido { background: #e0f2fe; color: #075985; }
-        .status-anomalia { background: #ffedd5; color: #9a3412; }
-        /* Scrollbar suave */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        :root { --admin-color: #2c3e50; --applicant-color: #27ae60; --pending: #f39c12; --received: #27ae60; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7f6; }
+        nav { background: var(--admin-color); color: white; padding: 1rem; display: flex; justify-content: space-between; position: sticky; top: 0; z-index: 1000; }
+        .container { padding: 20px; max-width: 1200px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f8f9fa; }
+        .badge { padding: 5px 10px; border-radius: 4px; color: white; font-size: 0.8rem; }
+        .pendiente { background: var(--pending); }
+        .recibido { background: var(--received); }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-edit { background: #3498db; color: white; }
+        .hidden { display: none; }
+        .edit-form { display: flex; gap: 10px; margin-top: 10px; padding: 10px; background: #eef2f3; border-radius: 5px; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 overflow-x-hidden">
+<body>
 
-    <div id="pantalla-login" class="fixed inset-0 z-[300] bg-white flex items-center justify-center p-6">
-        <div class="w-full max-w-sm text-center">
-            <h1 class="text-4xl font-black text-indigo-900 mb-2">FCILog</h1>
-            <p class="text-slate-400 mb-8 font-semibold">InsuManager System</p>
-            <div class="space-y-4">
-                <input id="login-user" type="text" placeholder="Usuario ID" class="input-light">
-                <input id="login-pass" type="password" placeholder="Contraseña" class="input-light">
-                <button onclick="iniciarSesion()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all">Entrar</button>
-            </div>
+<nav id="navbar" class="hidden">
+    <span id="user-info"></span>
+    <button class="btn" onclick="logout()" style="background:#e74c3c; color:white;">Cerrar Sesión</button>
+</nav>
+
+<div class="container">
+    <div id="login-section" class="card">
+        <h2>Iniciar Sesión</h2>
+        <input type="text" id="username" placeholder="Usuario (admin o applicant)">
+        <button class="btn btn-edit" onclick="login()">Entrar</button>
+    </div>
+
+    <div id="admin-dashboard" class="hidden">
+        <h2>Panel de Administración</h2>
+        
+        <div class="card">
+            <h3>Ajustar Insumos (Precio y Stock Mínimo)</h3>
+            <table id="tabla-ajuste-insumos">
+                <thead>
+                    <tr>
+                        <th>Insumo</th>
+                        <th>Stock Actual</th>
+                        <th>Precio</th>
+                        <th>Stock Mínimo</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-insumos-admin"></tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Historial de Movimientos</h3>
+            <table id="tabla-historial">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Insumo</th>
+                        <th>Tipo</th>
+                        <th>Cantidad</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-historial"></tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Usuarios Registrados</h3>
+            <ul id="lista-usuarios"></ul>
         </div>
     </div>
 
-    <header class="lg:hidden bg-white border-b p-4 flex justify-between items-center sticky top-0 z-[100]">
-        <span class="font-black text-indigo-600 text-xl italic">FCILog</span>
-        <button onclick="toggleMenu()" class="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-xl text-indigo-600">
-            <i class="fas fa-bars text-xl"></i>
-        </button>
-    </header>
-
-    <div id="interfaz-app" class="hidden min-h-screen flex flex-col lg:flex-row">
-        <aside id="sidebar" class="fixed inset-y-0 left-0 z-[200] w-72 bg-white border-r p-6 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none">
-            <div class="flex justify-between items-center mb-10">
-                <h2 class="text-xl font-bold text-indigo-600 italic">InsuManager</h2>
-                <button onclick="toggleMenu()" class="lg:hidden text-slate-400"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            
-            <nav id="menu-dinamico" class="space-y-2 flex-1"></nav>
-
-            <div class="mt-auto pt-6 space-y-2">
-                <button onclick="solicitarPermisoNotificaciones()" class="flex items-center gap-3 p-3 text-slate-500 text-xs font-bold hover:bg-slate-50 rounded-xl w-full">
-                    <i class="fas fa-bell"></i> Activar Notificaciones
-                </button>
-                <button onclick="cerrarSesion()" class="flex items-center gap-3 p-3 text-red-500 font-bold hover:bg-red-50 rounded-xl w-full">
-                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-                </button>
-            </div>
-        </aside>
-
-        <div id="sidebar-overlay" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/40 z-[150] hidden lg:hidden backdrop-blur-sm"></div>
-
-        <main class="flex-1 p-4 md:p-8 lg:ml-72 w-full max-w-[1600px] mx-auto">
-            
-            <section id="pag-stats" class="view hidden space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h2 class="text-2xl font-bold">Resumen</h2>
-                    <select id="filtro-fecha" class="input-light !w-full sm:!w-48" onchange="activarSincronizacion()">
-                        <option value="actual">Enero 2026</option>
-                        <option value="anterior">Diciembre 2025</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div class="card-metrica">
-                        <span class="text-xs font-bold text-slate-400 uppercase">Items Únicos</span>
-                        <h2 id="metrica-total" class="text-3xl font-black">0</h2>
-                    </div>
-                    <div class="card-metrica">
-                        <span class="text-xs font-bold text-slate-400 uppercase">Stock Global</span>
-                        <h2 id="metrica-stock" class="text-3xl font-black text-indigo-600">0</h2>
-                    </div>
-                    <div class="card-metrica">
-                        <span class="text-xs font-bold text-slate-400 uppercase">Pendientes</span>
-                        <h2 id="metrica-pedidos" class="text-3xl font-black text-amber-500">0</h2>
-                    </div>
-                </div>
-                <div class="bg-white p-4 sm:p-6 rounded-3xl border">
-                    <canvas id="stockChart" class="max-h-[400px]"></canvas>
-                </div>
-            </section>
-
-            <section id="pag-stock" class="view hidden space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h2 class="text-2xl font-bold">Inventario</h2>
-                    <button id="btn-admin-stock" onclick="abrirModalInsumo()" class="hidden w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-indigo-700 transition">
-                        + Agregar Insumo
-                    </button>
-                </div>
-                <div id="lista-inventario" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
-            </section>
-
-            <section id="pag-solicitar" class="view hidden max-w-2xl mx-auto space-y-6">
-                <div class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border">
-                    <h2 class="text-2xl font-bold mb-6 text-center">Nueva Solicitud</h2>
-                    <div class="space-y-4">
-                        <label class="text-xs font-bold text-slate-500 px-1 uppercase">Punto de Entrega / Sede</label>
-                        <select id="sol-ubicacion" class="input-light font-bold">
-                            <option value="" disabled selected>Seleccione...</option>
-                            <option value="DC1">DC1</option><option value="DC2">DC2</option><option value="ONX">ONX</option>
-                            <option value="PDC1">PDC1</option><option value="OCEANIA">OCEANIA</option>
-                        </select>
-                        <div class="pt-4 border-t">
-                            <h3 class="text-sm font-bold mb-4">Seleccione Insumos</h3>
-                            <div id="lista-pedido-items" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
-                        </div>
-                        <button onclick="enviarPedidoMultiple()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg mt-6 hover:bg-indigo-700 active:scale-95 transition">
-                            Enviar Solicitud (<span id="count-carrito">0</span>)
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <section id="pag-solicitudes" class="view hidden space-y-4">
-                <h2 class="text-2xl font-bold">Pendientes</h2>
-                <div id="lista-pendientes-admin" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-            </section>
-
-            <section id="pag-historial" class="view hidden space-y-6">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <h2 class="text-2xl font-bold">Historial</h2>
-                    <div class="flex flex-wrap gap-2 w-full md:w-auto">
-                        <button onclick="exportarStockCSV()" class="flex-1 md:flex-none bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold">Stock CSV</button>
-                        <button onclick="exportarHistorialCSV()" class="flex-1 md:flex-none bg-slate-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold">Movimientos CSV</button>
-                    </div>
-                </div>
-                <div class="bg-white rounded-3xl border overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b">
-                                <tr class="text-slate-500 font-bold">
-                                    <th class="p-4">FECHA</th>
-                                    <th class="p-4">INSUMO</th>
-                                    <th class="p-4">CANT</th>
-                                    <th class="p-4">SEDE</th>
-                                    <th class="p-4">ESTADO</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-historial-body" class="divide-y"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <section id="pag-notificaciones" class="view hidden space-y-4">
-                <h2 class="text-2xl font-bold">Estado de mis Pedidos</h2>
-                <div id="lista-notificaciones" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-            </section>
-
-            <section id="pag-usuarios" class="view hidden space-y-6">
-                <div class="bg-white p-6 rounded-3xl border shadow-sm">
-                    <h3 class="font-bold mb-4">Nuevo Acceso</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                        <input id="new-user" placeholder="ID Usuario" class="input-light">
-                        <input id="new-pass" type="password" placeholder="Clave" class="input-light">
-                        <input id="new-email" placeholder="Email" class="input-light">
-                        <select id="new-role" class="input-light">
-                            <option value="user">Aplicante</option>
-                            <option value="supervisor">Supervisor</option>
-                            <option value="admin">Administrador</option>
-                        </select>
-                        <button onclick="crearUsuario()" class="bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition">Crear</button>
-                    </div>
-                </div>
-                <div id="lista-usuarios-db" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-            </section>
-        </main>
-    </div>
-
-    <div id="modal-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[400] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white p-6 md:p-8 rounded-[2rem] w-full max-w-sm shadow-2xl">
-            <h3 class="text-xl font-bold mb-6 text-center text-indigo-900">Configuración</h3>
-            <div class="space-y-3">
-                <input id="nombre-prod" placeholder="Nombre" class="input-light">
-                <input id="cantidad-prod" type="number" placeholder="Cantidad" class="input-light">
-                <input id="precio-prod" type="number" step="0.01" placeholder="Precio ($)" class="input-light">
-                <input id="minimo-prod" type="number" placeholder="Stock Mínimo" class="input-light">
-                <button onclick="guardarNuevoInsumo()" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold">Guardar</button>
-                <button onclick="document.getElementById('modal-insumo').classList.add('hidden')" class="w-full py-3 bg-slate-100 rounded-xl font-semibold">Cerrar</button>
-            </div>
+    <div id="applicant-dashboard" class="hidden">
+        <h2>Panel de Solicitante</h2>
+        <div class="card">
+            <h3>Insumos Disponibles</h3>
+            <div id="stock-applicant"></div>
+        </div>
+        <div class="card">
+            <h3>Mis Solicitudes</h3>
+            <table id="tabla-solicitudes-app">
+                <tbody id="cuerpo-solicitudes-app"></tbody>
+            </table>
         </div>
     </div>
+</div>
 
-    <div id="modal-anomalia" class="fixed inset-0 bg-slate-900/60 hidden z-[400] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-[2rem] w-full max-w-sm">
-            <h3 class="text-xl font-bold mb-2">Reportar Problema</h3>
-            <textarea id="motivo-anomalia" placeholder="Describe el inconveniente..." class="input-light h-32 mb-4 resize-none"></textarea>
-            <div class="flex gap-2">
-                <button onclick="finalizarEntrega('anomalia')" class="flex-1 py-3 bg-amber-500 text-white rounded-xl font-bold">Reportar</button>
-                <button onclick="document.getElementById('modal-anomalia').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 rounded-xl font-semibold">Cancelar</button>
-            </div>
-        </div>
-    </div>
+<script>
+// --- DATOS INICIALES (Simulando Base de Datos) ---
+let insumos = JSON.parse(localStorage.getItem('insumos')) || [
+    { id: 1, nombre: "Resma de Papel", stock: 100, precio: 5.50, stockMinimo: 10 },
+    { id: 2, nombre: "Tóner Negro", stock: 5, precio: 45.00, stockMinimo: 2 }
+];
 
-    <script type="module" src="script.js"></script>
+let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [
+    { id: 1, nombre: "Admin General", user: "admin", rol: "admin" },
+    { id: 2, nombre: "Juan Solicitante", user: "applicant", rol: "applicant" }
+];
+
+let historial = JSON.parse(localStorage.getItem('historial')) || [
+    { fecha: "2026-01-25", insumo: "Resma de Papel", tipo: "Entrada", cantidad: 50, estado: "Recibido" },
+    { fecha: "2026-01-26", insumo: "Tóner Negro", tipo: "Salida", cantidad: 1, estado: "Pendiente" }
+];
+
+// --- PERSISTENCIA DE SESIÓN ---
+window.onload = () => {
+    const sesion = JSON.parse(localStorage.getItem('sesionActiva'));
+    if (sesion) {
+        mostrarInterfaz(sesion.rol, sesion.nombre);
+    }
+};
+
+function login() {
+    const userVal = document.getElementById('username').value;
+    const userFound = usuarios.find(u => u.user === userVal);
+
+    if (userFound) {
+        const sesion = { rol: userFound.rol, nombre: userFound.nombre };
+        localStorage.setItem('sesionActiva', JSON.stringify(sesion));
+        mostrarInterfaz(userFound.rol, userFound.nombre);
+    } else {
+        alert("Usuario no encontrado (usa 'admin' o 'applicant')");
+    }
+}
+
+function logout() {
+    localStorage.removeItem('sesionActiva');
+    location.reload();
+}
+
+// --- RENDERIZADO DE INTERFACES ---
+function mostrarInterfaz(rol, nombre) {
+    document.getElementById('login-section').classList.add('hidden');
+    document.getElementById('navbar').classList.remove('hidden');
+    document.getElementById('user-info').innerText = `Bienvenido: ${nombre} (${rol})`;
+
+    if (rol === 'admin') {
+        document.getElementById('admin-dashboard').classList.remove('hidden');
+        renderAdminData();
+    } else {
+        document.getElementById('applicant-dashboard').classList.remove('hidden');
+        renderApplicantData();
+    }
+}
+
+// --- LÓGICA DE ADMINISTRADOR ---
+function renderAdminData() {
+    // 1. Listar Usuarios
+    const listaU = document.getElementById('lista-usuarios');
+    listaU.innerHTML = usuarios.map(u => `<li><strong>${u.nombre}</strong> - Rol: ${u.rol}</li>`).join('');
+
+    // 2. Historial con Estados
+    const cuerpoH = document.getElementById('cuerpo-historial');
+    cuerpoH.innerHTML = historial.map(h => `
+        <tr>
+            <td>${h.fecha}</td>
+            <td>${h.insumo}</td>
+            <td>${h.tipo}</td>
+            <td>${h.cantidad}</td>
+            <td><span class="badge ${h.estado === 'Pendiente' ? 'pendiente' : 'recibido'}">${h.estado}</span></td>
+        </tr>
+    `).join('');
+
+    // 3. Ajuste de Insumos
+    const listaI = document.getElementById('lista-insumos-admin');
+    listaI.innerHTML = insumos.map(i => `
+        <tr>
+            <td>${i.nombre}</td>
+            <td>${i.stock}</td>
+            <td>$${i.precio}</td>
+            <td>${i.stockMinimo}</td>
+            <td>
+                <button class="btn btn-edit" onclick="abrirEditor(${i.id})">Ajustar</button>
+                <div id="edit-panel-${i.id}" class="edit-form hidden">
+                    <input type="number" id="p-${i.id}" placeholder="Precio" value="${i.precio}">
+                    <input type="number" id="s-${i.id}" placeholder="Mínimo" value="${i.stockMinimo}">
+                    <button onclick="guardarAjuste(${i.id})">✔</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function abrirEditor(id) {
+    const panel = document.getElementById(`edit-panel-${id}`);
+    panel.classList.toggle('hidden');
+}
+
+function guardarAjuste(id) {
+    const nuevoPrecio = document.getElementById(`p-${id}`).value;
+    const nuevoMin = document.getElementById(`s-${id}`).value;
+    
+    insumos = insumos.map(i => {
+        if(i.id === id) {
+            return { ...i, precio: parseFloat(nuevoPrecio), stockMinimo: parseInt(nuevoMin) };
+        }
+        return i;
+    });
+
+    localStorage.setItem('insumos', JSON.stringify(insumos));
+    alert("Insumo actualizado correctamente");
+    renderAdminData();
+}
+
+// --- LÓGICA DE SOLICITANTE ---
+function renderApplicantData() {
+    const stockDiv = document.getElementById('stock-applicant');
+    stockDiv.innerHTML = insumos.map(i => `<p>${i.nombre} - Disponible: <strong>${i.stock}</strong></p>`).join('');
+}
+</script>
+
 </body>
 </html>
