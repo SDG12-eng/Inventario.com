@@ -1,16 +1,14 @@
-/* VARIABLES Y RESET */
 .input-light {
-    @apply w-full p-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all;
+    @apply w-full p-4 bg-slate-100 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 outline-none transition-all;
 }
 
 .card-metrica {
-    @apply bg-white p-6 rounded-3xl border shadow-sm flex flex-col justify-center items-center text-center;
+    @apply bg-white p-6 rounded-3xl border shadow-sm flex flex-col justify-center items-center;
 }
 
-.card-metrica span { @apply text-xs font-bold text-slate-400 uppercase mb-1; }
-.card-metrica h2 { @apply text-3xl font-black; }
+.card-metrica h2 { @apply text-3xl font-black mt-2; }
+.card-metrica span { @apply text-xs font-bold text-slate-400 uppercase tracking-widest; }
 
-/* BADGES DE ESTADO */
 .badge {
     @apply px-3 py-1 rounded-full text-[10px] font-bold uppercase;
 }
@@ -18,20 +16,5 @@
 .status-aprobado { @apply bg-emerald-100 text-emerald-600; }
 .status-rechazado { @apply bg-red-100 text-red-600; }
 
-/* TARJETAS DE INVENTARIO */
-.insumo-card {
-    @apply bg-white p-5 rounded-3xl border shadow-sm space-y-3 relative overflow-hidden;
-}
-
-.notif-card {
-    @apply bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm border-l-4 border-l-indigo-500;
-}
-
-.user-card {
-    @apply bg-white p-4 rounded-2xl border flex justify-between items-center;
-}
-
-/* SCROLLBAR */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.custom-scroll::-webkit-scrollbar { width: 4px; }
+.custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
