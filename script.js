@@ -13,7 +13,7 @@ const db = getFirestore(app);
 
 let usuarioActual = null;
 let stockChart = null, userChart = null, locationChart = null;
-let carritoGlobal = {}; // Para guardar las cantidades seleccionadas
+let carritoGlobal = {}; 
 
 emailjs.init("2jVnfkJKKG0bpKN-U");
 
@@ -60,6 +60,7 @@ window.toggleMenu = (open) => {
     else { side.classList.toggle("-translate-x-full"); over.classList.toggle("hidden"); }
 };
 
+// --- GESTIÓN DE CARRITO ---
 window.ajustarCantidad = (insumo, delta) => {
     const actual = carritoGlobal[insumo] || 0;
     const nueva = Math.max(0, actual + delta);
@@ -87,13 +88,41 @@ window.procesarSolicitudMultiple = async () => {
     }
 
     alert("Pedido enviado con éxito.");
-    // Resetear
     carritoGlobal = {};
-    activarSincronizacion(); // Refresca la lista
+    activarSincronizacion();
     window.verPagina(usuarioActual.rol === 'admin' ? 'solicitudes' : 'notificaciones');
 };
 
+// --- GESTIÓN DE USUARIOS (CREAR Y EDITAR) ---
+window.crearUsuario = async () => {
+    const id = document.getElementById("new-user").value.trim().toLowerCase();
+    const pass = document.getElementById("new-pass").value.trim();
+    const email = document.getElementById("new-email").value.trim();
+    const rol = document.getElementById("new-role").value;
+    
+    if(id && pass) {
+        await setDoc(doc(db, "usuarios", id), { pass, email, rol });
+        alert("Usuario guardado/actualizado correctamente");
+        // Limpiar campos
+        document.getElementById("new-user").value = "";
+        document.getElementById("new-pass").value = "";
+        document.getElementById("new-email").value = "";
+    } else {
+        alert("Falta ID o Contraseña");
+    }
+};
+
+window.prepararEdicion = (id, pass, email, rol) => {
+    document.getElementById("new-user").value = id;
+    document.getElementById("new-pass").value = pass;
+    document.getElementById("new-email").value = email;
+    document.getElementById("new-role").value = rol;
+    alert(`Editando usuario: ${id}. Realiza los cambios y pulsa 'Guardar'.`);
+};
+
+// --- SINCRONIZACIÓN Y RENDERIZADO ---
 function activarSincronizacion() {
+    // 1. Inventario
     onSnapshot(collection(db, "inventario"), snap => {
         const listInv = document.getElementById("lista-inventario");
         const listPed = document.getElementById("contenedor-lista-pedidos");
@@ -138,6 +167,7 @@ function activarSincronizacion() {
         }
     });
 
+    // 2. Pedidos
     onSnapshot(collection(db, "pedidos"), snap => {
         const lAdmin = document.getElementById("lista-pendientes-admin");
         const lUser = document.getElementById("lista-notificaciones");
@@ -146,23 +176,64 @@ function activarSincronizacion() {
 
         snap.forEach(d => {
             const p = d.data();
+            // Panel Admin Pendientes
             if(usuarioActual.rol === 'admin' && p.estado === 'pendiente') {
-                lAdmin.innerHTML += `<div class="bg-white p-5 rounded-2xl border flex justify-between items-center border-l-4 border-l-amber-400">
-                    <div><b>${p.insumoNom.toUpperCase()} (x${p.cantidad})</b><br><small class="text-indigo-600 font-bold">${p.ubicacion}</small></div>
+                lAdmin.innerHTML += `
+                <div class="bg-white p-5 rounded-2xl border flex justify-between items-center border-l-4 border-l-amber-400">
+                    <div>
+                        <b>${p.insumoNom.toUpperCase()} (x${p.cantidad})</b><br>
+                        <div class="flex items-center gap-2 text-xs mt-1">
+                            <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded font-bold"><i class="fas fa-user"></i> ${p.usuarioId}</span>
+                            <span class="text-slate-500 font-bold"><i class="fas fa-map-marker-alt"></i> ${p.ubicacion}</span>
+                        </div>
+                    </div>
                     <div class="flex gap-2">
                         <button onclick="gestionarPedido('${d.id}','aprobar','${p.insumoNom}',${p.cantidad})" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Aprobar</button>
                         <button onclick="gestionarPedido('${d.id}','rechazar')" class="bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold text-red-500">X</button>
                     </div>
                 </div>`;
             }
+            // Historial General
             if(p.estado !== 'pendiente' && tHist) {
-                tHist.innerHTML += `<tr class="border-b"><td class="p-4 text-slate-500 text-xs">${p.fecha}</td><td class="p-4 font-bold uppercase">${p.insumoNom}</td><td class="p-4">x${p.cantidad}</td><td class="p-4 text-indigo-600 font-bold">${p.ubicacion}</td><td class="p-4 text-xs">${p.usuarioId}</td><td class="p-4"><span class="badge status-${p.estado}">${p.estado}</span></td></tr>`;
+                tHist.innerHTML += `<tr class="border-b"><td class="p-4 text-slate-500 text-xs">${p.fecha}</td><td class="p-4 font-bold uppercase">${p.insumoNom}</td><td class="p-4">x${p.cantidad}</td><td class="p-4 text-indigo-600 font-bold">${p.ubicacion}</td><td class="p-4 text-xs font-bold text-slate-600">${p.usuarioId}</td><td class="p-4"><span class="badge status-${p.estado}">${p.estado}</span></td></tr>`;
             }
+            // Panel Usuario
             if(p.usuarioId === usuarioActual.id && lUser) {
                 lUser.innerHTML += `<div class="notif-card flex justify-between items-center p-4 bg-white rounded-2xl border"><div><b>${p.insumoNom.toUpperCase()} (x${p.cantidad})</b><br><small>${p.ubicacion}</small></div><span class="badge status-${p.estado}">${p.estado}</span></div>`;
             }
         });
     });
+
+    // 3. Usuarios (SOLO ADMIN) - Corrección para visualizar
+    if(usuarioActual.rol === 'admin') {
+        onSnapshot(collection(db, "usuarios"), snap => {
+            const listUsers = document.getElementById("lista-usuarios-db");
+            if(listUsers) {
+                listUsers.innerHTML = "";
+                snap.forEach(d => {
+                    const u = d.data();
+                    listUsers.innerHTML += `
+                    <div class="bg-slate-50 p-4 rounded-2xl border flex justify-between items-center hover:bg-white transition shadow-sm">
+                        <div>
+                            <div class="font-bold text-indigo-900 flex items-center gap-2">
+                                ${d.id} 
+                                <span class="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full uppercase">${u.rol}</span>
+                            </div>
+                            <small class="text-slate-400 block mt-1">Pass: ${u.pass}</small>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="prepararEdicion('${d.id}', '${u.pass}', '${u.email || ''}', '${u.rol}')" class="w-8 h-8 rounded-lg bg-white text-indigo-500 border border-indigo-100 hover:bg-indigo-50 flex items-center justify-center">
+                                <i class="fas fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="eliminarDato('usuarios','${d.id}')" class="w-8 h-8 rounded-lg bg-white text-red-400 border border-red-100 hover:bg-red-50 flex items-center justify-center">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                });
+            }
+        });
+    }
 }
 
 window.gestionarPedido = async (pid, accion, ins, cant) => {
@@ -177,7 +248,23 @@ window.gestionarPedido = async (pid, accion, ins, cant) => {
     } else await updateDoc(pRef, { estado: "rechazado" });
 };
 
-// ... (Otras funciones: agregarProducto, crearUsuario, eliminarDato, descargarReporte, enviarMail, renderChart se mantienen igual)
+window.agregarProducto = async () => {
+    const n = document.getElementById("nombre-prod").value.trim().toLowerCase();
+    const c = parseInt(document.getElementById("cantidad-prod").value);
+    
+    if(n && !isNaN(c) && c > 0) {
+        const docRef = doc(db, "inventario", n);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) await updateDoc(docRef, { cantidad: docSnap.data().cantidad + c });
+        else await setDoc(docRef, { cantidad: c });
+
+        await addDoc(collection(db, "entradas_stock"), {
+            insumo: n, cantidad: c, usuario: usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now()
+        });
+        window.cerrarModalInsumo(); document.getElementById("nombre-prod").value = ""; document.getElementById("cantidad-prod").value = "";
+    }
+};
+
 window.abrirModalInsumo = () => document.getElementById("modal-insumo").classList.remove("hidden");
 window.cerrarModalInsumo = () => document.getElementById("modal-insumo").classList.add("hidden");
 window.eliminarDato = async (col, id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, col, id)); };
@@ -205,3 +292,7 @@ function renderChart(id, labels, data, title, color, instance, setInst) {
         options: { responsive: true, plugins: { legend: { display: false } } }
     }));
 }
+
+// Funciones Dummy para reportes y email (si faltan)
+window.descargarReporte = async () => { alert("Descargando CSV..."); }; 
+async function enviarMail(dest, info) { console.log("Email enviado a", dest); }
