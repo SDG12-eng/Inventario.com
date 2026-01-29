@@ -1,3 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+body { font-family: 'Inter', sans-serif; }
+
 .input-light {
     @apply w-full p-4 bg-slate-100 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 outline-none transition-all;
 }
@@ -19,7 +23,6 @@
 .custom-scroll::-webkit-scrollbar { width: 4px; }
 .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 
-/* Para las tarjetas de usuario */
 .user-card {
     @apply bg-slate-50 p-4 rounded-xl border flex justify-between items-center transition hover:bg-white hover:shadow-sm;
 }
