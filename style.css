@@ -17,8 +17,9 @@ body { font-family: 'Inter', sans-serif; }
     @apply px-3 py-1 rounded-full text-[10px] font-bold uppercase;
 }
 .status-pendiente { @apply bg-amber-100 text-amber-600; }
-.status-aprobado { @apply bg-emerald-100 text-emerald-600; }
+.status-aprobado { @apply bg-blue-100 text-blue-600; }
 .status-rechazado { @apply bg-red-100 text-red-600; }
+.status-recibido { @apply bg-emerald-100 text-emerald-600; }
 
 .custom-scroll::-webkit-scrollbar { width: 4px; }
 .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
