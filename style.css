@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
 
 body { font-family: 'Inter', sans-serif; }
 
@@ -7,25 +7,20 @@ body { font-family: 'Inter', sans-serif; }
 }
 
 .card-metrica {
-    @apply bg-white p-6 rounded-3xl border shadow-sm flex flex-col justify-center items-center;
+    @apply bg-white p-6 rounded-3xl border shadow-sm flex flex-col justify-center items-center text-center;
 }
-
 .card-metrica h2 { @apply text-3xl font-black mt-2; }
-.card-metrica span { @apply text-xs font-bold text-slate-400 uppercase tracking-widest; }
+.card-metrica span { @apply text-[10px] font-bold text-slate-400 uppercase tracking-widest; }
 
 .badge {
-    @apply px-3 py-1 rounded-full text-[10px] font-bold uppercase;
+    @apply px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide;
 }
-.status-pendiente { @apply bg-amber-100 text-amber-600; }
-.status-aprobado { @apply bg-blue-100 text-blue-600; }
-.status-rechazado { @apply bg-red-100 text-red-600; }
-.status-recibido { @apply bg-emerald-100 text-emerald-600; }
-.status-devuelto { @apply bg-red-100 text-red-600; }
-.status-con_incidencia { @apply bg-orange-100 text-orange-600; }
+.status-pendiente { @apply bg-amber-100 text-amber-700; }
+.status-aprobado { @apply bg-indigo-100 text-indigo-700; }
+.status-rechazado { @apply bg-red-100 text-red-700; }
+.status-recibido { @apply bg-emerald-100 text-emerald-700; }
+.status-devuelto { @apply bg-purple-100 text-purple-700; }
+.status-con_incidencia { @apply bg-orange-100 text-orange-700; }
 
-.custom-scroll::-webkit-scrollbar { width: 4px; }
-.custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-
-.user-card {
-    @apply bg-slate-50 p-4 rounded-xl border flex justify-between items-center transition hover:bg-white hover:shadow-sm;
-}
+.custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+.custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
