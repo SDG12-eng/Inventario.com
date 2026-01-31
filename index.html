@@ -2,22 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FCILog Pro - Versión Final</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FCILog Pro - Gestión Total</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .input-light { @apply w-full p-3 bg-slate-100 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none transition-all; }
-        .badge { @apply px-2 py-1 rounded-md text-[10px] font-bold uppercase; }
-        .status-pendiente { @apply bg-amber-100 text-amber-700; }
-        .status-aprobado { @apply bg-indigo-100 text-indigo-700; }
-        .status-recibido { @apply bg-emerald-100 text-emerald-700; }
-        .card-stock { @apply bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-slate-50 text-slate-900">
 
@@ -33,117 +24,142 @@
         </div>
     </div>
 
-    <div id="interfaz-app" class="hidden min-h-screen flex flex-col md:flex-row">
-        <aside class="w-full md:w-64 bg-white border-r p-6 flex flex-col sticky top-0 h-screen">
-            <h1 class="text-xl font-bold italic text-indigo-600 mb-10">📦 InsuManager</h1>
-            <nav id="menu-dinamico" class="space-y-2 flex-1"></nav>
-            <div id="info-usuario" class="mt-auto pt-4 border-t text-xs font-bold text-slate-400 uppercase"></div>
-            <button onclick="cerrarSesion()" class="mt-4 flex items-center gap-3 p-3 text-red-500 font-bold hover:bg-red-50 rounded-xl transition w-full">
-                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-            </button>
-        </aside>
+    <div id="interfaz-app" class="hidden min-h-screen flex flex-col">
+        <header class="md:hidden bg-white border-b p-4 flex justify-between items-center sticky top-0 z-[100]">
+            <span class="font-bold text-indigo-600 text-xl">FCILog</span>
+            <button onclick="toggleMenu()" class="text-2xl text-slate-600"><i class="fas fa-bars"></i></button>
+        </header>
 
-        <main class="flex-1 p-4 md:p-10 overflow-y-auto">
-            <section id="pag-stats" class="view hidden space-y-6">
-                <h2 class="text-2xl font-bold">Panel de Control</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-white p-6 rounded-3xl border shadow-sm text-center">
-                        <span class="text-xs font-bold text-slate-400 uppercase">Stock Global</span>
-                        <h2 id="metrica-stock" class="text-3xl font-black text-indigo-600">0</h2>
+        <div class="flex flex-1">
+            <aside id="sidebar" class="fixed inset-y-0 left-0 z-[150] w-72 bg-white border-r p-6 flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+                <div class="flex justify-between items-center mb-10">
+                    <h1 class="text-xl font-bold italic text-indigo-600">📦 InsuManager</h1>
+                    <button onclick="toggleMenu()" class="md:hidden text-slate-400"><i class="fas fa-times"></i></button>
+                </div>
+                <nav id="menu-dinamico" class="space-y-2 flex-1"></nav>
+                <div class="mt-auto border-t pt-4">
+                    <div id="info-usuario" class="px-4 py-2 text-xs font-bold text-slate-400 uppercase text-center mb-2"></div>
+                    <button onclick="cerrarSesion()" class="flex items-center gap-3 p-4 text-red-500 font-bold hover:bg-red-50 rounded-xl transition w-full">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </div>
+            </aside>
+
+            <div id="sidebar-overlay" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/50 z-[140] hidden md:hidden backdrop-blur-sm"></div>
+
+            <main class="flex-1 p-4 md:p-10 md:ml-72 w-full">
+                <section id="pag-stats" class="view hidden space-y-6">
+                    <h2 class="text-2xl font-bold">Panel de Control</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="card-metrica"><span>Items Únicos</span><h2 id="metrica-total">0</h2></div>
+                        <div class="card-metrica"><span>Stock Global</span><h2 id="metrica-stock" class="text-indigo-600">0</h2></div>
+                        <div class="card-metrica"><span>Bajo Stock</span><h2 id="metrica-alerta" class="text-red-500">0</h2></div>
                     </div>
-                </div>
-                <div class="bg-white p-6 rounded-3xl border shadow-sm">
-                    <canvas id="stockChart"></canvas>
-                </div>
-            </section>
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm">
+                        <canvas id="stockChart"></canvas>
+                    </div>
+                </section>
 
-            <section id="pag-stock" class="view hidden space-y-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-bold">Inventario</h2>
-                    <button id="btn-add-stock" onclick="abrirModalStock()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg">+ Entrada</button>
-                </div>
-                <div id="lista-inventario" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-            </section>
+                <section id="pag-stock" class="view hidden space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold">Inventario</h2>
+                        <button id="btn-admin-stock" onclick="abrirModalInsumo()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:scale-105 transition">+ Entrada Stock</button>
+                    </div>
+                    <div id="lista-inventario" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </section>
 
-            <section id="pag-solicitar" class="view hidden max-w-2xl mx-auto space-y-6">
-                <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm">
-                    <h2 class="text-2xl font-bold mb-6 text-center">Nueva Solicitud</h2>
-                    <select id="sol-ubicacion" class="input-light mb-6 font-bold border-2 border-indigo-50">
-                        <option value="" disabled selected>Seleccionar Sede...</option>
-                        <option value="DC1">DC1</option>
-                        <option value="DC2">DC2</option>
-                        <option value="ONX">ONX</option>
-                        <option value="PDC1">PDC1</option>
-                        <option value="OCEANIA">OCEANIA</option>
-                    </select>
-                    <div id="contenedor-lista-pedidos" class="space-y-2 mb-6 max-h-96 overflow-y-auto pr-2"></div>
-                    <button onclick="enviarPedido()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all">Enviar Pedido</button>
-                </div>
-            </section>
+                <section id="pag-solicitudes" class="view hidden space-y-4">
+                    <h2 class="text-2xl font-bold">Monitoreo de Solicitudes</h2>
+                    <div id="lista-pendientes-admin" class="space-y-4"></div>
+                </section>
 
-            <section id="pag-solicitudes" class="view hidden space-y-4">
-                <h2 class="text-2xl font-bold">Solicitudes Entrantes</h2>
-                <div id="lista-pendientes-admin" class="space-y-4"></div>
-            </section>
+                <section id="pag-historial" class="view hidden space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold">Historial</h2>
+                        <button onclick="descargarReporte()" class="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold italic">CSV</button>
+                    </div>
+                    <div class="bg-white rounded-3xl border overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 border-b uppercase text-[10px] font-bold">
+                                <tr><th class="p-4">Fecha</th><th class="p-4">Insumo</th><th class="p-4">Cant</th><th class="p-4">Sede</th><th class="p-4">Estado</th></tr>
+                            </thead>
+                            <tbody id="tabla-historial-body" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                </section>
 
-            <section id="pag-usuarios" class="view hidden space-y-6">
-                <h2 class="text-2xl font-bold">Gestión de Usuarios</h2>
-                <div class="bg-white p-6 rounded-3xl border shadow-sm grid grid-cols-1 md:grid-cols-5 gap-3">
-                    <input id="new-user" placeholder="ID" class="input-light">
-                    <input id="new-pass" type="password" placeholder="Clave" class="input-light">
-                    <input id="new-email" placeholder="Correo" class="input-light">
-                    <select id="new-role" class="input-light">
-                        <option value="user">Aplicante</option>
-                        <option value="supervisor">Supervisor</option>
-                        <option value="manager">Gerente</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                    <button onclick="crearUsuario()" class="bg-indigo-600 text-white rounded-xl font-bold">Guardar</button>
-                </div>
-                <div id="lista-usuarios-db" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-            </section>
+                <section id="pag-usuarios" class="view hidden space-y-6">
+                    <div class="bg-white p-6 rounded-3xl border">
+                        <h3 class="font-bold mb-4">Crear Nuevo Acceso</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                            <input id="new-user" placeholder="ID Usuario" class="input-light">
+                            <input id="new-pass" type="password" placeholder="Clave" class="input-light">
+                            <input id="new-email" type="email" placeholder="Correo" class="input-light">
+                            <select id="new-role" class="input-light">
+                                <option value="user">Aplicante</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="manager">Gerente</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                            <button onclick="crearUsuario()" class="bg-indigo-600 text-white py-3 rounded-xl font-bold">Guardar</button>
+                        </div>
+                    </div>
+                    <div id="lista-usuarios-db" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+                </section>
 
-            <section id="pag-notificaciones" class="view hidden space-y-4">
-                <h2 class="text-2xl font-bold">Mis Pedidos</h2>
-                <div id="lista-notificaciones" class="space-y-3"></div>
-            </section>
-        </main>
+                <section id="pag-solicitar" class="view hidden max-w-xl mx-auto space-y-6">
+                    <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm">
+                        <h2 class="text-2xl font-bold mb-6 text-center">Nueva Solicitud</h2>
+                        <select id="sol-ubicacion" class="input-light mb-6 font-bold text-indigo-600">
+                            <option value="" disabled selected>Seleccionar Sede...</option>
+                            <option value="DC1">DC1</option><option value="DC2">DC2</option><option value="ONX">ONX</option>
+                        </select>
+                        <div id="contenedor-lista-pedidos" class="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scroll mb-6"></div>
+                        <button onclick="procesarSolicitudMultiple()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg">Enviar Pedido</button>
+                    </div>
+                </section>
+
+                <section id="pag-notificaciones" class="view hidden space-y-4">
+                    <h2 class="text-2xl font-bold">Mis Pedidos</h2>
+                    <div id="lista-notificaciones" class="space-y-3"></div>
+                </section>
+            </main>
+        </div>
     </div>
 
-    <div id="modal-stock" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl">
-            <h3 class="text-xl font-bold mb-6 text-center">Registrar Entrada</h3>
+    <div id="modal-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm">
+            <h3 class="text-xl font-bold mb-6 text-center">Entrada de Almacén</h3>
             <div class="space-y-4">
-                <input id="stock-nombre" list="lista-sugerencias" placeholder="Nombre del Insumo" class="input-light uppercase">
+                <input id="nombre-prod" list="lista-sugerencias" placeholder="Nombre del Insumo" class="input-light uppercase">
                 <datalist id="lista-sugerencias"></datalist>
-                <input id="stock-cantidad" type="number" placeholder="Cantidad a sumar" class="input-light">
-                <button onclick="guardarEntradaStock()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Confirmar</button>
-                <button onclick="cerrarModalStock()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold">Cerrar</button>
+                <input id="cantidad-prod" type="number" placeholder="Cantidad a sumar" class="input-light">
+                <button onclick="agregarProducto()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Registrar</button>
+                <button onclick="cerrarModalInsumo()" class="w-full py-3 bg-slate-100 text-slate-400 rounded-xl font-bold mt-2">Cerrar</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-editar-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div id="modal-editar-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl">
-            <h3 class="text-xl font-bold mb-6 text-center">Configurar Insumo</h3>
+            <h3 id="edit-titulo" class="text-xl font-bold mb-6 text-indigo-900 uppercase">Configurar Insumo</h3>
             <div class="space-y-4">
-                <input id="edit-id" type="hidden">
                 <div>
-                    <label class="text-xs font-bold text-slate-400 uppercase ml-2">URL Imagen</label>
-                    <input id="edit-img" placeholder="https://..." class="input-light">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">URL Imagen</label>
+                    <input id="edit-img" type="text" placeholder="https://..." class="input-light">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="text-xs font-bold text-slate-400 uppercase ml-2">Precio ($)</label>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Precio ($)</label>
                         <input id="edit-precio" type="number" step="0.01" class="input-light">
                     </div>
                     <div>
-                        <label class="text-xs font-bold text-slate-400 uppercase ml-2">Stock Mínimo</label>
-                        <input id="edit-min" type="number" class="input-light">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Stock Mínimo</label>
+                        <input id="edit-minimo" type="number" class="input-light">
                     </div>
                 </div>
-                <button onclick="guardarCambiosInsumo()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Guardar Cambios</button>
-                <button onclick="document.getElementById('modal-editar-insumo').classList.add('hidden')" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold">Cancelar</button>
+                <button onclick="guardarConfigInsumo()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg">Guardar Cambios</button>
+                <button onclick="cerrarModalEditar()" class="w-full py-2 text-slate-400 font-bold">Cancelar</button>
             </div>
         </div>
     </div>
