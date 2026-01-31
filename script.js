@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-// --- CONFIGURACIÓN DE LLAVES ---
+// --- CONFIGURACIÓN (TUS LLAVES) ---
 const firebaseConfig = {
     apiKey: "AIzaSyA3cRmakg2dV2YRuNV1fY7LE87artsLmB8",
     authDomain: "mi-web-db.firebaseapp.com",
@@ -9,15 +9,15 @@ const firebaseConfig = {
     storageBucket: "mi-web-db.appspot.com"
 };
 
-// CLOUDINARY
+// CLOUDINARY CONFIG
 const CLOUD_NAME = 'df79cjklp'; 
 const UPLOAD_PRESET = 'insumos'; 
 
-// EMAILJS
+// EMAILJS CONFIG
 const EMAIL_SERVICE_ID = 'service_a7yozqh'; 
-const EMAIL_TEMPLATE_ID = 'template_dmqfty5'; 
+const EMAIL_TEMPLATE_ALERT = 'template_dmqfty5'; 
 const EMAIL_PUBLIC_KEY = '2jVnfkJKKG0bpKN-U'; 
-// Correo del administrador para recibir alertas de stock y nuevos pedidos
+// Correo del administrador
 const ADMIN_EMAIL = 'archivos@fcipty.com'; 
 
 const app = initializeApp(firebaseConfig);
@@ -124,59 +124,94 @@ function configurarMenu() {
     menu.innerHTML = r.map(x => `<button onclick="verPagina('${x.id}')" class="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-white border border-slate-100 flex items-center justify-center transition-colors"><i class="fas fa-${x.i}"></i></div>${x.n}</button>`).join('');
 }
 
-// --- FUNCIÓN MAESTRA DE NOTIFICACIONES ---
+// --- FUNCIÓN MAESTRA DE NOTIFICACIONES (¡NUEVO DISEÑO CON EMOJIS!) ---
 async function enviarNotificacionGlobal(tipo, datos) {
-    // Definimos el contenido según el tipo de evento
     let config = {
         asunto: "",
         titulo_principal: "",
         mensaje_cuerpo: "",
-        to_email: ADMIN_EMAIL // Por defecto al admin
+        to_email: ADMIN_EMAIL 
     };
 
     switch (tipo) {
         case 'nuevo_pedido':
             config.asunto = `📦 Nuevo Pedido - ${datos.sede}`;
-            config.titulo_principal = "¡Nueva Solicitud Recibida!";
-            config.mensaje_cuerpo = `El usuario ${datos.usuario} ha solicitado:\n\n- Insumo: ${datos.insumo}\n- Cantidad: ${datos.cantidad}\n- Sede: ${datos.sede}`;
+            config.titulo_principal = "🚀 ¡Nueva Solicitud Entrante!";
+            config.mensaje_cuerpo = `
+Se ha registrado un nuevo movimiento en el sistema:
+
+👤 **Solicitante:** ${datos.usuario}
+🏢 **Sede:** ${datos.sede}
+📦 **Insumo:** ${datos.insumo.toUpperCase()}
+🔢 **Cantidad:** ${datos.cantidad} unidad(es)
+
+👉 Por favor, revisa la sección de 'Pendientes' para aprobar.`;
             break;
 
         case 'pedido_aprobado':
-            config.asunto = `✅ Pedido Aprobado - ${datos.insumo}`;
-            config.titulo_principal = "Tu solicitud ha sido APROBADA";
-            config.mensaje_cuerpo = `Hola ${datos.usuario},\nTu pedido de ${datos.cantidad} unidad(es) de ${datos.insumo} para la sede ${datos.sede} ha sido aprobado y está en camino.`;
-            // Aquí intentamos enviar al usuario si tuviéramos su email, por ahora va al admin o genérico
+            config.asunto = `🎉 Pedido Aprobado - ${datos.insumo}`;
+            config.titulo_principal = "✅ ¡Buenas noticias! Solicitud Aprobada";
+            config.mensaje_cuerpo = `
+Tu solicitud ha sido procesada exitosamente por la administración.
+
+📝 **Resumen del Pedido:**
+• Insumo: ${datos.insumo.toUpperCase()}
+• Cantidad Aprobada: ${datos.cantidad}
+• Destino: ${datos.sede}
+
+🚚 El despacho está en proceso. No olvides confirmar cuando lo recibas.`;
             break;
 
         case 'pedido_rechazado':
-            config.asunto = `❌ Pedido Rechazado - ${datos.insumo}`;
-            config.titulo_principal = "Solicitud Rechazada";
-            config.mensaje_cuerpo = `La solicitud de ${datos.insumo} para ${datos.sede} no pudo ser procesada en este momento.`;
+            config.asunto = `🛑 Estado de Pedido - ${datos.insumo}`;
+            config.titulo_principal = "❌ Solicitud Rechazada";
+            config.mensaje_cuerpo = `
+Lo sentimos, tu solicitud no pudo ser procesada en este momento.
+
+📋 **Detalles:**
+• Solicitante: ${datos.usuario}
+• Insumo: ${datos.insumo.toUpperCase()}
+• Sede: ${datos.sede}
+
+ℹ️ Ponte en contacto con el administrador para más información.`;
             break;
 
         case 'stock_bajo':
             config.asunto = `⚠️ ALERTA: Stock Crítico - ${datos.insumo}`;
-            config.titulo_principal = "Nivel de Inventario Bajo";
-            config.mensaje_cuerpo = `ATENCIÓN:\nEl insumo ${datos.insumo} ha bajado de su nivel mínimo.\n\nStock Actual: ${datos.cantidad_actual}\nStock Mínimo: ${datos.stock_minimo}`;
+            config.titulo_principal = "📉 Alerta de Inventario Bajo";
+            config.mensaje_cuerpo = `
+¡Atención! Un producto ha alcanzado sus niveles mínimos.
+
+📦 **Producto:** ${datos.insumo.toUpperCase()}
+📊 **Stock Actual:** ${datos.cantidad_actual}
+🛑 **Mínimo Permitido:** ${datos.stock_minimo}
+
+⚡ Se recomienda gestionar el reabastecimiento lo antes posible.`;
             break;
 
         case 'recibido':
-            config.asunto = `🤝 Entrega Confirmada - ${datos.sede}`;
-            config.titulo_principal = "Insumos Recibidos";
-            config.mensaje_cuerpo = `El usuario ${datos.usuario} confirmó la recepción de ${datos.insumo} en la sede ${datos.sede}. Ciclo cerrado exitosamente.`;
+            config.asunto = `🤝 Entrega Exitosa - ${datos.sede}`;
+            config.titulo_principal = "📦 Insumos Recibidos Correctamente";
+            config.mensaje_cuerpo = `
+El ciclo de entrega se ha cerrado exitosamente.
+
+✅ **Confirmado por:** ${datos.usuario}
+📍 **Sede:** ${datos.sede}
+📦 **Insumo:** ${datos.insumo.toUpperCase()}
+
+El registro ha quedado guardado en el historial.`;
             break;
     }
 
-    // Enviamos a EmailJS
     try {
-        await emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+        await emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ALERT, {
             asunto: config.asunto,
             titulo_principal: config.titulo_principal,
             mensaje_cuerpo: config.mensaje_cuerpo,
-            to_email: config.to_email, // Asegúrate de configurar esto en tu template de EmailJS si quieres destinatarios dinámicos
+            to_email: config.to_email,
             fecha: new Date().toLocaleString()
         });
-        console.log(`Correo enviado: ${tipo}`);
+        console.log(`✨ Correo enviado (${tipo})`);
     } catch (error) {
         console.error("Error enviando email:", error);
     }
@@ -205,7 +240,7 @@ window.procesarSolicitudMultiple = async () => {
             fecha: new Date().toLocaleString(), 
             timestamp: Date.now() 
         });
-        // Notificación: Nuevo Pedido
+        // Notificación Bonita: Nuevo Pedido
         enviarNotificacionGlobal('nuevo_pedido', { usuario: usuarioActual.id, insumo: ins, cantidad: cant, sede: ubi });
     }));
 
@@ -219,7 +254,6 @@ window.procesarSolicitudMultiple = async () => {
 // --- GESTIÓN DE PEDIDOS ---
 window.gestionarPedido = async (pid, accion, ins) => {
     const pRef = doc(db, "pedidos", pid);
-    // Obtenemos info del pedido para el correo
     const pSnap = await getDoc(pRef);
     if(!pSnap.exists()) return;
     const pData = pSnap.data();
@@ -238,12 +272,12 @@ window.gestionarPedido = async (pid, accion, ins) => {
             await updateDoc(iRef, { cantidad: nuevaCantidad });
             await updateDoc(pRef, { estado: "aprobado", cantidad: cantFinal });
 
-            // Notificación: Aprobado
+            // Notificación Bonita: Aprobado
             enviarNotificacionGlobal('pedido_aprobado', { 
                 usuario: pData.usuarioId, insumo: ins, cantidad: cantFinal, sede: pData.ubicacion 
             });
 
-            // Notificación: Stock Bajo
+            // Notificación Bonita: Stock Bajo
             if (nuevaCantidad <= stockMin && stockMin > 0) {
                 enviarNotificacionGlobal('stock_bajo', { 
                     insumo: ins, cantidad_actual: nuevaCantidad, stock_minimo: stockMin 
@@ -253,7 +287,7 @@ window.gestionarPedido = async (pid, accion, ins) => {
         } else alert("Stock insuficiente.");
     } else {
         await updateDoc(pRef, { estado: "rechazado" });
-        // Notificación: Rechazado
+        // Notificación Bonita: Rechazado
         enviarNotificacionGlobal('pedido_rechazado', { 
             usuario: pData.usuarioId, insumo: ins, sede: pData.ubicacion 
         });
@@ -269,6 +303,7 @@ window.confirmarRecibido = async (pid) => {
         
         if(pSnap.exists()){
             const d = pSnap.data();
+            // Notificación Bonita: Recibido
             enviarNotificacionGlobal('recibido', { usuario: d.usuarioId, insumo: d.insumoNom, sede: d.ubicacion });
         }
     }
@@ -343,9 +378,12 @@ window.prepararEdicionUsuario = (id, pass, rol) => {
     document.getElementById("new-user").disabled = true; 
     document.getElementById("new-pass").value = pass;
     document.getElementById("new-role").value = rol;
-    document.getElementById("titulo-form-usuario").innerHTML = `<i class="fas fa-user-edit"></i> Editando a: <span class="text-indigo-600">${id}</span>`;
-    document.getElementById("btn-guardar-usuario").innerText = "Actualizar Usuario";
-    document.getElementById("cancel-edit-msg").classList.remove("hidden");
+    const title = document.getElementById("titulo-form-usuario");
+    if(title) title.innerHTML = `<i class="fas fa-user-edit"></i> Editando a: <span class="text-indigo-600">${id}</span>`;
+    const btn = document.getElementById("btn-guardar-usuario");
+    if(btn) btn.innerText = "Actualizar Usuario";
+    const msg = document.getElementById("cancel-edit-msg");
+    if(msg) msg.classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
@@ -355,9 +393,12 @@ window.cancelarEdicionUsuario = () => {
     document.getElementById("new-user").disabled = false;
     document.getElementById("new-pass").value = "";
     document.getElementById("new-role").value = "user";
-    document.getElementById("titulo-form-usuario").innerHTML = `<i class="fas fa-user-plus"></i> Crear Nuevo Acceso`;
-    document.getElementById("btn-guardar-usuario").innerText = "Guardar";
-    document.getElementById("cancel-edit-msg").classList.add("hidden");
+    const title = document.getElementById("titulo-form-usuario");
+    if(title) title.innerHTML = `<i class="fas fa-user-plus"></i> Crear Nuevo Acceso`;
+    const btn = document.getElementById("btn-guardar-usuario");
+    if(btn) btn.innerText = "Guardar";
+    const msg = document.getElementById("cancel-edit-msg");
+    if(msg) msg.classList.add("hidden");
 };
 
 // --- SINCRONIZACIÓN ---
@@ -404,7 +445,6 @@ function activarSincronizacion() {
                 const nt=p.detalleIncidencia?`<br><span class="text-[9px] text-red-400 italic">"${p.detalleIncidencia}"</span>`:''; 
                 th.innerHTML+=`<tr class="hover:bg-slate-50 transition"><td class="p-4 text-slate-400 font-mono">${p.fecha.split(',')[0]}</td><td class="p-4 font-bold uppercase text-slate-700">${p.insumoNom}</td><td class="p-4 text-slate-600">x${p.cantidad}</td><td class="p-4"><span class="px-2 py-1 rounded bg-slate-100 text-slate-500 font-bold text-[10px]">${p.ubicacion}</span></td><td class="p-4 text-slate-500">${p.usuarioId}</td><td class="p-4"><span class="badge status-${p.estado}">${p.estado}</span>${nt}</td></tr>`; 
             } 
-            // VISTA DE MIS PEDIDOS (Ahora visible para TODOS si p.usuarioId coincide)
             if(p.usuarioId===usuarioActual.id && lu){ 
                 let acts=""; 
                 if(p.estado==='aprobado'){ acts=`<div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-50"><button onclick="confirmarRecibido('${id}')" class="py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold shadow hover:bg-emerald-600">Confirmar Recibido</button><button onclick="abrirIncidencia('${id}')" class="py-2 bg-white border border-slate-200 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-50 hover:text-red-500">Reportar</button></div>`; } 
