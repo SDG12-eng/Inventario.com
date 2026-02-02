@@ -17,7 +17,7 @@ const UPLOAD_PRESET = 'insumos';
 const EMAIL_SERVICE_ID = 'service_a7yozqh'; 
 const EMAIL_TEMPLATE_ID = 'template_zglatmb'; // Asegúrate que este sea el ID correcto
 const EMAIL_PUBLIC_KEY = '2jVnfkJKKG0bpKN-U'; 
-const ADMIN_EMAIL = 'archivos@fcipty.com'; 
+const ADMIN_EMAIL = 'oficinista.archivos@fcipty.com'; 
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
