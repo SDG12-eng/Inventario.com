@@ -1,73 +1,22 @@
-/* --- FUENTES --- */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap');
-
-body { 
-    font-family: 'Plus Jakarta Sans', sans-serif; 
-}
-
-/* --- FORMULARIOS --- */
-.input-light {
-    @apply w-full p-4 bg-slate-50 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-300 text-sm font-medium;
-}
-
-/* Nuevos filtros del Dashboard (Más pequeños y compactos) */
-.input-filter {
-    @apply p-2 rounded-lg border border-slate-200 text-xs font-bold bg-white text-slate-600 focus:outline-none focus:border-indigo-500 cursor-pointer hover:border-indigo-300 transition-colors;
-}
-
-.label-form {
-    @apply block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1 tracking-widest;
-}
-
-/* --- TARJETAS DASHBOARD --- */
-.card-metrica {
-    @apply bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md relative overflow-hidden;
-}
-
-.icon-box {
-    @apply w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-3 transition-transform duration-300 group-hover:scale-110;
-}
-
-.card-metrica span { 
-    @apply text-[10px] font-bold text-slate-400 uppercase tracking-widest; 
-}
-
-.card-metrica h2 { 
-    @apply text-3xl font-black text-slate-800 mt-1; 
-}
-
-/* --- TABLAS --- */
-.th-header {
-    @apply text-[10px] font-black text-slate-400 uppercase tracking-wider;
-}
-
-/* --- BADGES (Etiquetas de Estado) --- */
-.badge { 
-    @apply px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide border inline-block; 
-}
-
-/* Colores de Estado */
+body { font-family: 'Plus Jakarta Sans', sans-serif; }
+.input-light { @apply w-full p-4 bg-slate-50 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-300 text-sm font-medium; }
+.label-form { @apply block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1 tracking-widest; }
+.card-metrica { @apply bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center transition hover:-translate-y-1 hover:shadow-md relative overflow-hidden; }
+.icon-box { @apply w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-3; }
+.card-metrica span { @apply text-[10px] font-bold text-slate-400 uppercase tracking-widest; }
+.card-metrica h2 { @apply text-3xl font-black text-slate-800; }
+.th-header { @apply text-[10px] font-black text-slate-400 uppercase tracking-wider; }
+.badge { @apply px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide border; }
 .status-pendiente { @apply bg-amber-50 text-amber-600 border-amber-100; }
 .status-aprobado { @apply bg-indigo-50 text-indigo-600 border-indigo-100; }
 .status-rechazado { @apply bg-slate-100 text-slate-500 border-slate-200; }
 .status-recibido { @apply bg-emerald-50 text-emerald-600 border-emerald-100; }
 .status-devuelto { @apply bg-purple-50 text-purple-600 border-purple-100; }
 .status-con_incidencia { @apply bg-red-50 text-red-600 border-red-100; }
-
-/* --- UTILIDADES --- */
-
-/* Scrollbar Personalizado (Estilo Mac/Moderno) */
 .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .custom-scroll::-webkit-scrollbar-track { background: transparent; }
 .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-/* Animación de Entrada Suave */
-@keyframes fadeIn { 
-    from { opacity: 0; transform: translateY(10px); } 
-    to { opacity: 1; transform: translateY(0); } 
-}
-
-.animate-fade-in { 
-    animation: fadeIn 0.4s ease-out forwards; 
-}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
