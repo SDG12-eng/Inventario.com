@@ -1,318 +1,354 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-
-// --- CONFIGURACIÓN ---
-const firebaseConfig = { apiKey: "AIzaSyA3cRmakg2dV2YRuNV1fY7LE87artsLmB8", authDomain: "mi-web-db.firebaseapp.com", projectId: "mi-web-db", storageBucket: "mi-web-db.appspot.com" };
-const CLOUD_NAME = 'df79cjklp'; const UPLOAD_PRESET = 'insumos'; 
-// !!! AQUÍ ESTÁN TUS DATOS CORREGIDOS !!!
-const EMAIL_SERVICE_ID = 'service_a7yozqh'; 
-const EMAIL_TEMPLATE_ID = 'template_zglatmb'; // EL NUEVO TEMPLATE
-const EMAIL_PUBLIC_KEY = '2jVnfkJKKG0bpKN-U'; 
-const ADMIN_EMAIL = 'juniorcede3002@gmail.com'; // CORREO DEL ADMIN
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-let usuarioActual = null, stockChart=null, userChart=null, locationChart=null, carritoGlobal={}, cloudinaryWidget=null;
-let pedidosRaw = []; // Para agrupar
-let cacheEntradas = [], cachePedidos = [];
-
-emailjs.init(EMAIL_PUBLIC_KEY);
-
-// --- FUNCIONES DEFINIDAS ANTES DE USARSE ---
-
-// 1. CLOUDINARY
-function setupCloudinary() {
-    if(typeof cloudinary!=="undefined") {
-        cloudinaryWidget = cloudinary.createUploadWidget({ cloudName: CLOUD_NAME, uploadPreset: UPLOAD_PRESET, sources: ['local','camera'], multiple:false, cropping:true, folder:'fcilog_insumos' }, (error, result) => { 
-            if(!error && result && result.event === "success") { 
-                document.getElementById('edit-prod-img').value = result.info.secure_url;
-                document.getElementById('preview-img').src = result.info.secure_url;
-                document.getElementById('preview-img').classList.remove('hidden');
-            }
-        });
-        const btn = document.getElementById("upload_widget");
-        if(btn) btn.addEventListener("click", () => cloudinaryWidget.open(), false);
-    }
-}
-
-// 2. NOTIFICACIONES (Variables correctas para tu template)
-async function enviarNotificacionGrupo(tipo, datos) {
-    let config = { 
-        to_email: datos.target_email || ADMIN_EMAIL, 
-        asunto: "", 
-        titulo_principal: "", 
-        mensaje_cuerpo: "", 
-        fecha: new Date().toLocaleString() 
-    };
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FCILog - InsuManager v9.2</title>
     
-    const lista = datos.items ? datos.items.map(i => `• ${i.insumo.toUpperCase()} (x${i.cantidad})`).join('\n') : "";
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 
-    switch (tipo) {
-        case 'nuevo_pedido': 
-            config.asunto = `📦 Nuevo Pedido: ${datos.usuario}`; 
-            config.titulo_principal = "🚀 Solicitud Recibida"; 
-            config.mensaje_cuerpo = `Usuario: ${datos.usuario}\nSede: ${datos.sede}\n\n${lista}`; 
-            break;
-        case 'aprobado_parcial': 
-            config.asunto = `✅ Pedido Aprobado`; 
-            config.titulo_principal = "Estado Actualizado"; 
-            config.mensaje_cuerpo = `Tu pedido de:\n\n${lista}\n\nHa sido APROBADO. Revisa "Mis Pedidos".`; 
-            break;
-        case 'stock_bajo': 
-            config.asunto = `⚠️ STOCK BAJO: ${datos.insumo}`; 
-            config.titulo_principal = "Alerta Inventario"; 
-            config.mensaje_cuerpo = `Insumo: ${datos.insumo}\nStock: ${datos.actual}\nMínimo: ${datos.minimo}`; 
-            break;
-        case 'recibido': 
-            config.asunto = `🔵 Recepción Confirmada`; 
-            config.titulo_principal = "Entrega Exitosa"; 
-            config.mensaje_cuerpo = `Usuario: ${datos.usuario}\nSede: ${datos.sede}\n\n${lista}`; 
-            break;
-    }
-    
-    try { 
-        await emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, { 
-            asunto: config.asunto, 
-            titulo_principal: config.titulo_principal, 
-            mensaje_cuerpo: config.mensaje_cuerpo, 
-            to_email: config.to_email, 
-            fecha: config.fecha 
-        }); 
-        console.log("Email enviado OK");
-    } catch (e) { 
-        console.error("Error EmailJS:", e); 
-        if(e.status === 400) alert("Error de configuración de EmailJS. Revisa la consola.");
-    }
-}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="https://widget.cloudinary.com/v2.0/global/all.js" type="text/javascript"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-700">
 
-// 3. RENDER HISTORIAL
-function renderHistorialUnificado() {
-    const t = document.getElementById("tabla-movimientos-unificados");
-    if(!t) return;
-    t.innerHTML="";
-    
-    const eFmt = cacheEntradas.map(e => ({ fecha:e.fecha, ts:e.timestamp, tipo:'ENTRADA', insumo:e.insumo, cant:e.cantidad, det:`${e.usuario} (Stock)`, est:'completado' }));
-    const pFmt = cachePedidos.map(p => ({ fecha:p.fecha, ts:p.timestamp, tipo:'SALIDA', insumo:p.insumoNom, cant:p.cantidad, det:`${p.usuarioId} (${p.ubicacion})`, est:p.estado }));
-    
-    const all = [...eFmt, ...pFmt].sort((a,b)=>b.ts-a.ts);
+    <div id="pantalla-login" class="fixed inset-0 z-[1000] bg-white flex items-center justify-center p-6">
+        <div class="w-full max-w-sm text-center">
+            <div class="inline-block p-5 bg-indigo-50 rounded-[2rem] mb-6 shadow-sm border border-slate-100">
+                <i class="fas fa-cubes text-6xl text-indigo-600"></i>
+            </div>
+            <h1 class="text-3xl font-black mb-2 text-indigo-900 tracking-tight">FCILog System</h1>
+            <p class="text-slate-400 text-sm mb-8 font-medium">Gestión de Inventario & Usuarios</p>
+            <div class="space-y-4">
+                <div class="relative">
+                    <i class="fas fa-user absolute left-4 top-4 text-slate-300"></i>
+                    <input id="login-user" type="text" placeholder="USUARIO" class="input-light pl-12 uppercase font-bold text-slate-600">
+                </div>
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-4 top-4 text-slate-300"></i>
+                    <input id="login-pass" type="password" placeholder="CONTRASEÑA" class="input-light pl-12 font-bold text-slate-600">
+                </div>
+                <button onclick="iniciarSesion()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
+                    Iniciar Sesión
+                </button>
+            </div>
+            <p class="text-[10px] text-slate-300 mt-8 font-mono">v9.2 Final Stable</p>
+        </div>
+    </div>
 
-    all.forEach(h => {
-        const icon = h.tipo==='ENTRADA' ? '<i class="fas fa-arrow-down text-emerald-500"></i>' : '<i class="fas fa-arrow-up text-amber-500"></i>';
-        t.innerHTML += `<tr class="hover:bg-slate-50 border-b border-slate-50 last:border-0"><td class="p-3 text-slate-400 text-[10px] font-mono">${h.fecha.split(',')[0]}</td><td class="p-3 text-xs font-bold text-slate-600">${icon} ${h.tipo}</td><td class="p-3 font-bold text-slate-700 uppercase text-xs">${h.insumo}</td><td class="p-3 text-sm font-bold text-slate-800">${h.cant}</td><td class="p-3 text-xs text-slate-500 uppercase">${h.det}</td><td class="p-3"><span class="badge status-${h.est}">${h.est}</span></td></tr>`;
-    });
-}
+    <div id="interfaz-app" class="hidden min-h-screen flex flex-col relative">
+        
+        <header class="md:hidden bg-white/90 backdrop-blur-md border-b border-slate-100 p-4 flex justify-between items-center sticky top-0 z-[50]">
+            <span class="font-black text-indigo-600 text-xl tracking-tight"><i class="fas fa-cubes"></i> FCILog</span>
+            <button onclick="toggleMenu()" class="text-2xl text-slate-700 p-2 rounded-lg hover:bg-slate-100 active:scale-90 transition cursor-pointer">
+                <i class="fas fa-bars"></i>
+            </button>
+        </header>
 
-// 4. PREPARAR EDICIÓN (Globales)
-window.prepararEdicionProducto=async(id)=>{const s=await getDoc(doc(db,"inventario",id)); if(!s.exists())return; const d=s.data(); document.getElementById('edit-prod-id').value=id; document.getElementById('edit-prod-precio').value=d.precio||''; document.getElementById('edit-prod-min').value=d.stockMinimo||''; document.getElementById('edit-prod-img').value=d.imagen||''; if(d.imagen)document.getElementById('preview-img').src=d.imagen,document.getElementById('preview-img').classList.remove('hidden'); document.getElementById('modal-detalles').classList.remove('hidden');};
-window.guardarDetallesProducto=async()=>{const id=document.getElementById('edit-prod-id').value, p=parseFloat(document.getElementById('edit-prod-precio').value)||0, m=parseInt(document.getElementById('edit-prod-min').value)||0, i=document.getElementById('edit-prod-img').value; await updateDoc(doc(db,"inventario",id),{precio:p,stockMinimo:m,imagen:i}); cerrarModalDetalles(); alert("Guardado");};
-window.guardarUsuario=async()=>{const id=document.getElementById("new-user").value.trim().toLowerCase(), p=document.getElementById("new-pass").value.trim(), e=document.getElementById("new-email").value.trim(), r=document.getElementById("new-role").value; if(!id||!p)return alert("Faltan datos"); await setDoc(doc(db,"usuarios",id),{pass:p,rol:r,email:e},{merge:true}); alert("Guardado"); cancelarEdicionUsuario();};
-window.prepararEdicionUsuario=(i,p,r,e)=>{document.getElementById("edit-mode-id").value=i; document.getElementById("new-user").value=i; document.getElementById("new-user").disabled=true; document.getElementById("new-pass").value=p; document.getElementById("new-email").value=e||""; document.getElementById("new-role").value=r; document.getElementById("btn-guardar-usuario").innerText="Actualizar"; document.getElementById("cancel-edit-msg").classList.remove("hidden");};
-window.cancelarEdicionUsuario=()=>{document.getElementById("edit-mode-id").value=""; document.getElementById("new-user").value=""; document.getElementById("new-user").disabled=false; document.getElementById("new-pass").value=""; document.getElementById("new-email").value=""; document.getElementById("btn-guardar-usuario").innerText="Guardar"; document.getElementById("cancel-edit-msg").classList.add("hidden");};
-window.abrirModalInsumo=()=>document.getElementById("modal-insumo").classList.remove("hidden"); window.cerrarModalInsumo=()=>document.getElementById("modal-insumo").classList.add("hidden"); window.cerrarModalDetalles=()=>{document.getElementById("modal-detalles").classList.add("hidden"); document.getElementById('preview-img').classList.add('hidden'); document.getElementById('edit-prod-img').value='';}; window.eliminarDato=async(c,i)=>{if(confirm("¿Eliminar?"))await deleteDoc(doc(db,c,i));};
-window.abrirIncidencia=(pid)=>{document.getElementById('incidencia-pid').value=pid;document.getElementById('incidencia-detalle').value="";document.getElementById('modal-incidencia').classList.remove('hidden');};
-window.confirmarIncidencia=async(dev)=>{const pid=document.getElementById('incidencia-pid').value,det=document.getElementById('incidencia-detalle').value.trim();if(!det)return alert("Describa el problema");const pRef=doc(db,"pedidos",pid),pData=(await getDoc(pRef)).data();if(dev){const iRef=doc(db,"inventario",pData.insumoNom.toLowerCase()),iSnap=await getDoc(iRef);if(iSnap.exists())await updateDoc(iRef,{cantidad:iSnap.data().cantidad+pData.cantidad});}await updateDoc(pRef,{estado:dev?"devuelto":"con_incidencia",detalleIncidencia:det});document.getElementById('modal-incidencia').classList.add('hidden');alert("Registrado");};
-window.descargarReporte=async()=>{if(!confirm("Descargar Excel?"))return;const[s,e,p]=await Promise.all([getDocs(collection(db,"inventario")),getDocs(collection(db,"entradas_stock")),getDocs(collection(db,"pedidos"))]);let h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><h2>STOCK</h2><table border="1"><thead><tr><th>INSUMO</th><th>CANT</th><th>$</th><th>MIN</th></tr></thead><tbody>`;s.forEach(d=>{const x=d.data();h+=`<tr><td>${d.id}</td><td>${x.cantidad}</td><td>${x.precio||0}</td><td>${x.stockMinimo||0}</td></tr>`;});h+=`</tbody></table><h2>HISTORIAL</h2><table border="1"><thead><tr><th>FECHA</th><th>TIPO</th><th>INSUMO</th><th>CANT</th><th>DETALLE</th></tr></thead><tbody>`;
-const hist=[...e.docs.map(x=>({...x.data(),tipo:'ENTRADA'})),...p.docs.map(x=>({...x.data(),tipo:'SALIDA'}))].sort((a,b)=>b.timestamp-a.timestamp); hist.forEach(h=>{h+=`<tr><td>${h.fecha}</td><td>${h.tipo}</td><td>${h.insumo||h.insumoNom}</td><td>${h.cantidad}</td><td>${h.usuario||h.ubicacion}</td></tr>`});h+=`</tbody></table></body></html>`;const b=new Blob([h],{type:'application/vnd.ms-excel'}),l=document.createElement("a");l.href=URL.createObjectURL(b);l.download=`FCI_${new Date().toISOString().slice(0,10)}.xls`;document.body.appendChild(l);l.click();document.body.removeChild(l);};
-function renderChart(id,l,d,t,c,i,s){const x=document.getElementById(id);if(!x)return;if(i)i.destroy();s(new Chart(x,{type:'bar',data:{labels:l,datasets:[{label:t,data:d,backgroundColor:c,borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}}}}));}
+        <div class="flex flex-1">
+            <aside id="sidebar" class="fixed inset-y-0 left-0 z-[100] w-72 bg-white border-r border-slate-100 p-6 flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none h-full">
+                <div class="flex justify-between items-center mb-10 pl-2">
+                    <h1 class="text-xl font-black italic text-indigo-600 tracking-tighter">📦 InsuManager</h1>
+                    <button onclick="toggleMenu()" class="md:hidden text-slate-400 hover:text-red-500 transition p-2"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <nav id="menu-dinamico" class="space-y-2 flex-1 overflow-y-auto custom-scroll pr-2"></nav>
+                <div class="mt-auto pt-6 border-t border-slate-100 space-y-3">
+                    <div id="info-usuario" class="text-xs text-center p-3 bg-slate-50 rounded-xl border border-slate-100 text-slate-500 font-mono"></div>
+                    <button onclick="cerrarSesion()" class="w-full flex items-center justify-center gap-2 p-3 text-red-500 font-bold hover:bg-red-50 rounded-xl transition text-sm">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </div>
+            </aside>
+            <div id="sidebar-overlay" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/50 z-[90] hidden md:hidden backdrop-blur-sm transition-opacity"></div>
 
-// LOGICA ENTRADA RÁPIDA (HÍBRIDA)
-window.agregarProductoRápido = async () => {
-    const nombre = document.getElementById("nombre-prod").value.trim().toUpperCase();
-    const cantidad = parseInt(document.getElementById("cantidad-prod").value);
+            <main class="flex-1 p-4 md:p-8 md:ml-72 w-full overflow-x-hidden bg-slate-50/50 min-h-screen">
+                
+                <section id="pag-stats" class="view hidden space-y-6 animate-fade-in">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800">Dashboard General</h2>
+                            <p class="text-slate-400 text-xs">Métricas en tiempo real</p>
+                        </div>
+                        <button onclick="activarSincronizacion()" class="p-2 text-slate-400 hover:text-indigo-600 bg-white rounded-lg border border-slate-100 shadow-sm"><i class="fas fa-sync-alt"></i></button>
+                    </div>
 
-    if (nombre && cantidad > 0) {
-        const id = nombre.toLowerCase();
-        const ref = doc(db, "inventario", id);
-        const snap = await getDoc(ref);
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="card-metrica border-b-4 border-indigo-500">
+                            <div class="icon-box text-indigo-600 bg-indigo-50"><i class="fas fa-boxes"></i></div>
+                            <span>Referencias</span><h2 id="metrica-total">0</h2>
+                        </div>
+                        <div class="card-metrica border-b-4 border-emerald-500">
+                            <div class="icon-box text-emerald-600 bg-emerald-50"><i class="fas fa-layer-group"></i></div>
+                            <span>Stock Total</span><h2 id="metrica-stock">0</h2>
+                        </div>
+                        <div class="card-metrica border-b-4 border-amber-500">
+                            <div class="icon-box text-amber-600 bg-amber-50"><i class="fas fa-shopping-cart"></i></div>
+                            <span>Pendientes</span><h2 id="metrica-pedidos">0</h2>
+                        </div>
+                    </div>
 
-        if (snap.exists()) {
-            await updateDoc(ref, { cantidad: snap.data().cantidad + cantidad });
-            alert(`✅ Stock actualizado: ${nombre}`);
-        } else {
-            if(confirm(`"${nombre}" no existe. ¿Crear nuevo?`)) {
-                await setDoc(ref, { cantidad: cantidad });
-                alert(`✅ Producto creado: ${nombre}`);
-            } else return;
-        }
-        await addDoc(collection(db, "entradas_stock"), { insumo: nombre, cantidad: cantidad, usuario: usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() });
-        cerrarModalInsumo(); document.getElementById("nombre-prod").value=""; document.getElementById("cantidad-prod").value="";
-    } else alert("Datos inválidos.");
-};
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Niveles de Inventario</h3>
+                            <div class="h-64"><canvas id="stockChart"></canvas></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Solicitudes por Sede</h3>
+                            <div class="h-64"><canvas id="locationChart"></canvas></div>
+                        </div>
+                    </div>
+                </section>
 
-window.gestionarPedido = async (pid, accion, ins) => {
-    const pRef = doc(db, "pedidos", pid), pSnap = await getDoc(pRef);
-    if(!pSnap.exists()) return;
-    const pData = pSnap.data();
-    let emailSolicitante = ""; try{const u=await getDoc(doc(db,"usuarios",pData.usuarioId)); if(u.exists()) emailSolicitante=u.data().email;}catch(e){}
+                <section id="pag-stock" class="view hidden space-y-6 animate-fade-in">
+                    <div class="flex justify-between items-center sticky top-0 bg-slate-50/95 backdrop-blur py-4 z-10 border-b border-slate-100/50 pb-2">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800">Inventario</h2>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="w-2 h-2 rounded-full bg-red-500 inline-block animate-pulse"></span> 
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Stock Bajo (Borde Rojo)</span>
+                            </div>
+                        </div>
+                        <button id="btn-admin-stock" onclick="abrirModalInsumo()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm">
+                            <i class="fas fa-plus"></i> <span class="hidden sm:inline">Entrada Rápida</span>
+                        </button>
+                    </div>
+                    <div id="lista-inventario" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20"></div>
+                </section>
 
-    if(accion === 'aprobar') {
-        const inp = document.getElementById(`qty-${pid}`), val = inp?parseInt(inp.value):pData.cantidad;
-        const iRef = doc(db, "inventario", ins.toLowerCase()), iSnap = await getDoc(iRef);
-        if(iSnap.exists() && iSnap.data().cantidad >= val) {
-            const newStock = iSnap.data().cantidad - val;
-            await updateDoc(iRef, { cantidad: newStock });
-            await updateDoc(pRef, { estado: "aprobado", cantidad: val });
+                <section id="pag-solicitudes" class="view hidden space-y-6 animate-fade-in">
+                    <h2 class="text-2xl font-black text-slate-800">Centro de Aprobaciones</h2>
+                    <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-start gap-3 text-indigo-800 text-sm">
+                        <i class="fas fa-info-circle mt-1 text-lg"></i>
+                        <div>
+                            <p class="font-bold">Modo Agrupado</p>
+                            <p>Las solicitudes se muestran por "Lote". Haz clic en "Ver Detalles" para aprobar cada producto.</p>
+                        </div>
+                    </div>
+                    <div id="lista-pendientes-admin" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+                </section>
+
+                <section id="pag-historial" class="view hidden space-y-8 animate-fade-in">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800">Movimientos Globales</h2>
+                            <p class="text-slate-400 text-xs">Entradas + Salidas + Devoluciones</p>
+                        </div>
+                        <button onclick="descargarReporte()" class="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition flex items-center gap-2 text-sm">
+                            <i class="fas fa-file-excel"></i> Descargar Excel
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto max-h-[500px] custom-scroll">
+                            <table class="w-full text-left min-w-[800px]">
+                                <thead class="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="p-4 th-header">Fecha</th>
+                                        <th class="p-4 th-header">Movimiento</th>
+                                        <th class="p-4 th-header">Insumo</th>
+                                        <th class="p-4 th-header">Cant.</th>
+                                        <th class="p-4 th-header">Detalle (Usuario/Sede)</th>
+                                        <th class="p-4 th-header">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-movimientos-unificados" class="divide-y divide-slate-50 text-xs font-medium"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="pag-usuarios" class="view hidden space-y-6 animate-fade-in">
+                    <div class="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <h3 id="titulo-form-usuario" class="font-black text-lg mb-6 flex items-center gap-2 text-indigo-900">
+                            <i class="fas fa-user-shield"></i> Gestión de Accesos
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label class="label-form">ID Usuario</label>
+                                <input id="new-user" placeholder="Ej: jsmith" class="input-light uppercase">
+                            </div>
+                            <div>
+                                <label class="label-form">Contraseña</label>
+                                <input id="new-pass" type="text" placeholder="******" class="input-light">
+                            </div>
+                            <div>
+                                <label class="label-form">Correo (Para Alertas)</label>
+                                <input id="new-email" type="email" placeholder="usuario@empresa.com" class="input-light">
+                            </div>
+                            <div>
+                                <label class="label-form">Rol / Permisos</label>
+                                <select id="new-role" class="input-light">
+                                    <option value="user">Aplicante (Básico)</option>
+                                    <option value="supervisor">Supervisor (Ve + Pide)</option>
+                                    <option value="manager">Gerente (Admin - Usuarios)</option>
+                                    <option value="admin">Administrador Total</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="edit-mode-id">
+                        </div>
+                        
+                        <div class="mt-6 flex gap-3">
+                            <button id="btn-guardar-usuario" onclick="guardarUsuario()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">
+                                <i class="fas fa-save"></i> Guardar Usuario
+                            </button>
+                            <button id="cancel-edit-msg" onclick="cancelarEdicionUsuario()" class="hidden px-6 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <h4 class="font-bold text-slate-800 mt-8 mb-4">Usuarios Registrados</h4>
+                    <div id="lista-usuarios-db" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-20"></div>
+                </section>
+
+                <section id="pag-solicitar" class="view hidden max-w-xl mx-auto space-y-6 animate-fade-in">
+                    <div class="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600 text-2xl">
+                                <i class="fas fa-cart-plus"></i>
+                            </div>
+                            <h2 class="text-2xl font-black text-slate-800">Nueva Solicitud</h2>
+                            <p class="text-slate-400 text-xs">Agrega productos al carrito y selecciona la sede.</p>
+                        </div>
+
+                        <div class="space-y-6">
+                            <div>
+                                <label class="label-form">1. Seleccione Sede de Destino</label>
+                                <select id="sol-ubicacion" class="input-light border-2 border-indigo-50 font-bold text-indigo-900 cursor-pointer">
+                                    <option value="" disabled selected>Seleccionar Sede...</option>
+                                    <option value="DC1">📍 DC1</option>
+                                    <option value="DC2">📍 DC2</option>
+                                    <option value="ONX">📍 ONX</option>
+                                    <option value="PDC1">📍 PDC1</option>
+                                    <option value="OCEANIA">📍 OCEANIA</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label-form">2. Productos Seleccionados</label>
+                                <div id="contenedor-lista-pedidos" class="space-y-3 max-h-[40vh] overflow-y-auto pr-2 custom-scroll bg-slate-50 p-4 rounded-2xl border border-slate-100 min-h-[100px]">
+                                    <p class="text-center text-slate-300 text-xs py-8">Ve a "Stock" y usa los botones (+) para agregar productos aquí.</p>
+                                </div>
+                            </div>
+                            <button onclick="procesarSolicitudMultiple()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 flex items-center justify-center gap-3 transition-all active:scale-95">
+                                <i class="fas fa-paper-plane"></i> Confirmar y Enviar
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="pag-notificaciones" class="view hidden space-y-6 animate-fade-in">
+                    <h2 class="text-2xl font-black text-slate-800 mb-4">Seguimiento de Solicitudes</h2>
+                    
+                    <div class="flex bg-slate-200 p-1 rounded-2xl w-full max-w-md mx-auto mb-6 shadow-inner">
+                        <button onclick="switchTab('activos')" id="tab-btn-activos" class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">
+                            <i class="fas fa-clock"></i> En Curso
+                        </button>
+                        <button onclick="switchTab('historial')" id="tab-btn-historial" class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-500 hover:text-slate-700 transition-all">
+                            <i class="fas fa-history"></i> Historial / Recibidos
+                        </button>
+                    </div>
+
+                    <div id="tab-content-activos" class="tab-pane grid grid-cols-1 md:grid-cols-2 gap-4 pb-20"></div>
+                    <div id="tab-content-historial" class="tab-pane hidden grid grid-cols-1 md:grid-cols-2 gap-4 pb-20"></div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <div id="modal-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl scale-100 transition-transform">
+            <h3 class="text-xl font-black mb-6 text-center text-indigo-900">Agregar Stock</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="label-form">Producto (Buscar o Crear)</label>
+                    <input id="nombre-prod" list="lista-sugerencias" type="text" placeholder="Escribe para buscar..." class="input-light uppercase font-bold text-slate-700 border-2 focus:border-indigo-500 transition-colors" autocomplete="off">
+                    <datalist id="lista-sugerencias"></datalist>
+                    <p class="text-[10px] text-slate-400 mt-1 pl-1 italic">
+                        <i class="fas fa-info-circle"></i> Selecciona de la lista para sumar. Escribe uno nuevo para crear.
+                    </p>
+                </div>
+                <div>
+                    <label class="label-form">Cantidad a Ingresar</label>
+                    <input id="cantidad-prod" type="number" placeholder="0" class="input-light font-bold text-2xl text-emerald-600 text-center">
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-4">
+                    <button onclick="cerrarModalInsumo()" class="py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
+                    <button onclick="agregarProductoRápido()" class="py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-grupo-admin" class="fixed inset-0 bg-slate-900/60 hidden z-[200] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-[2rem] w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+                <div>
+                    <h3 class="text-xl font-black text-slate-800">Gestión de Solicitud</h3>
+                    <p id="modal-grupo-titulo" class="text-xs text-slate-500 font-medium font-mono"></p>
+                </div>
+                <button onclick="document.getElementById('modal-grupo-admin').classList.add('hidden')" class="w-10 h-10 rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 transition"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="modal-grupo-contenido" class="flex-1 overflow-y-auto custom-scroll space-y-2 p-2"></div>
+        </div>
+    </div>
+
+    <div id="modal-detalles" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl">
+            <h3 class="text-xl font-black mb-6 text-center text-slate-800">Editar Detalles</h3>
+            <input type="hidden" id="edit-prod-id">
             
-            if(newStock <= (iSnap.data().stockMinimo||0)) enviarNotificacionGrupo('stock_bajo', { insumo: ins, actual: newStock, minimo: iSnap.data().stockMinimo });
+            <div class="space-y-4">
+                 <div class="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 group hover:border-indigo-200 transition-colors">
+                    <img id="preview-img" class="h-32 w-32 object-contain rounded-lg mb-3 hidden bg-white border border-slate-100 p-2">
+                    <button id="upload_widget" class="bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-indigo-200 transition">
+                        <i class="fas fa-camera"></i> Subir Foto
+                    </button>
+                    <input type="hidden" id="edit-prod-img">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="label-form">Precio ($)</label>
+                        <input id="edit-prod-precio" type="number" step="0.01" class="input-light font-bold" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="label-form text-red-400">Stock Mínimo</label>
+                        <input id="edit-prod-min" type="number" class="input-light font-bold text-red-500" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button onclick="cerrarModalDetalles()" class="py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
+                    <button onclick="guardarDetallesProducto()" class="py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition">Actualizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-incidencia" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl border-t-8 border-red-400">
+            <h3 class="text-xl font-black mb-2 text-center text-slate-800">Reportar / Devolver</h3>
+            <p class="text-xs text-center text-slate-400 mb-6">Selecciona una acción para este item.</p>
             
-            const pendientes = pedidosRaw.filter(p => (p.batchId === pData.batchId) && p.estado === 'pendiente' && p.id !== pid);
-            if(pendientes.length === 0) document.getElementById("modal-grupo-admin").classList.add("hidden");
-            else window.abrirModalGrupo(pData.batchId); 
+            <input type="hidden" id="incidencia-pid">
+            <textarea id="incidencia-detalle" class="input-light mb-4 h-24 resize-none p-4 text-sm" placeholder="Escribe el motivo aquí..."></textarea>
+            
+            <div class="space-y-3">
+                <button onclick="confirmarIncidencia(true)" class="w-full py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold hover:bg-red-100 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-undo"></i> Devolver (Restaurar Stock)
+                </button>
+                <button onclick="confirmarIncidencia(false)" class="w-full py-3 bg-amber-50 text-amber-600 border border-amber-100 rounded-xl font-bold hover:bg-amber-100 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-flag"></i> Solo Reportar Problema
+                </button>
+                <button onclick="document.getElementById('modal-incidencia').classList.add('hidden')" class="w-full py-3 text-slate-400 font-bold hover:text-slate-600">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
-            if(emailSolicitante) enviarNotificacionGrupo('aprobado_parcial', { usuario: pData.usuarioId, items: [{insumo:ins, cantidad:val}], target_email: emailSolicitante });
-
-        } else alert("Stock insuficiente");
-    } else {
-        await updateDoc(pRef, { estado: "rechazado" });
-        window.abrirModalGrupo(pData.batchId);
-    }
-};
-
-window.confirmarRecibido = async (pid) => { 
-    if(confirm("¿Confirmar recepción?")) {
-        const pRef=doc(db,"pedidos",pid), snap=await getDoc(pRef);
-        await updateDoc(pRef, { estado: "recibido" });
-        if(snap.exists()) enviarNotificacionGrupo('recibido', {usuario:usuarioActual.id, items:[{insumo:snap.data().insumoNom, cantidad:snap.data().cantidad}], sede:snap.data().ubicacion});
-    }
-};
-
-window.abrirModalGrupo = (bKey) => {
-    const m = document.getElementById("modal-grupo-admin"), c = document.getElementById("modal-grupo-contenido"), t = document.getElementById("modal-grupo-titulo");
-    const items = pedidosRaw.filter(p => (p.batchId === bKey) || (p.timestamp.toString() === bKey));
-    if(items.length===0) return;
-    t.innerHTML = `${items[0].usuarioId} | ${items[0].ubicacion} | ${items[0].fecha}`; c.innerHTML = "";
-    items.forEach(p => {
-        let act = `<span class="badge status-${p.estado}">${p.estado}</span>`;
-        if(p.estado==='pendiente' && usuarioActual.rol!=='supervisor') act = `<div class="flex gap-2 items-center"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border rounded text-center p-1"><button onclick="gestionarPedido('${p.id}','aprobar','${p.insumoNom}')" class="text-green-600 bg-green-50 p-2 rounded"><i class="fas fa-check"></i></button><button onclick="gestionarPedido('${p.id}','rechazar')" class="text-red-600 bg-red-50 p-2 rounded"><i class="fas fa-times"></i></button></div>`;
-        c.innerHTML += `<div class="flex justify-between items-center p-3 border-b hover:bg-slate-50"><div><b class="uppercase text-sm">${p.insumoNom}</b><br><span class="text-xs text-slate-400">Solicitado: ${p.cantidad}</span></div>${act}</div>`;
-    });
-    m.classList.remove("hidden");
-};
-
-// --- INITIALIZE (AL FINAL) ---
-window.addEventListener('DOMContentLoaded', () => {
-    const s = localStorage.getItem("fcilog_session");
-    if(s) cargarSesion(JSON.parse(s));
-    setupCloudinary();
-});
-
-// CLOUDINARY WIDGET SETUP
-function setupCloudinary() {
-    if(typeof cloudinary!=="undefined") {
-        cloudinaryWidget = cloudinary.createUploadWidget({ cloudName: CLOUD_NAME, uploadPreset: UPLOAD_PRESET, sources: ['local','camera'], multiple:false, cropping:true, folder:'fcilog_insumos' }, (error, result) => { 
-            if(!error && result && result.event === "success") { 
-                document.getElementById('edit-prod-img').value = result.info.secure_url;
-                document.getElementById('preview-img').src = result.info.secure_url;
-                document.getElementById('preview-img').classList.remove('hidden');
-            }
-        });
-        const btn = document.getElementById("upload_widget");
-        if(btn) btn.addEventListener("click", () => cloudinaryWidget.open(), false);
-    }
-}
-
-// SESIÓN
-function cargarSesion(d) {
-    usuarioActual = d; localStorage.setItem("fcilog_session", JSON.stringify(d));
-    document.getElementById("pantalla-login").classList.add("hidden");
-    document.getElementById("interfaz-app").classList.remove("hidden");
-    const info = document.getElementById("info-usuario");
-    if(info) info.innerHTML = `<div class="flex flex-col items-center"><div class="w-8 h-8 bg-white border rounded-full flex items-center justify-center text-indigo-500 mb-1"><i class="fas fa-user"></i></div><span class="font-bold text-slate-700 uppercase">${d.id}</span><span class="text-[10px] uppercase font-bold text-indigo-400 bg-indigo-50 px-2 rounded-full mt-1">${d.rol}</span></div>`;
-    if(['admin','manager'].includes(d.rol)) document.getElementById("btn-admin-stock")?.classList.remove("hidden");
-    configurarMenu(); window.verPagina(['admin','manager','supervisor'].includes(d.rol)?'stats':'stock');
-    activarSincronizacion();
-}
-
-// SINCRONIZACIÓN Y LÓGICA PRINCIPAL
-function activarSincronizacion() {
-    // 1. STOCK
-    onSnapshot(collection(db, "inventario"), snap => {
-        const g=document.getElementById("lista-inventario"), c=document.getElementById("contenedor-lista-pedidos"), d=document.getElementById("lista-sugerencias");
-        if(g)g.innerHTML=""; if(c)c.innerHTML=""; if(d)d.innerHTML="";
-        let tr=0, ts=0, lb=[], dt=[];
-        snap.forEach(ds=>{ const p=ds.data(), n=ds.id.toUpperCase(); tr++; ts+=p.cantidad; lb.push(n.slice(0,10)); dt.push(p.cantidad);
-            if(d) d.innerHTML+=`<option value="${n}">`; 
-            const adm=['admin','manager'].includes(usuarioActual.rol), acts=adm?`<div class="flex gap-2"><button onclick="prepararEdicionProducto('${ds.id}')" class="text-slate-300 hover:text-indigo-500"><i class="fas fa-cog"></i></button><button onclick="eliminarDato('inventario','${ds.id}')" class="text-slate-300 hover:text-red-400"><i class="fas fa-trash"></i></button></div>`:'';
-            const img=p.imagen?`<img src="${p.imagen}" class="w-12 h-12 object-cover rounded-lg border mb-2">`:`<div class="w-12 h-12 bg-slate-50 rounded-lg border flex items-center justify-center text-slate-300 mb-2"><i class="fas fa-image"></i></div>`;
-            const isLow=(p.stockMinimo&&p.cantidad<=p.stockMinimo), border=isLow?"border-2 border-red-500 bg-red-50":"border border-slate-100 bg-white", price=p.precio?`<span class="text-emerald-600 font-bold text-xs">$${p.precio}</span>`:'';
-            const alertIco=isLow?`<i class="fas fa-exclamation-circle text-red-500 animate-pulse ml-1"></i>`:'';
-            if(g)g.innerHTML+=`<div class="${border} p-4 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col"><div class="flex justify-between items-start">${img}${acts}</div><h4 class="font-bold text-slate-700 text-xs truncate" title="${n}">${n} ${alertIco}</h4><div class="flex justify-between items-end mt-1"><p class="text-2xl font-black text-slate-800">${p.cantidad}</p>${price}</div></div>`;
-            if(c&&p.cantidad>0){ const inC=carritoGlobal[ds.id]||0, act=inC>0?"border-indigo-500 bg-indigo-50/50":"border-transparent bg-white"; c.innerHTML+=`<div id="row-${ds.id}" class="flex items-center justify-between p-3 rounded-xl border ${act} transition-all shadow-sm"><div class="flex items-center gap-3 overflow-hidden">${p.imagen?`<img src="${p.imagen}" class="w-8 h-8 rounded-md object-cover">`:''}<div class="truncate"><p class="font-bold text-xs uppercase text-slate-700 truncate">${n}</p><p class="text-[10px] text-slate-400">Disp: ${p.cantidad}</p></div></div><div class="flex items-center gap-2 bg-white rounded-lg p-1 border flex-shrink-0"><button onclick="ajustarCantidad('${ds.id}', -1)" class="w-7 h-7 rounded-md bg-slate-50 font-bold">-</button><span id="cant-${ds.id}" class="w-6 text-center font-bold text-indigo-600 text-sm">${inC}</span><button onclick="ajustarCantidad('${ds.id}', 1)" class="w-7 h-7 rounded-md bg-indigo-50 font-bold" ${inC>=p.cantidad?'disabled':''}>+</button></div></div>`; }
-        });
-        if(document.getElementById("metrica-stock")){ document.getElementById("metrica-total").innerText=tr; document.getElementById("metrica-stock").innerText=ts; renderChart('stockChart',lb,dt,'Stock','#6366f1',stockChart,c=>stockChart=c); }
-    });
-
-    // 2. PEDIDOS (AGRUPACIÓN Y TABS)
-    onSnapshot(collection(db,"pedidos"), s=>{
-        pedidosRaw = []; cachePedidos=[]; let grupos = {}, pendingCount = 0;
-        const lAdmin = document.getElementById("lista-pendientes-admin");
-        const lActive = document.getElementById("tab-content-activos");
-        const lHistory = document.getElementById("tab-content-historial");
-
-        if(lAdmin) lAdmin.innerHTML=""; if(lActive) lActive.innerHTML=""; if(lHistory) lHistory.innerHTML="";
-
-        s.forEach(ds => {
-            const p = ds.data(); p.id = ds.id; pedidosRaw.push(p); cachePedidos.push(p);
-            const bKey = p.batchId || p.timestamp;
-            if(!grupos[bKey]) grupos[bKey] = { items:[], user:p.usuarioId, sede:p.ubicacion, date:p.fecha, ts:p.timestamp };
-            grupos[bKey].items.push(p);
-            if(p.estado==='pendiente') pendingCount++;
-
-            // VISTA USUARIO
-            if(p.usuarioId===usuarioActual.id) {
-                let btns = "";
-                if(p.estado==='aprobado') btns=`<div class="mt-2 flex justify-end gap-2"><button onclick="confirmarRecibido('${p.id}')" class="bg-emerald-500 text-white px-3 py-1 rounded text-xs shadow">Recibir</button><button onclick="abrirIncidencia('${p.id}')" class="bg-white border text-red-500 border-red-200 px-3 py-1 rounded text-xs">Reportar</button></div>`;
-                if(p.estado==='recibido' || p.estado==='devuelto') btns=`<div class="mt-2 flex justify-end"><button onclick="abrirIncidencia('${p.id}')" class="text-amber-600 text-xs hover:underline flex items-center gap-1"><i class="fas fa-undo"></i> Devolver / Reportar</button></div>`;
-                const card = `<div class="bg-white p-4 rounded-xl border shadow-sm"><div class="flex justify-between"><div><span class="badge status-${p.estado}">${p.estado}</span><h4 class="font-bold text-sm mt-1 uppercase">${p.insumoNom}</h4><p class="text-xs text-slate-400">x${p.cantidad} • ${p.ubicacion}</p></div></div>${btns}</div>`;
-                if(['pendiente','aprobado'].includes(p.estado)) { if(lActive) lActive.innerHTML+=card; } else { if(lHistory) lHistory.innerHTML+=card; }
-            }
-        });
-
-        if(lAdmin && ['admin','manager','supervisor'].includes(usuarioActual.rol)) {
-            Object.values(grupos).sort((a,b)=>b.ts-a.ts).forEach(g => {
-                const pendingItems = g.items.filter(i=>i.estado==='pendiente');
-                if(pendingItems.length > 0) {
-                    const itemsStr = pendingItems.map(i=>`<span class="bg-slate-100 px-2 py-1 rounded text-xs border">${i.insumoNom} (x${i.cantidad})</span>`).join('');
-                    lAdmin.innerHTML += `<div class="bg-white p-4 rounded-2xl border-l-4 border-l-amber-400 shadow-sm cursor-pointer hover:shadow-md transition" onclick="abrirModalGrupo('${g.items[0].batchId || g.ts}')"><div class="flex justify-between items-center mb-2"><h4 class="font-bold text-slate-800 text-sm">${g.user}</h4><span class="text-xs text-slate-400">${g.sede} • ${pendingItems.length} items</span></div><div class="flex flex-wrap gap-1">${itemsStr}</div><div class="mt-2 text-center text-xs text-indigo-500 font-bold">Ver Detalles <i class="fas fa-chevron-right"></i></div></div>`;
-                }
-            });
-        }
-        if(document.getElementById("metrica-pedidos")) document.getElementById("metrica-pedidos").innerText=pendingCount;
-        renderHistorialUnificado();
-    });
-
-    // 3. ENTRADAS
-    onSnapshot(collection(db,"entradas_stock"),s=>{
-        cacheEntradas=[]; s.forEach(x=>{ const d=x.data(); d.id=x.id; cacheEntradas.push(d); });
-        renderHistorialUnificado();
-    });
-
-    // 4. USUARIOS (AHORA FUNCIONA)
-    if(usuarioActual.rol === 'admin') {
-        onSnapshot(collection(db, "usuarios"), snap => {
-            const l = document.getElementById("lista-usuarios-db");
-            if(l) { l.innerHTML = "";
-                snap.forEach(d => {
-                    const u = d.data();
-                    l.innerHTML += `<div class="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm"><div><div class="flex items-center gap-2"><span class="font-bold uppercase text-slate-700">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold">${u.rol}</span></div><span class="text-xs text-slate-400 block mt-1"><i class="fas fa-envelope text-[10px]"></i> ${u.email || 'Sin correo'}</span></div><div class="flex gap-2"><button onclick="prepararEdicionUsuario('${d.id}','${u.pass}','${u.rol}','${u.email||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button><button onclick="eliminarDato('usuarios','${d.id}')" class="w-8 h-8 rounded bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button></div></div>`;
-                });
-            }
-        });
-    }
-}
-
-// 5. AJUSTAR CANTIDAD Y PROCESAR PEDIDO
-window.ajustarCantidad=(i,d)=>{const n=Math.max(0,(carritoGlobal[i]||0)+d); carritoGlobal[i]=n; document.getElementById(`cant-${i}`).innerText=n; document.getElementById(`row-${i}`).classList.toggle("border-indigo-500",n>0);};
-
-window.procesarSolicitudMultiple = async () => {
-    const ubi = document.getElementById("sol-ubicacion").value, items = Object.entries(carritoGlobal).filter(([_, c]) => c > 0);
-    if(!ubi || items.length === 0) return alert("Seleccione sede y productos.");
-    const batchId = Date.now().toString(); 
-    const itemsData = items.map(([ins, cant]) => ({ insumo: ins, cantidad: cant }));
-    await Promise.all(items.map(async ([ins, cant]) => {
-        await addDoc(collection(db, "pedidos"), { usuarioId: usuarioActual.id, insumoNom: ins, cantidad: cant, ubicacion: ubi, estado: "pendiente", fecha: new Date().toLocaleString(), timestamp: Date.now(), batchId: batchId });
-    }));
-    enviarNotificacionGrupo('nuevo_pedido', { usuario: usuarioActual.id, sede: ubi, items: itemsData });
-    alert("✅ Enviado."); carritoGlobal={}; document.getElementById("sol-ubicacion").value=""; activarSincronizacion(); window.verPagina('notificaciones');
-};
+    <script type="module" src="script.js"></script>
+</body>
+</html>
