@@ -7,7 +7,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; }
 .card-metrica span { @apply text-[10px] font-bold text-slate-400 uppercase tracking-widest; }
 .card-metrica h2 { @apply text-3xl font-black text-slate-800; }
 .th-header { @apply text-[10px] font-black text-slate-400 uppercase tracking-wider; }
-.badge { @apply px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide border; }
+.badge { @apply px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide border inline-block; }
 .status-pendiente { @apply bg-amber-50 text-amber-600 border-amber-100; }
 .status-aprobado { @apply bg-indigo-50 text-indigo-600 border-indigo-100; }
 .status-rechazado { @apply bg-slate-100 text-slate-500 border-slate-200; }
