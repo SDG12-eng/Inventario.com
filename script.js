@@ -15,9 +15,9 @@ const UPLOAD_PRESET = 'insumos';
 
 // EMAILJS
 const EMAIL_SERVICE_ID = 'service_a7yozqh'; 
-const EMAIL_TEMPLATE_ID = 'template_mlcofoo'; 
+const EMAIL_TEMPLATE_ID = 'template_zglatmb'; 
 const EMAIL_PUBLIC_KEY = '2jVnfkJKKG0bpKN-U'; 
-const ADMIN_EMAIL = 'archivos@fcipty.com'; 
+const ADMIN_EMAIL = 'juniorcede3002@gmail.com'; 
 
 // INICIALIZAR APP
 const app = initializeApp(firebaseConfig);
