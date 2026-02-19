@@ -13,7 +13,7 @@ const firebaseConfig = {
 const CLOUD_NAME = 'df79cjklp'; 
 const UPLOAD_PRESET = 'insumos'; 
 
-// EMAILJS (Datos Verificados)
+// EMAILJS
 const EMAIL_SERVICE_ID = 'service_a7yozqh'; 
 const EMAIL_TEMPLATE_ID = 'template_zglatmb'; 
 const EMAIL_PUBLIC_KEY = '2jVnfkJKKG0bpKN-U'; 
@@ -42,11 +42,9 @@ emailjs.init(EMAIL_PUBLIC_KEY);
 window.addEventListener('DOMContentLoaded', () => {
     const sesion = localStorage.getItem("fcilog_session");
     if (sesion) cargarSesion(JSON.parse(sesion));
-    // Iniciar widget de Cloudinary una sola vez
     setupCloudinaryWidget();
 });
 
-// FUNCIÓN CLOUDINARY UNIFICADA
 function setupCloudinaryWidget() {
     if (typeof cloudinary !== "undefined") {
         cloudinaryWidget = cloudinary.createUploadWidget({
@@ -69,13 +67,10 @@ function setupCloudinaryWidget() {
             }
         });
 
-        // Vincular botón si existe en el DOM
         const btnUpload = document.getElementById("upload_widget");
         if(btnUpload) {
-            // Clonamos el botón para eliminar listeners anteriores y evitar duplicados
             const newBtn = btnUpload.cloneNode(true);
             btnUpload.parentNode.replaceChild(newBtn, btnUpload);
-            
             newBtn.addEventListener("click", (e) => {
                 e.preventDefault();
                 if(cloudinaryWidget) cloudinaryWidget.open();
@@ -258,7 +253,6 @@ async function enviarNotificacionGrupo(tipo, datos) {
             to_email: config.to_email, 
             fecha: config.fecha 
         }); 
-        console.log(`Email enviado: ${tipo}`);
     } catch (e) { 
         console.error("Error EmailJS:", e);
     }
@@ -307,7 +301,7 @@ function activarSincronizacion() {
             if(cartContainer && p.cantidad > 0) {
                 const enCarro = carritoGlobal[ds.id] || 0;
                 const active = enCarro > 0 ? "border-indigo-500 bg-indigo-50/50" : "border-slate-100 bg-white";
-                cartContainer.innerHTML += `<div id="row-${ds.id}" class="flex items-center justify-between p-3 rounded-xl border ${active} transition-all shadow-sm"><div class="flex items-center gap-3 overflow-hidden">${p.imagen?`<img src="${p.imagen}" class="w-8 h-8 rounded-md object-cover">`:''}<div class="truncate"><p class="font-bold text-xs uppercase text-slate-700 truncate">${nombre}</p><p class="text-[10px] text-slate-400">Disp: ${p.cantidad}</p></div></div><div class="flex items-center gap-2 bg-white rounded-lg p-1 border border-slate-100 flex-shrink-0"><button onclick="ajustarCantidad('${ds.id}', -1)" class="w-7 h-7 rounded-md bg-slate-50 font-bold">-</button><span id="cant-${ds.id}" class="w-6 text-center font-bold text-indigo-600 text-sm">${enCarro}</span><button onclick="ajustarCantidad('${ds.id}', 1)" class="w-7 h-7 rounded-md bg-indigo-50 font-bold" ${enCarro>=p.cantidad?'disabled':''}>+</button></div></div>`;
+                cartContainer.innerHTML += `<div id="row-${ds.id}" class="flex items-center justify-between p-3 rounded-xl border ${active} transition-all shadow-sm"><div class="flex items-center gap-3 overflow-hidden">${p.imagen?`<img src="${p.imagen}" class="w-8 h-8 rounded-md object-cover">`:''}<div class="truncate"><p class="font-bold text-xs uppercase text-slate-700 truncate">${nombre}</p><p class="text-[10px] text-slate-400">Disp: ${p.cantidad}</p></div></div><div class="flex items-center gap-2 bg-white rounded-lg p-1 border flex-shrink-0"><button onclick="ajustarCantidad('${ds.id}', -1)" class="w-7 h-7 rounded-md bg-slate-50 font-bold">-</button><span id="cant-${ds.id}" class="w-6 text-center font-bold text-indigo-600 text-sm">${enCarro}</span><button onclick="ajustarCantidad('${ds.id}', 1)" class="w-7 h-7 rounded-md bg-indigo-50 font-bold" ${enCarro>=p.cantidad?'disabled':''}>+</button></div></div>`;
             }
         });
 
@@ -384,7 +378,7 @@ function activarSincronizacion() {
             if(l) { l.innerHTML = "";
                 snap.forEach(d => {
                     const u = d.data();
-                    l.innerHTML += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm hover:shadow-md transition"><div><div class="flex items-center gap-2"><span class="font-bold uppercase text-slate-700">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold">${u.rol}</span></div><span class="text-xs text-slate-400 block mt-1"><i class="fas fa-envelope text-[10px]"></i> ${u.email || 'Sin correo'}</span></div><div class="flex gap-2"><button onclick="prepararEdicionUsuario('${d.id}','${u.pass}','${u.rol}','${u.email||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button><button onclick="eliminarDato('usuarios','${d.id}')" class="w-8 h-8 rounded bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button></div></div>`;
+                    l.innerHTML += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm hover:shadow-md transition"><div><div class="flex items-center gap-2"><span class="font-bold uppercase text-slate-700">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold">${u.rol}</span></div><span class="text-xs text-slate-400 block mt-1"><i class="fas fa-envelope text-[10px]"></i> ${u.email || 'Sin correo'}</span></div><div class="flex gap-2"><button onclick="prepararEdicionUsuario('${d.id}','${u.pass}','${u.rol}','${u.email||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button><button onclick="eliminarDato('usuarios','${d.id}')" class="w-8 h-8 rounded bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button></div></div>`;
                 });
             }
         });
@@ -406,7 +400,94 @@ function renderHistorialUnificado() {
     });
 }
 
-// 8. LOGICA DE NEGOCIO (PEDIDOS, STOCK, ETC)
+// --- 8. LÓGICA EXCEL REPARADA (CORRUPCIÓN FIX) ---
+window.descargarReporte = async () => {
+    if(!confirm("¿Descargar reporte en Excel?")) return;
+    
+    const [s, e, p] = await Promise.all([
+        getDocs(collection(db, "inventario")),
+        getDocs(collection(db, "entradas_stock")),
+        getDocs(collection(db, "pedidos"))
+    ]);
+    
+    // HTML String para el archivo de Excel
+    let htmlStr = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+                th, td { border: 1px solid #dddddd; padding: 8px; text-align: left; }
+                th { background-color: #4f46e5; color: white; font-weight: bold; }
+                h2 { color: #333333; font-family: Arial, sans-serif; }
+            </style>
+        </head>
+        <body>
+            <h2>REPORTE DE INVENTARIO (STOCK ACTUAL)</h2>
+            <table>
+                <thead>
+                    <tr><th>INSUMO</th><th>CANTIDAD DISPONIBLE</th><th>PRECIO UNIDAD ($)</th><th>STOCK MÍNIMO REQUERIDO</th></tr>
+                </thead>
+                <tbody>
+    `;
+    
+    // TABLA 1: STOCK
+    s.forEach(d => {
+        const x = d.data();
+        htmlStr += `<tr><td>${d.id.toUpperCase()}</td><td>${x.cantidad}</td><td>${x.precio || 0}</td><td>${x.stockMinimo || 0}</td></tr>`;
+    });
+    
+    htmlStr += `
+                </tbody>
+            </table>
+            <br><br>
+            <h2>HISTORIAL DE MOVIMIENTOS GLOBALES (ENTRADAS Y SALIDAS)</h2>
+            <table>
+                <thead>
+                    <tr><th>FECHA Y HORA</th><th>TIPO DE MOVIMIENTO</th><th>NOMBRE DEL INSUMO</th><th>CANTIDAD</th><th>USUARIO / SEDE</th><th>ESTADO ACTUAL</th></tr>
+                </thead>
+                <tbody>
+    `;
+    
+    // TABLA 2: HISTORIAL
+    const hist = [
+        ...e.docs.map(x => ({ ...x.data(), tipo: 'ENTRADA' })),
+        ...p.docs.map(x => ({ ...x.data(), tipo: 'SALIDA' }))
+    ].sort((a, b) => b.timestamp - a.timestamp);
+    
+    hist.forEach(mov => {
+        const estado = mov.estado || 'completado';
+        const insumoNom = (mov.insumo || mov.insumoNom || 'Desconocido').toUpperCase();
+        const detalle = (mov.usuario || mov.ubicacion || 'N/A').toUpperCase();
+        
+        // Color por tipo de movimiento
+        const bgRow = mov.tipo === 'ENTRADA' ? 'background-color: #ecfdf5;' : '';
+
+        htmlStr += `
+            <tr style="${bgRow}">
+                <td>${mov.fecha}</td>
+                <td><b>${mov.tipo}</b></td>
+                <td>${insumoNom}</td>
+                <td>${mov.cantidad}</td>
+                <td>${detalle}</td>
+                <td>${estado.toUpperCase()}</td>
+            </tr>`;
+    });
+    
+    htmlStr += `</tbody></table></body></html>`;
+    
+    // Exportar con BOM \ufeff para que Excel lea los acentos UTF-8 correctamente
+    const blob = new Blob(['\ufeff', htmlStr], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `FCILog_Reporte_${new Date().toISOString().slice(0, 10)}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+// --- 9. LOGICA DE NEGOCIO (PEDIDOS Y MODALES) ---
 window.ajustarCantidad = (i,d) => {
     const n = Math.max(0, (carritoGlobal[i]||0) + d); carritoGlobal[i] = n; 
     document.getElementById(`cant-${i}`).innerText = n;
@@ -503,7 +584,7 @@ window.confirmarRecibido = async (pid) => {
     }
 };
 
-// HELPERS
+// UTILIDADES DOM
 window.prepararEdicionProducto=async(id)=>{const s=await getDoc(doc(db,"inventario",id)); if(!s.exists())return; const d=s.data(); document.getElementById('edit-prod-id').value=id; document.getElementById('edit-prod-precio').value=d.precio||''; document.getElementById('edit-prod-min').value=d.stockMinimo||''; document.getElementById('edit-prod-img').value=d.imagen||''; if(d.imagen)document.getElementById('preview-img').src=d.imagen,document.getElementById('preview-img').classList.remove('hidden'); document.getElementById('modal-detalles').classList.remove('hidden');};
 window.guardarDetallesProducto=async()=>{const id=document.getElementById('edit-prod-id').value, p=parseFloat(document.getElementById('edit-prod-precio').value)||0, m=parseInt(document.getElementById('edit-prod-min').value)||0, i=document.getElementById('edit-prod-img').value; await updateDoc(doc(db,"inventario",id),{precio:p,stockMinimo:m,imagen:i}); cerrarModalDetalles(); alert("Guardado");};
 window.guardarUsuario=async()=>{const id=document.getElementById("new-user").value.trim().toLowerCase(), p=document.getElementById("new-pass").value.trim(), e=document.getElementById("new-email").value.trim(), r=document.getElementById("new-role").value; if(!id||!p)return alert("Faltan datos"); await setDoc(doc(db,"usuarios",id),{pass:p,rol:r,email:e},{merge:true}); alert("Guardado"); cancelarEdicionUsuario();};
@@ -512,6 +593,5 @@ window.cancelarEdicionUsuario=()=>{document.getElementById("edit-mode-id").value
 window.abrirModalInsumo=()=>document.getElementById("modal-insumo").classList.remove("hidden"); window.cerrarModalInsumo=()=>document.getElementById("modal-insumo").classList.add("hidden"); window.cerrarModalDetalles=()=>{document.getElementById("modal-detalles").classList.add("hidden"); document.getElementById('preview-img').classList.add('hidden');}; window.eliminarDato=async(c,i)=>{if(confirm("¿Eliminar?"))await deleteDoc(doc(db,c,i));};
 window.abrirIncidencia=(pid)=>{document.getElementById('incidencia-pid').value=pid;document.getElementById('incidencia-detalle').value="";document.getElementById('modal-incidencia').classList.remove('hidden');};
 window.confirmarIncidencia=async(dev)=>{const pid=document.getElementById('incidencia-pid').value,det=document.getElementById('incidencia-detalle').value.trim();if(!det)return alert("Motivo requerido");const pRef=doc(db,"pedidos",pid),pData=(await getDoc(pRef)).data();if(dev){const iRef=doc(db,"inventario",pData.insumoNom.toLowerCase()),iSnap=await getDoc(iRef);if(iSnap.exists())await updateDoc(iRef,{cantidad:iSnap.data().cantidad+pData.cantidad});}await updateDoc(pRef,{estado:dev?"devuelto":"con_incidencia",detalleIncidencia:det});document.getElementById('modal-incidencia').classList.add('hidden');alert("Registrado");};
-window.descargarReporte=async()=>{if(!confirm("Descargar Excel?"))return;const[s,e,p]=await Promise.all([getDocs(collection(db,"inventario")),getDocs(collection(db,"entradas_stock")),getDocs(collection(db,"pedidos"))]);let h=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><h2>STOCK</h2><table border="1"><thead><tr><th>INSUMO</th><th>CANT</th><th>$</th><th>MIN</th></tr></thead><tbody>`;s.forEach(d=>{const x=d.data();h+=`<tr><td>${d.id}</td><td>${x.cantidad}</td><td>${x.precio||0}</td><td>${x.stockMinimo||0}</td></tr>`;});h+=`</tbody></table><h2>HISTORIAL</h2><table border="1"><thead><tr><th>FECHA</th><th>TIPO</th><th>INSUMO</th><th>CANT</th><th>DETALLE</th></tr></thead><tbody>`;
-const hist=[...e.docs.map(x=>({...x.data(),tipo:'ENTRADA'})),...p.docs.map(x=>({...x.data(),tipo:'SALIDA'}))].sort((a,b)=>b.timestamp-a.timestamp); hist.forEach(h=>{h+=`<tr><td>${h.fecha}</td><td>${h.tipo}</td><td>${h.insumo||h.insumoNom}</td><td>${h.cantidad}</td><td>${h.usuario||h.ubicacion}</td></tr>`});h+=`</tbody></table></body></html>`;const b=new Blob([h],{type:'application/vnd.ms-excel'}),l=document.createElement("a");l.href=URL.createObjectURL(b);l.download=`FCI_${new Date().toISOString().slice(0,10)}.xls`;document.body.appendChild(l);l.click();document.body.removeChild(l);};
+
 function renderChart(id,l,d,t,c,i,s){const x=document.getElementById(id);if(!x)return;if(i)i.destroy();s(new Chart(x,{type:id==='locationChart'?'doughnut':'bar',data:{labels:l,datasets:[{label:t,data:d,backgroundColor:c,borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:id==='locationChart',position:'bottom'}}}}));}
