@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, addDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-// --- 1. CONFIGURACIÓN ---
+// --- 1. CONFIGURACIÓN FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyA3cRmakg2dV2YRuNV1fY7LE87artsLmB8",
     authDomain: "mi-web-db.firebaseapp.com",
@@ -12,7 +12,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// VARIABLES GLOBALES (En window para evitar errores de Reference)
+// --- 2. VARIABLES GLOBALES SEGURAS ---
 window.usuarioActual = null;
 window.carritoGlobal = {};
 window.pedidosRaw = [];
@@ -22,174 +22,340 @@ window.stockChart = null;
 window.locationChart = null;
 window.cloudinaryWidget = null;
 
-// --- 2. INICIO ---
-window.addEventListener('DOMContentLoaded', () => {
-    try {
-        emailjs.init("2jVnfkJKKG0bpKN-U");
-        const sesion = localStorage.getItem("fcilog_session");
-        if (sesion) window.cargarSesion(JSON.parse(sesion));
+const EMAIL_SERVICE_ID = 'service_a7yozqh'; 
+const EMAIL_TEMPLATE_ID = 'template_zglatmb'; 
+const EMAIL_PUBLIC_KEY = '2jVnfkJKKG0bpKN-U'; 
+const ADMIN_EMAIL = 'juniorcede3002@gmail.com'; 
 
-        if (typeof cloudinary !== "undefined") {
-            window.cloudinaryWidget = cloudinary.createUploadWidget({
-                cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos'
-            }, (error, result) => { 
-                if (!error && result && result.event === "success") { 
-                    document.getElementById('edit-prod-img').value = result.info.secure_url;
-                    document.getElementById('preview-img').src = result.info.secure_url;
-                    document.getElementById('preview-img').classList.remove('hidden');
-                }
-            });
-            const btnUpload = document.getElementById("upload_widget");
-            if(btnUpload) {
-                const newBtn = btnUpload.cloneNode(true);
-                btnUpload.parentNode.replaceChild(newBtn, btnUpload);
-                newBtn.addEventListener("click", (e) => { e.preventDefault(); if(window.cloudinaryWidget) window.cloudinaryWidget.open(); }, false);
-            }
-        }
-    } catch (error) { console.error("Error init:", error); }
-});
+// --- 3. FUNCIONES DE INTERFAZ Y MENÚ ---
+window.verPagina = (id) => {
+    document.querySelectorAll(".view").forEach(v => {
+        v.classList.add("hidden"); 
+        v.classList.remove("animate-fade-in");
+    });
+    const target = document.getElementById(`pag-${id}`);
+    if(target) { 
+        target.classList.remove("hidden"); 
+        setTimeout(() => target.classList.add("animate-fade-in"), 10); 
+    }
+    if(window.innerWidth < 768) window.toggleMenu(false);
+};
 
-// --- 3. SESIÓN ---
+window.toggleMenu = (forceState) => {
+    const sb = document.getElementById("sidebar");
+    const ov = document.getElementById("sidebar-overlay");
+    if(!sb || !ov) return;
+    
+    const isClosed = sb.classList.contains("-translate-x-full");
+    const shouldOpen = forceState !== undefined ? forceState : isClosed;
+
+    if (shouldOpen) {
+        sb.classList.remove("-translate-x-full");
+        ov.classList.remove("hidden");
+        sb.style.zIndex = "100";
+        ov.style.zIndex = "90";
+    } else {
+        sb.classList.add("-translate-x-full");
+        ov.classList.add("hidden");
+    }
+};
+
+window.switchTab = (tab) => {
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+    const t = document.getElementById(`tab-content-${tab}`);
+    if(t) t.classList.remove('hidden');
+    
+    const btnA = document.getElementById('tab-btn-activos');
+    const btnH = document.getElementById('tab-btn-historial');
+    const onClass = "flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-white text-indigo-600 shadow-sm transition-all"; 
+    const offClass = "flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-500 hover:text-slate-700 transition-all";
+
+    if(tab === 'activos') { 
+        if(btnA) btnA.className = onClass; 
+        if(btnH) btnH.className = offClass; 
+    } else { 
+        if(btnH) btnH.className = onClass; 
+        if(btnA) btnA.className = offClass; 
+    }
+};
+
+window.filtrarTabla = (idTabla, texto) => {
+    const term = texto.toLowerCase();
+    const filas = document.querySelectorAll(`#${idTabla} tr`);
+    filas.forEach(f => {
+        f.style.display = f.innerText.toLowerCase().includes(term) ? '' : 'none';
+    });
+};
+
+window.filtrarTarjetas = (idContenedor, texto) => {
+    const term = texto.toLowerCase();
+    const container = document.getElementById(idContenedor);
+    if(container) {
+        const cards = container.querySelectorAll('.item-tarjeta');
+        cards.forEach(c => { c.style.display = c.innerText.toLowerCase().includes(term) ? '' : 'none'; });
+    }
+};
+
+// --- 4. SESIÓN Y AUTENTICACIÓN ---
+window.cargarSesion = (datos) => {
+    window.usuarioActual = datos;
+    localStorage.setItem("fcilog_session", JSON.stringify(datos));
+    
+    document.getElementById("pantalla-login").classList.add("hidden");
+    document.getElementById("interfaz-app").classList.remove("hidden");
+    
+    const infoDiv = document.getElementById("info-usuario");
+    if(infoDiv) {
+        infoDiv.innerHTML = `
+            <div class="flex flex-col items-center">
+                <div class="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-2"><i class="fas fa-user"></i></div>
+                <span class="font-bold text-slate-700 uppercase tracking-wide">${datos.id}</span>
+                <span class="text-[10px] uppercase font-bold text-white bg-indigo-500 px-2 py-0.5 rounded-full mt-1">${datos.rol}</span>
+            </div>`;
+    }
+
+    const btnAdmin = document.getElementById("btn-admin-stock");
+    if(btnAdmin && ['admin','manager'].includes(datos.rol)) {
+        btnAdmin.classList.remove("hidden");
+    }
+
+    window.configurarMenu();
+    let inicio = ['admin','manager','supervisor'].includes(datos.rol) ? 'stats' : 'stock';
+    window.verPagina(inicio);
+    window.activarSincronizacion();
+};
+
 window.iniciarSesion = async () => {
     const user = document.getElementById("login-user").value.trim().toLowerCase();
     const pass = document.getElementById("login-pass").value.trim();
+    
     if(!user || !pass) return alert("Ingrese usuario y contraseña.");
     if (user === "admin" && pass === "1130") { window.cargarSesion({ id: "admin", rol: "admin" }); return; }
     
     try {
         const snap = await getDoc(doc(db, "usuarios", user));
-        if (snap.exists() && snap.data().pass === pass) window.cargarSesion({ id: user, ...snap.data() });
-        else alert("Credenciales incorrectas.");
-    } catch (e) { alert("Error de conexión."); }
+        if (snap.exists() && snap.data().pass === pass) {
+            window.cargarSesion({ id: user, ...snap.data() });
+        } else {
+            alert("Credenciales incorrectas.");
+        }
+    } catch (e) { 
+        console.error("Error Login:", e);
+        alert("Error de conexión a la base de datos."); 
+    }
 };
 
-window.cerrarSesion = () => { localStorage.removeItem("fcilog_session"); location.reload(); };
-
-window.cargarSesion = (datos) => {
-    window.usuarioActual = datos;
-    localStorage.setItem("fcilog_session", JSON.stringify(datos));
-    document.getElementById("pantalla-login").classList.add("hidden");
-    document.getElementById("interfaz-app").classList.remove("hidden");
-    
-    const infoDiv = document.getElementById("info-usuario");
-    if(infoDiv) infoDiv.innerHTML = `<div class="flex flex-col items-center"><div class="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-2"><i class="fas fa-user"></i></div><span class="font-bold text-slate-700 uppercase tracking-wide">${datos.id}</span><span class="text-[10px] uppercase font-bold text-white bg-indigo-500 px-2 py-0.5 rounded-full mt-1">${datos.rol}</span></div>`;
-
-    if(['admin','manager'].includes(datos.rol)) { const btn = document.getElementById("btn-admin-stock"); if(btn) btn.classList.remove("hidden"); }
-    window.configurarMenu();
-    window.verPagina(['admin','manager','supervisor'].includes(datos.rol) ? 'stats' : 'stock');
-    window.activarSincronizacion();
+window.cerrarSesion = () => { 
+    localStorage.removeItem("fcilog_session"); 
+    location.reload(); 
 };
 
 window.configurarMenu = () => {
-    const rol = window.usuarioActual.rol; const menu = document.getElementById("menu-dinamico"); if(!menu) return;
-    const items = { st:{id:'stats',n:'Dashboard',i:'chart-pie'}, sk:{id:'stock',n:'Stock',i:'boxes'}, pd:{id:'solicitar',n:'Realizar Pedido',i:'cart-plus'}, pe:{id:'solicitudes',n:'Aprobaciones',i:'clipboard-check'}, hs:{id:'historial',n:'Movimientos',i:'history'}, us:{id:'usuarios',n:'Accesos',i:'users-cog'}, mp:{id:'notificaciones',n:'Mis Solicitudes',i:'shipping-fast'} };
+    const rol = window.usuarioActual.rol;
+    const menu = document.getElementById("menu-dinamico");
+    if(!menu) return;
+
+    const items = { 
+        st:{id:'stats',n:'Dashboard',i:'chart-pie'}, 
+        sk:{id:'stock',n:'Stock',i:'boxes'}, 
+        pd:{id:'solicitar',n:'Realizar Pedido',i:'cart-plus'}, 
+        pe:{id:'solicitudes',n:'Aprobaciones',i:'clipboard-check'}, 
+        hs:{id:'historial',n:'Movimientos',i:'history'}, 
+        us:{id:'usuarios',n:'Accesos',i:'users-cog'}, 
+        mp:{id:'notificaciones',n:'Mis Solicitudes',i:'shipping-fast'} 
+    };
+    
     let rutas = [];
-    if(rol==='admin') rutas=[items.st, items.sk, items.pd, items.pe, items.hs, items.us, items.mp]; else if(rol==='manager'||rol==='supervisor') rutas=[items.st, items.sk, items.pd, items.pe, items.hs, items.mp]; else rutas=[items.sk, items.pd, items.mp];
-    menu.innerHTML = rutas.map(x => `<button onclick="window.verPagina('${x.id}')" class="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-white border border-slate-100 flex items-center justify-center transition-colors"><i class="fas fa-${x.i}"></i></div>${x.n}</button>`).join('');
+    if(rol==='admin') rutas=[items.st, items.sk, items.pd, items.pe, items.hs, items.us, items.mp]; 
+    else if(rol==='manager'||rol==='supervisor') rutas=[items.st, items.sk, items.pd, items.pe, items.hs, items.mp]; 
+    else rutas=[items.sk, items.pd, items.mp];
+    
+    menu.innerHTML = rutas.map(x => `
+        <button onclick="window.verPagina('${x.id}')" class="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all font-bold text-sm group">
+            <div class="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-white border border-slate-100 flex items-center justify-center transition-colors"><i class="fas fa-${x.i}"></i></div>${x.n}
+        </button>`).join('');
 };
 
-window.verPagina = (id) => {
-    document.querySelectorAll(".view").forEach(v => { v.classList.add("hidden"); v.classList.remove("animate-fade-in"); });
-    const target = document.getElementById(`pag-${id}`);
-    if(target) { target.classList.remove("hidden"); setTimeout(() => target.classList.add("animate-fade-in"), 10); }
-    if(window.innerWidth < 768) window.toggleMenu(false);
-};
-
-window.toggleMenu = (forceState) => {
-    const sb = document.getElementById("sidebar"), ov = document.getElementById("sidebar-overlay");
-    if(!sb || !ov) return;
-    const shouldOpen = forceState !== undefined ? forceState : sb.classList.contains("-translate-x-full");
-    if (shouldOpen) { sb.classList.remove("-translate-x-full"); ov.classList.remove("hidden"); sb.style.zIndex = "100"; ov.style.zIndex = "90"; } 
-    else { sb.classList.add("-translate-x-full"); ov.classList.add("hidden"); }
-};
-
-window.switchTab = (tab) => {
-    document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
-    const t = document.getElementById(`tab-content-${tab}`); if(t) t.classList.remove('hidden');
-    const btnA = document.getElementById('tab-btn-activos'), btnH = document.getElementById('tab-btn-historial');
-    const onC = "flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-white text-indigo-600 shadow-sm transition-all"; 
-    const offC = "flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-500 hover:text-slate-700 transition-all";
-    if(tab === 'activos') { if(btnA) btnA.className = onC; if(btnH) btnH.className = offC; } else { if(btnH) btnH.className = onC; if(btnA) btnA.className = offC; }
-};
-
-// --- 4. SINCRONIZACIÓN Y LECTURA ---
+// --- 5. LECTURA Y SINCRONIZACIÓN (REALTIME) ---
 window.activarSincronizacion = () => {
     if(!window.usuarioActual) return;
 
+    // A) STOCK / INVENTARIO
     onSnapshot(collection(db, "inventario"), snap => {
-        const g = document.getElementById("lista-inventario"), c = document.getElementById("contenedor-lista-pedidos"), d = document.getElementById("lista-sugerencias");
-        if(g) g.innerHTML=""; if(c) c.innerHTML=""; if(d) d.innerHTML="";
+        const grid = document.getElementById("lista-inventario");
+        const cartContainer = document.getElementById("contenedor-lista-pedidos");
+        const dataList = document.getElementById("lista-sugerencias");
+        
+        if(grid) grid.innerHTML=""; 
+        if(cartContainer) cartContainer.innerHTML=""; 
+        if(dataList) dataList.innerHTML="";
+        
         let tr=0, ts=0, labels=[], dataStock=[];
 
         snap.forEach(ds => {
-            const p = ds.data(), nombre = ds.id.toUpperCase();
-            tr++; ts += p.cantidad; labels.push(nombre.substring(0, 10)); dataStock.push(p.cantidad);
-            if(d) d.innerHTML += `<option value="${nombre}">`;
+            const p = ds.data(); 
+            const nombre = ds.id.toUpperCase();
+            tr++; ts += p.cantidad; 
+            labels.push(nombre.substring(0, 10)); 
+            dataStock.push(p.cantidad);
 
-            const acts = ['admin','manager'].includes(window.usuarioActual.rol) ? `<div class="flex gap-2"><button onclick="window.prepararEdicionProducto('${ds.id}')" class="text-slate-300 hover:text-indigo-500"><i class="fas fa-cog"></i></button><button onclick="window.eliminarDato('inventario','${ds.id}')" class="text-slate-300 hover:text-red-400"><i class="fas fa-trash"></i></button></div>` : '';
-            const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-cover rounded-lg border border-slate-100 mb-2">` : `<div class="w-12 h-12 bg-slate-50 rounded-lg border flex items-center justify-center text-slate-300 mb-2"><i class="fas fa-image"></i></div>`;
-            const isLow = (p.stockMinimo && p.cantidad <= p.stockMinimo), border = isLow ? "border-2 border-red-500 bg-red-50" : "border border-slate-100 bg-white";
+            if(dataList) dataList.innerHTML += `<option value="${nombre}">`;
+
+            const isAdmin = ['admin','manager'].includes(window.usuarioActual.rol);
+            let controls = "";
+            if (isAdmin) {
+                controls = `<div class="flex gap-2"><button onclick="window.prepararEdicionProducto('${ds.id}')" class="text-slate-300 hover:text-indigo-500"><i class="fas fa-cog"></i></button><button onclick="window.eliminarDato('inventario','${ds.id}')" class="text-slate-300 hover:text-red-400"><i class="fas fa-trash"></i></button></div>`;
+            }
+
+            const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-cover rounded-lg border mb-2">` : `<div class="w-12 h-12 bg-slate-50 rounded-lg border flex items-center justify-center text-slate-300 mb-2"><i class="fas fa-image"></i></div>`;
+            const isLow = (p.stockMinimo && p.cantidad <= p.stockMinimo);
+            const border = isLow ? "border-2 border-red-500 bg-red-50" : "border border-slate-100 bg-white";
+            const price = p.precio ? `<span class="text-xs font-bold text-emerald-600">$${p.precio}</span>` : '';
             
-            if(g) g.innerHTML += `<div class="${border} p-4 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col item-tarjeta"><div class="flex justify-between items-start">${img}${acts}</div><h4 class="font-bold text-slate-700 text-xs truncate" title="${nombre}">${nombre} ${isLow?'<i class="fas fa-exclamation-circle text-red-500 animate-pulse"></i>':''}</h4><div class="flex justify-between items-end mt-1"><p class="text-2xl font-black text-slate-800">${p.cantidad}</p><span class="text-xs font-bold text-emerald-600">${p.precio?'$'+p.precio:''}</span></div></div>`;
-            if(c && p.cantidad > 0) {
+            if(grid) {
+                grid.innerHTML += `
+                <div class="${border} p-4 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col item-tarjeta">
+                    <div class="flex justify-between items-start">${img}${controls}</div>
+                    <h4 class="font-bold text-slate-700 text-xs truncate" title="${nombre}">${nombre} ${isLow?'<i class="fas fa-exclamation-circle text-red-500 animate-pulse"></i>':''}</h4>
+                    <div class="flex justify-between items-end mt-1"><p class="text-2xl font-black text-slate-800">${p.cantidad}</p>${price}</div>
+                </div>`;
+            }
+
+            if(cartContainer && p.cantidad > 0) {
                 const enCarro = window.carritoGlobal[ds.id] || 0;
-                c.innerHTML += `<div id="row-${ds.id}" class="flex items-center justify-between p-3 rounded-xl border ${enCarro>0?"border-indigo-500 bg-indigo-50/50":"bg-white"} transition-all shadow-sm"><div class="flex items-center gap-3 overflow-hidden">${p.imagen?`<img src="${p.imagen}" class="w-8 h-8 rounded-md object-cover">`:''}<div class="truncate"><p class="font-bold text-xs uppercase text-slate-700 truncate">${nombre}</p><p class="text-[10px] text-slate-400">Disp: ${p.cantidad}</p></div></div><div class="flex items-center gap-2 bg-white rounded-lg p-1 border flex-shrink-0"><button onclick="window.ajustarCantidad('${ds.id}', -1)" class="w-7 h-7 rounded-md bg-slate-50 font-bold">-</button><span id="cant-${ds.id}" class="w-6 text-center font-bold text-indigo-600 text-sm">${enCarro}</span><button onclick="window.ajustarCantidad('${ds.id}', 1)" class="w-7 h-7 rounded-md bg-indigo-50 font-bold" ${enCarro>=p.cantidad?'disabled':''}>+</button></div></div>`;
+                const active = enCarro > 0 ? "border-indigo-500 bg-indigo-50/50" : "border-slate-100 bg-white";
+                cartContainer.innerHTML += `
+                <div id="row-${ds.id}" class="flex items-center justify-between p-3 rounded-xl border ${active} transition-all shadow-sm item-tarjeta">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        ${p.imagen?`<img src="${p.imagen}" class="w-8 h-8 rounded-md object-cover">`:''}
+                        <div class="truncate"><p class="font-bold text-xs uppercase text-slate-700 truncate">${nombre}</p><p class="text-[10px] text-slate-400">Disp: ${p.cantidad}</p></div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white rounded-lg p-1 border flex-shrink-0">
+                        <button onclick="window.ajustarCantidad('${ds.id}', -1)" class="w-7 h-7 rounded-md bg-slate-50 font-bold">-</button>
+                        <span id="cant-${ds.id}" class="w-6 text-center font-bold text-indigo-600 text-sm">${enCarro}</span>
+                        <button onclick="window.ajustarCantidad('${ds.id}', 1)" class="w-7 h-7 rounded-md bg-indigo-50 font-bold" ${enCarro>=p.cantidad?'disabled':''}>+</button>
+                    </div>
+                </div>`;
             }
         });
-        if(document.getElementById("metrica-total")) document.getElementById("metrica-total").innerText = tr;
-        if(document.getElementById("metrica-stock")) document.getElementById("metrica-stock").innerText = ts;
+
+        const elTotal = document.getElementById("metrica-total");
+        if(elTotal) elTotal.innerText = tr;
+        const elStock = document.getElementById("metrica-stock");
+        if(elStock) elStock.innerText = ts;
+        
         window.renderChart('stockChart', labels, dataStock, 'Stock', '#6366f1', window.stockChart, ch => window.stockChart = ch);
     });
 
+    // B) PEDIDOS
     onSnapshot(collection(db,"pedidos"), s => {
-        window.cachePedidos = []; let grupos = {}, pendingCount = 0, sedesCount = {};
-        const lAdmin = document.getElementById("lista-pendientes-admin"), lActive = document.getElementById("tab-content-activos"), lHistory = document.getElementById("tab-content-historial");
-        if(lAdmin) lAdmin.innerHTML=""; if(lActive) lActive.innerHTML=""; if(lHistory) lHistory.innerHTML="";
+        window.pedidosRaw = []; 
+        window.cachePedidos = [];
+        let grupos = {}; 
+        let pendingCount = 0;
+        let sedesCount = {};
+
+        const lAdmin = document.getElementById("lista-pendientes-admin");
+        const lActive = document.getElementById("tab-content-activos");
+        const lHistory = document.getElementById("tab-content-historial");
+
+        if(lAdmin) lAdmin.innerHTML=""; 
+        if(lActive) lActive.innerHTML=""; 
+        if(lHistory) lHistory.innerHTML="";
 
         s.forEach(ds => {
-            const p = ds.data(); p.id = ds.id; window.cachePedidos.push(p);
-            if(p.estado !== 'rechazado') sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad;
+            const p = ds.data(); 
+            p.id = ds.id; 
+            window.pedidosRaw.push(p); 
+            window.cachePedidos.push(p);
+
+            if(p.estado !== 'rechazado') {
+                sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad;
+            }
+
             const bKey = p.batchId || p.timestamp;
             if(!grupos[bKey]) grupos[bKey] = { items:[], user:p.usuarioId, sede:p.ubicacion, date:p.fecha, ts:p.timestamp };
             grupos[bKey].items.push(p);
+
             if(p.estado === 'pendiente') pendingCount++;
         });
 
-        // SORT CACHE PEDIDOS MÁS RECIENTE A MÁS ANTIGUO PARA EL USUARIO
-        const misPedidos = window.cachePedidos.filter(p => p.usuarioId === window.usuarioActual.id).sort((a, b) => b.timestamp - a.timestamp);
+        // Vista Usuario (Ordenados del mas nuevo al mas viejo)
+        const misPedidos = window.cachePedidos.filter(p => p.usuarioId === window.usuarioActual.id).sort((a,b) => b.timestamp - a.timestamp);
         
         misPedidos.forEach(p => {
             let btns = "";
-            if(p.estado === 'aprobado') btns = `<div class="mt-3 pt-3 border-t border-slate-50 flex justify-end gap-2"><button onclick="window.confirmarRecibido('${p.id}')" class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow">Recibir</button><button onclick="window.abrirIncidencia('${p.id}')" class="bg-white border border-red-200 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold">Reportar</button></div>`;
-            else if(p.estado === 'recibido' || p.estado === 'devuelto') btns = `<div class="mt-3 pt-3 border-t border-slate-50 flex justify-end"><button onclick="window.abrirIncidencia('${p.id}')" class="text-amber-500 text-xs font-bold hover:underline flex items-center gap-1"><i class="fas fa-undo"></i> Devolver / Reportar</button></div>`;
+            if(p.estado === 'aprobado') {
+                btns = `<div class="mt-3 pt-3 border-t border-slate-50 flex justify-end gap-2"><button onclick="window.confirmarRecibido('${p.id}')" class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow">Recibir</button><button onclick="window.abrirIncidencia('${p.id}')" class="bg-white border border-red-200 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold">Reportar</button></div>`;
+            } else if(p.estado === 'recibido' || p.estado === 'devuelto') {
+                btns = `<div class="mt-3 pt-3 border-t border-slate-50 flex justify-end"><button onclick="window.abrirIncidencia('${p.id}')" class="text-amber-500 text-xs font-bold hover:underline flex items-center gap-1"><i class="fas fa-undo"></i> Devolver / Reportar</button></div>`;
+            }
             
-            const cardHtml = `<div class="item-tarjeta bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition"><div class="flex justify-between items-start"><div><span class="badge status-${p.estado}">${p.estado}</span><h4 class="font-black text-slate-700 uppercase text-sm mt-2">${p.insumoNom}</h4><p class="text-xs text-slate-400 font-mono mt-1">x${p.cantidad} • ${p.ubicacion} • ${p.fecha.split(',')[0]}</p></div></div>${btns}</div>`;
+            const cardHtml = `
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition item-tarjeta">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="badge status-${p.estado}">${p.estado}</span>
+                        <h4 class="font-black text-slate-700 uppercase text-sm mt-2">${p.insumoNom}</h4>
+                        <p class="text-xs text-slate-400 font-mono mt-1">x${p.cantidad} • ${p.ubicacion}</p>
+                    </div>
+                </div>
+                ${btns}
+            </div>`;
             
-            if(['pendiente', 'aprobado'].includes(p.estado)) { if(lActive) lActive.innerHTML += cardHtml; } 
-            else { if(lHistory) lHistory.innerHTML += cardHtml; }
+            if(['pendiente', 'aprobado'].includes(p.estado)) {
+                if(lActive) lActive.innerHTML += cardHtml;
+            } else {
+                if(lHistory) lHistory.innerHTML += cardHtml;
+            }
         });
 
+        // Vista Admin (Grupos Ordenados)
         if(lAdmin && ['admin','manager','supervisor'].includes(window.usuarioActual.rol)) {
-            // SORT GRUPOS MÁS RECIENTE A MÁS ANTIGUO
-            Object.values(grupos).sort((a,b) => b.ts - a.ts).forEach(g => {
+            const gruposOrdenados = Object.values(grupos).sort((a,b) => b.ts - a.ts);
+            
+            gruposOrdenados.forEach(g => {
                 const pendingItems = g.items.filter(i => i.estado === 'pendiente');
                 if(pendingItems.length > 0) {
-                    const itemsStr = pendingItems.map(i => `<span class="bg-slate-50 px-2 py-1 rounded text-[10px] border border-slate-200 uppercase font-bold text-slate-600">${i.insumoNom} (x${i.cantidad})</span>`).join('');
-                    lAdmin.innerHTML += `<div class="bg-white p-5 rounded-2xl border-l-4 border-l-amber-400 shadow-sm cursor-pointer hover:shadow-md transition group" onclick="window.abrirModalGrupo('${g.items[0].batchId || g.ts}')"><div class="flex justify-between items-center mb-3"><div><h4 class="font-black text-slate-800 text-sm uppercase"><i class="fas fa-user text-slate-300 mr-1"></i> ${g.user}</h4><span class="text-xs text-slate-400 font-medium">${g.sede} • ${g.date.split(',')[0]}</span></div><span class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition"><i class="fas fa-chevron-right text-xs"></i></span></div><div class="flex flex-wrap gap-1.5">${itemsStr}</div></div>`;
+                    let itemsStr = "";
+                    pendingItems.forEach(i => {
+                        itemsStr += `<span class="bg-slate-50 px-2 py-1 rounded text-[10px] border border-slate-200 uppercase font-bold text-slate-600">${i.insumoNom} (x${i.cantidad})</span>`;
+                    });
+
+                    lAdmin.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl border-l-4 border-l-amber-400 shadow-sm cursor-pointer hover:shadow-md transition group" onclick="window.abrirModalGrupo('${g.items[0].batchId || g.ts}')">
+                        <div class="flex justify-between items-center mb-3">
+                            <div>
+                                <h4 class="font-black text-slate-800 text-sm uppercase"><i class="fas fa-user text-slate-300 mr-1"></i> ${g.user}</h4>
+                                <span class="text-xs text-slate-400 font-medium">${g.sede} • ${g.date.split(',')[0]}</span>
+                            </div>
+                            <span class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition"><i class="fas fa-chevron-right text-xs"></i></span>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">${itemsStr}</div>
+                    </div>`;
                 }
             });
         }
 
-        if(document.getElementById("metrica-pedidos")) document.getElementById("metrica-pedidos").innerText = pendingCount;
+        const elPed = document.getElementById("metrica-pedidos");
+        if(elPed) elPed.innerText = pendingCount;
+        
         window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Sedes', '#10b981', window.locationChart, ch => window.locationChart = ch);
         window.renderHistorialUnificado();
     });
 
+    // C) ENTRADAS
     onSnapshot(collection(db,"entradas_stock"), s => {
-        window.cacheEntradas = []; s.forEach(x => { const d = x.data(); d.id = x.id; window.cacheEntradas.push(d); });
+        window.cacheEntradas = []; 
+        s.forEach(x => { 
+            const d = x.data(); 
+            d.id = x.id; 
+            window.cacheEntradas.push(d); 
+        });
         window.renderHistorialUnificado();
     });
 
+    // D) USUARIOS
     if(window.usuarioActual.rol === 'admin') {
         onSnapshot(collection(db, "usuarios"), snap => {
             const l = document.getElementById("lista-usuarios-db");
@@ -197,7 +363,20 @@ window.activarSincronizacion = () => {
                 l.innerHTML = "";
                 snap.forEach(d => {
                     const u = d.data();
-                    l.innerHTML += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm hover:shadow-md transition"><div><div class="flex items-center gap-2"><span class="font-bold uppercase text-slate-700">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold">${u.rol}</span></div><span class="text-xs text-slate-400 block mt-1"><i class="fas fa-envelope text-[10px]"></i> ${u.email || 'Sin correo'}</span></div><div class="flex gap-2"><button onclick="window.prepararEdicionUsuario('${d.id}','${u.pass}','${u.rol}','${u.email||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button><button onclick="window.eliminarDato('usuarios','${d.id}')" class="w-8 h-8 rounded bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button></div></div>`;
+                    l.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm hover:shadow-md transition">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold uppercase text-slate-700">${d.id}</span>
+                                <span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold">${u.rol}</span>
+                            </div>
+                            <span class="text-xs text-slate-400 block mt-1"><i class="fas fa-envelope text-[10px]"></i> ${u.email || 'Sin correo'}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="window.prepararEdicionUsuario('${d.id}','${u.pass}','${u.rol}','${u.email||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button>
+                            <button onclick="window.eliminarDato('usuarios','${d.id}')" class="w-8 h-8 rounded bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
+                        </div>
+                    </div>`;
                 });
             }
         });
@@ -206,50 +385,41 @@ window.activarSincronizacion = () => {
 
 window.renderHistorialUnificado = () => {
     const t = document.getElementById("tabla-movimientos-unificados");
-    if(!t) return; t.innerHTML = "";
-    const eFmt = window.cacheEntradas.map(e => ({ fecha:e.fecha, ts:e.timestamp, tipo:'ENTRADA', insumo:e.insumo, cant:e.cantidad, det:`${e.usuario} (Stock)`, est:'completado' }));
-    const pFmt = window.cachePedidos.map(p => ({ fecha:p.fecha, ts:p.timestamp, tipo:'SALIDA', insumo:p.insumoNom, cant:p.cantidad, det:`${p.usuarioId} (${p.ubicacion})`, est:p.estado }));
+    if(!t) return;
     
-    // ORDENADO DESDE MÁS RECIENTE A MÁS ANTIGUO
-    [...eFmt, ...pFmt].sort((a,b) => b.ts - a.ts).forEach(h => {
+    t.innerHTML = "";
+    
+    const entradasFmt = window.cacheEntradas.map(e => ({ fecha:e.fecha, ts:e.timestamp, tipo:'ENTRADA', insumo:e.insumo, cant:e.cantidad, det:`${e.usuario} (Stock)`, est:'completado' }));
+    const salidasFmt = window.cachePedidos.map(p => ({ fecha:p.fecha, ts:p.timestamp, tipo:'SALIDA', insumo:p.insumoNom, cant:p.cantidad, det:`${p.usuarioId} (${p.ubicacion})`, est:p.estado }));
+    
+    const unificados = [...entradasFmt, ...salidasFmt].sort((a,b) => b.ts - a.ts);
+
+    unificados.forEach(h => {
         const icon = h.tipo==='ENTRADA' ? '<i class="fas fa-arrow-down text-emerald-500"></i>' : '<i class="fas fa-arrow-up text-amber-500"></i>';
-        t.innerHTML += `<tr class="fila-historial hover:bg-slate-50 border-b border-slate-50 last:border-0 transition"><td class="p-3 text-slate-400 text-[10px] font-mono whitespace-nowrap">${h.fecha.split(',')[0]}</td><td class="p-3 text-xs font-bold text-slate-600">${icon} ${h.tipo}</td><td class="p-3 font-bold text-slate-700 uppercase text-xs">${h.insumo}</td><td class="p-3 text-sm font-bold text-slate-800 text-center">${h.cant}</td><td class="p-3 text-xs text-slate-500 uppercase">${h.det}</td><td class="p-3"><span class="badge status-${h.est}">${h.est}</span></td></tr>`;
+        t.innerHTML += `
+        <tr class="hover:bg-slate-50 border-b border-slate-50 last:border-0 transition">
+            <td class="p-3 text-slate-400 text-[10px] font-mono whitespace-nowrap">${h.fecha.split(',')[0]}</td>
+            <td class="p-3 text-xs font-bold text-slate-600">${icon} ${h.tipo}</td>
+            <td class="p-3 font-bold text-slate-700 uppercase text-xs">${h.insumo}</td>
+            <td class="p-3 text-sm font-bold text-slate-800 text-center">${h.cant}</td>
+            <td class="p-3 text-xs text-slate-500 uppercase">${h.det}</td>
+            <td class="p-3"><span class="badge status-${h.est}">${h.est}</span></td>
+        </tr>`;
     });
 };
 
-// --- FILTROS (Buscadores en Tiempo Real) ---
-window.filtrarTabla = (idTabla, texto) => {
-    const term = texto.toLowerCase();
-    const filas = document.querySelectorAll(`#${idTabla} tr`);
-    filas.forEach(f => { f.style.display = f.innerText.toLowerCase().includes(term) ? '' : 'none'; });
-};
+// --- 6. FUNCIONES DE NEGOCIO ---
 
-window.filtrarTarjetas = (idContenedor, texto) => {
-    const term = texto.toLowerCase();
-    let container;
-    // Si pasamos un ID específico (para historial) o 'lista-inventario'
-    if (idContenedor === 'lista-inventario') {
-        container = document.getElementById(idContenedor);
-        if(!container) return;
-        const cards = container.querySelectorAll('.item-tarjeta');
-        cards.forEach(c => { c.style.display = c.innerText.toLowerCase().includes(term) ? '' : 'none'; });
-    } else {
-        // Para las pestañas de Mis Pedidos
-        const cardsActivos = document.querySelectorAll('#tab-content-activos .item-tarjeta');
-        const cardsHistorial = document.querySelectorAll('#tab-content-historial .item-tarjeta');
-        cardsActivos.forEach(c => { c.style.display = c.innerText.toLowerCase().includes(term) ? '' : 'none'; });
-        cardsHistorial.forEach(c => { c.style.display = c.innerText.toLowerCase().includes(term) ? '' : 'none'; });
-    }
-};
-
-// --- 5. LOGICA DE ENVIAR PEDIDO (BATCH LIGERO Y SEGURO) ---
+// A) CREACIÓN DE PEDIDOS (OPTIMIZADO CON WRITEBATCH)
 window.ajustarCantidad = (i,d) => {
-    const n = Math.max(0, (window.carritoGlobal[i]||0) + d); window.carritoGlobal[i] = n; 
-    document.getElementById(`cant-${i}`).innerText = n;
-    document.getElementById(`row-${i}`).classList.toggle("border-indigo-500", n > 0);
+    const n = Math.max(0, (window.carritoGlobal[i]||0) + d); 
+    window.carritoGlobal[i] = n; 
+    const el = document.getElementById(`cant-${i}`);
+    if(el) el.innerText = n;
+    const row = document.getElementById(`row-${i}`);
+    if(row) row.classList.toggle("border-indigo-500", n > 0);
 };
 
-// SOLUCIÓN A LA FALLA DE SOLICITUDES MÚLTIPLES (USO DE BATCH)
 window.procesarSolicitudMultiple = async () => {
     const ubi = document.getElementById("sol-ubicacion").value;
     const items = Object.entries(window.carritoGlobal).filter(([_, c]) => c > 0);
@@ -260,10 +430,11 @@ window.procesarSolicitudMultiple = async () => {
     const itemsData = items.map(([ins, cant]) => ({ insumo: ins, cantidad: cant }));
     
     try {
-        // Empaquetar todas las solicitudes en una sola transacción para Firebase (Rápido y Seguro)
+        // Uso de Lotes (Batch) para rendimiento ultra rápido
         const batch = writeBatch(db);
+        
         items.forEach(([ins, cant]) => {
-            const newRef = doc(collection(db, "pedidos")); // Crea un ID automático
+            const newRef = doc(collection(db, "pedidos"));
             batch.set(newRef, {
                 usuarioId: window.usuarioActual.id, 
                 insumoNom: ins, 
@@ -276,9 +447,8 @@ window.procesarSolicitudMultiple = async () => {
             });
         });
         
-        await batch.commit(); // Ejecuta todo el bloque a la vez
+        await batch.commit(); // Ejecuta todo de una vez
         
-        // Enviar Correo de Notificación (solo 1 vez por bloque)
         window.enviarEmailNotificacion('nuevo_pedido', { usuario: window.usuarioActual.id, sede: ubi, items: itemsData });
         
         alert("✅ Pedido Enviado Exitosamente."); 
@@ -288,101 +458,272 @@ window.procesarSolicitudMultiple = async () => {
         window.verPagina('notificaciones');
         
     } catch (error) {
-        console.error("Error crítico al enviar pedido:", error);
-        alert("Ocurrió un error de red al procesar el pedido. Intente nuevamente.");
+        console.error("Error al enviar pedido:", error);
+        alert("Ocurrió un error al procesar el pedido. Intente nuevamente.");
     }
 };
 
-window.enviarEmailNotificacion = enviarNotificacionGrupo;
-
-// --- EXCEL ---
-window.descargarReporte = async () => {
-    if(!confirm("¿Descargar reporte en Excel?")) return;
-    const [s, e, p] = await Promise.all([ getDocs(collection(db, "inventario")), getDocs(collection(db, "entradas_stock")), getDocs(collection(db, "pedidos")) ]);
-    let htmlStr = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; margin-bottom: 30px; } th, td { border: 1px solid #dddddd; padding: 8px; text-align: left; } th { color: white; font-weight: bold; } h2 { color: #333333; font-family: Arial, sans-serif; font-size: 18px; margin-bottom: 10px; }</style></head><body>`;
-    
-    htmlStr += `<h2>1. INVENTARIO (STOCK ACTUAL)</h2><table><thead><tr style="background-color: #4f46e5;"><th>INSUMO</th><th>CANTIDAD DISPONIBLE</th><th>PRECIO UNIDAD ($)</th><th>STOCK MÍNIMO</th></tr></thead><tbody>`;
-    s.forEach(d => { const x = d.data(); htmlStr += `<tr><td>${d.id.toUpperCase()}</td><td>${x.cantidad}</td><td>${x.precio || 0}</td><td>${x.stockMinimo || 0}</td></tr>`; });
-    htmlStr += `</tbody></table><br><br>`;
-    
-    htmlStr += `<h2>2. HISTORIAL DE ENTRADAS</h2><table><thead><tr style="background-color: #059669;"><th>FECHA</th><th>INSUMO</th><th>CANTIDAD AGREGADA</th><th>USUARIO RESPONSABLE</th></tr></thead><tbody>`;
-    e.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp).forEach(mov => { htmlStr += `<tr><td>${mov.fecha}</td><td>${(mov.insumo || '').toUpperCase()}</td><td>+${mov.cantidad}</td><td>${(mov.usuario || '').toUpperCase()}</td></tr>`; });
-    htmlStr += `</tbody></table><br><br>`;
-    
-    htmlStr += `<h2>3. HISTORIAL DE SALIDAS (PEDIDOS)</h2><table><thead><tr style="background-color: #d97706;"><th>FECHA</th><th>INSUMO</th><th>CANTIDAD SOLICITADA</th><th>SOLICITANTE</th><th>SEDE DESTINO</th><th>ESTADO ACTUAL</th></tr></thead><tbody>`;
-    p.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp).forEach(mov => { htmlStr += `<tr><td>${mov.fecha}</td><td>${(mov.insumoNom || '').toUpperCase()}</td><td>-${mov.cantidad}</td><td>${(mov.usuarioId || '').toUpperCase()}</td><td>${(mov.ubicacion || '').toUpperCase()}</td><td>${(mov.estado || 'completado').toUpperCase()}</td></tr>`; });
-    htmlStr += `</tbody></table></body></html>`;
-    
-    const blob = new Blob(['\ufeff', htmlStr], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `FCILog_Reporte_${new Date().toISOString().slice(0, 10)}.xls`; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+window.enviarEmailNotificacion = async (tipo, datos) => {
+    await enviarNotificacionGrupo(tipo, datos);
 };
 
-// --- RESTO DE FUNCIONES (STOCK, MODALES, ETC) ---
-window.agregarProductoRápido = async () => {
+// B) ENTRADA STOCK
+window.agregarProductoRapido = async () => {
     const nombre = document.getElementById("nombre-prod").value.trim().toUpperCase();
     const cantidad = parseInt(document.getElementById("cantidad-prod").value);
+
     if (nombre && cantidad > 0) {
-        const id = nombre.toLowerCase(); const ref = doc(db, "inventario", id); const snap = await getDoc(ref);
-        if (snap.exists()) { await updateDoc(ref, { cantidad: snap.data().cantidad + cantidad }); alert(`✅ Stock actualizado: ${nombre}`); } 
-        else { if(confirm(`"${nombre}" no existe. ¿Crear nuevo?`)) { await setDoc(ref, { cantidad: cantidad }); alert(`✅ Producto creado: ${nombre}`); } else return; }
-        await addDoc(collection(db, "entradas_stock"), { insumo: nombre, cantidad: cantidad, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() });
-        window.cerrarModalInsumo(); document.getElementById("nombre-prod").value=""; document.getElementById("cantidad-prod").value="";
-    } else alert("Datos inválidos.");
+        const id = nombre.toLowerCase();
+        const ref = doc(db, "inventario", id);
+        const snap = await getDoc(ref);
+
+        if (snap.exists()) {
+            await updateDoc(ref, { cantidad: snap.data().cantidad + cantidad });
+            alert(`✅ Stock actualizado: ${nombre}`);
+        } else {
+            if(confirm(`"${nombre}" no existe. ¿Crear nuevo?`)) {
+                await setDoc(ref, { cantidad: cantidad });
+                alert(`✅ Producto creado: ${nombre}`);
+            } else return;
+        }
+        
+        await addDoc(collection(db, "entradas_stock"), { 
+            insumo: nombre, 
+            cantidad: cantidad, 
+            usuario: window.usuarioActual.id, 
+            fecha: new Date().toLocaleString(), 
+            timestamp: Date.now() 
+        });
+        
+        window.cerrarModalInsumo(); 
+        document.getElementById("nombre-prod").value=""; 
+        document.getElementById("cantidad-prod").value="";
+    } else {
+        alert("Ingrese un nombre y cantidad válida.");
+    }
 };
 
+// C) GESTIÓN ADMIN (APROBAR/RECHAZAR)
 window.abrirModalGrupo = (bKey) => {
-    const m = document.getElementById("modal-grupo-admin"), c = document.getElementById("modal-grupo-contenido"), t = document.getElementById("modal-grupo-titulo");
+    const m = document.getElementById("modal-grupo-admin");
+    const c = document.getElementById("modal-grupo-contenido");
+    const t = document.getElementById("modal-grupo-titulo");
+    
     const items = window.cachePedidos.filter(p => (p.batchId === bKey) || (p.timestamp.toString() === bKey));
     if(items.length === 0) return;
-    t.innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion} | ${items[0].fecha}`; c.innerHTML = "";
+    
+    t.innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion} | ${items[0].fecha}`; 
+    c.innerHTML = "";
+    
     items.forEach(p => {
         let act = `<span class="badge status-${p.estado}">${p.estado}</span>`;
         if(p.estado === 'pendiente' && window.usuarioActual.rol !== 'supervisor') {
-            act = `<div class="flex gap-2 items-center"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border border-slate-200 rounded text-center p-1 font-bold"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom}')" class="text-white bg-emerald-500 hover:bg-emerald-600 p-1.5 rounded"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-slate-400 border border-slate-200 p-1.5 rounded hover:bg-red-50 hover:text-red-500"><i class="fas fa-times"></i></button></div>`;
+            act = `
+            <div class="flex gap-2 items-center">
+                <input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border border-slate-200 rounded text-center p-1 font-bold text-slate-700">
+                <button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom}')" class="text-white bg-emerald-500 hover:bg-emerald-600 p-1.5 rounded shadow"><i class="fas fa-check"></i></button>
+                <button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-slate-400 border border-slate-200 p-1.5 rounded hover:bg-red-50 hover:text-red-500"><i class="fas fa-times"></i></button>
+            </div>`;
         }
         c.innerHTML += `<div class="flex justify-between items-center p-3 border-b border-slate-50 hover:bg-slate-50"><div><b class="uppercase text-sm text-slate-700">${p.insumoNom}</b><br><span class="text-xs text-slate-400">Solicitado: ${p.cantidad}</span></div>${act}</div>`;
     });
+    
     m.classList.remove("hidden");
 };
 
 window.gestionarPedido = async (pid, accion, ins) => {
-    const pRef = doc(db, "pedidos", pid), pSnap = await getDoc(pRef);
+    const pRef = doc(db, "pedidos", pid);
+    const pSnap = await getDoc(pRef);
     if(!pSnap.exists()) return;
     const pData = pSnap.data();
-    let emailSolicitante = ""; try { const u = await getDoc(doc(db, "usuarios", pData.usuarioId)); if(u.exists()) emailSolicitante = u.data().email; } catch(e){}
+    
+    let emailSolicitante = ""; 
+    try { 
+        const u = await getDoc(doc(db, "usuarios", pData.usuarioId)); 
+        if(u.exists()) emailSolicitante = u.data().email; 
+    } catch(e){}
 
     if(accion === 'aprobar') {
         const inp = document.getElementById(`qty-${pid}`);
         const val = inp ? parseInt(inp.value) : pData.cantidad;
-        const iRef = doc(db, "inventario", ins.toLowerCase()), iSnap = await getDoc(iRef);
+        const iRef = doc(db, "inventario", ins.toLowerCase());
+        const iSnap = await getDoc(iRef);
+        
         if(iSnap.exists() && iSnap.data().cantidad >= val) {
             const newStock = iSnap.data().cantidad - val;
             await updateDoc(iRef, { cantidad: newStock });
             await updateDoc(pRef, { estado: "aprobado", cantidad: val });
+            
             if(emailSolicitante) window.enviarEmailNotificacion('aprobado_parcial', { usuario: pData.usuarioId, items: [{insumo:ins, cantidad:val}], target_email: emailSolicitante });
             if (newStock <= (iSnap.data().stockMinimo || 0)) window.enviarEmailNotificacion('stock_bajo', { insumo: ins, actual: newStock, minimo: iSnap.data().stockMinimo });
+            
             const pendientes = window.cachePedidos.filter(p => (p.batchId === pData.batchId) && p.estado === 'pendiente' && p.id !== pid);
-            if(pendientes.length === 0) document.getElementById("modal-grupo-admin").classList.add("hidden"); else window.abrirModalGrupo(pData.batchId); 
+            if(pendientes.length === 0) document.getElementById("modal-grupo-admin").classList.add("hidden");
+            else window.abrirModalGrupo(pData.batchId); 
         } else alert("Stock insuficiente.");
     } else {
-        await updateDoc(pRef, { estado: "rechazado" }); window.abrirModalGrupo(pData.batchId);
+        await updateDoc(pRef, { estado: "rechazado" });
+        window.abrirModalGrupo(pData.batchId);
     }
 };
 
 window.confirmarRecibido = async (pid) => { 
     if(confirm("¿Confirmar recepción?")) {
-        const pRef=doc(db,"pedidos",pid), snap=await getDoc(pRef);
+        const pRef = doc(db, "pedidos", pid);
+        const snap = await getDoc(pRef);
         await updateDoc(pRef, { estado: "recibido" });
-        if(snap.exists()) window.enviarEmailNotificacion('recibido', {usuario:window.usuarioActual.id, items:[{insumo:snap.data().insumoNom, cantidad:snap.data().cantidad}], sede:snap.data().ubicacion});
+        if(snap.exists()) window.enviarEmailNotificacion('recibido', {usuario: window.usuarioActual.id, items:[{insumo:snap.data().insumoNom, cantidad:snap.data().cantidad}], sede:snap.data().ubicacion});
     }
 };
 
-window.prepararEdicionProducto=async(id)=>{const s=await getDoc(doc(db,"inventario",id)); if(!s.exists())return; const d=s.data(); document.getElementById('edit-prod-id').value=id; document.getElementById('edit-prod-precio').value=d.precio||''; document.getElementById('edit-prod-min').value=d.stockMinimo||''; document.getElementById('edit-prod-img').value=d.imagen||''; if(d.imagen)document.getElementById('preview-img').src=d.imagen,document.getElementById('preview-img').classList.remove('hidden'); document.getElementById('modal-detalles').classList.remove('hidden');};
-window.guardarDetallesProducto=async()=>{const id=document.getElementById('edit-prod-id').value, p=parseFloat(document.getElementById('edit-prod-precio').value)||0, m=parseInt(document.getElementById('edit-prod-min').value)||0, i=document.getElementById('edit-prod-img').value; await updateDoc(doc(db,"inventario",id),{precio:p,stockMinimo:m,imagen:i}); window.cerrarModalDetalles(); alert("Guardado");};
-window.guardarUsuario=async()=>{const id=document.getElementById("new-user").value.trim().toLowerCase(), p=document.getElementById("new-pass").value.trim(), e=document.getElementById("new-email").value.trim(), r=document.getElementById("new-role").value; if(!id||!p)return alert("Faltan datos"); await setDoc(doc(db,"usuarios",id),{pass:p,rol:r,email:e},{merge:true}); alert("Guardado"); window.cancelarEdicionUsuario();};
-window.prepararEdicionUsuario=(i,p,r,e)=>{document.getElementById("edit-mode-id").value=i; document.getElementById("new-user").value=i; document.getElementById("new-user").disabled=true; document.getElementById("new-pass").value=p; document.getElementById("new-email").value=e||""; document.getElementById("new-role").value=r; document.getElementById("btn-guardar-usuario").innerText="Actualizar"; document.getElementById("cancel-edit-msg").classList.remove("hidden");};
-window.cancelarEdicionUsuario=()=>{document.getElementById("edit-mode-id").value=""; document.getElementById("new-user").value=""; document.getElementById("new-user").disabled=false; document.getElementById("new-pass").value=""; document.getElementById("new-email").value=""; document.getElementById("btn-guardar-usuario").innerText="Guardar"; document.getElementById("cancel-edit-msg").classList.add("hidden");};
-window.abrirModalInsumo=()=>document.getElementById("modal-insumo").classList.remove("hidden"); window.cerrarModalInsumo=()=>document.getElementById("modal-insumo").classList.add("hidden"); window.cerrarModalDetalles=()=>{document.getElementById("modal-detalles").classList.add("hidden"); document.getElementById('preview-img').classList.add('hidden');}; window.eliminarDato=async(c,i)=>{if(confirm("¿Eliminar?"))await deleteDoc(doc(db,c,i));};
-window.abrirIncidencia=(pid)=>{document.getElementById('incidencia-pid').value=pid;document.getElementById('incidencia-detalle').value="";document.getElementById('modal-incidencia').classList.remove('hidden');};
-window.confirmarIncidencia=async(dev)=>{const pid=document.getElementById('incidencia-pid').value,det=document.getElementById('incidencia-detalle').value.trim();if(!det)return alert("Motivo requerido");const pRef=doc(db,"pedidos",pid),pData=(await getDoc(pRef)).data();if(dev){const iRef=doc(db,"inventario",pData.insumoNom.toLowerCase()),iSnap=await getDoc(iRef);if(iSnap.exists())await updateDoc(iRef,{cantidad:iSnap.data().cantidad+pData.cantidad});}await updateDoc(pRef,{estado:dev?"devuelto":"con_incidencia",detalleIncidencia:det});document.getElementById('modal-incidencia').classList.add('hidden');alert("Registrado");};
-window.renderChart = (id,l,d,t,c,i,s) => { const x=document.getElementById(id); if(!x)return; if(i)i.destroy(); s(new Chart(x,{type:id==='locationChart'?'doughnut':'bar',data:{labels:l,datasets:[{label:t,data:d,backgroundColor:c,borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:id==='locationChart',position:'bottom'}}}}));};
+window.abrirIncidencia = (pid) => {
+    document.getElementById('incidencia-pid').value = pid;
+    document.getElementById('incidencia-detalle').value = "";
+    document.getElementById('modal-incidencia').classList.remove('hidden');
+};
+
+window.confirmarIncidencia = async (dev) => {
+    const pid = document.getElementById('incidencia-pid').value;
+    const det = document.getElementById('incidencia-detalle').value.trim();
+    if(!det) return alert("Debe describir el motivo.");
+    
+    const pRef = doc(db, "pedidos", pid);
+    const pData = (await getDoc(pRef)).data();
+    
+    if(dev){
+        const iRef = doc(db, "inventario", pData.insumoNom.toLowerCase());
+        const iSnap = await getDoc(iRef);
+        if(iSnap.exists()) await updateDoc(iRef, { cantidad: iSnap.data().cantidad + pData.cantidad });
+    }
+    
+    await updateDoc(pRef, { estado: dev ? "devuelto" : "con_incidencia", detalleIncidencia: det });
+    document.getElementById('modal-incidencia').classList.add('hidden');
+    alert("Registrado correctamente.");
+};
+
+// --- 7. EXCEL SEGURO ---
+window.descargarReporte = async () => {
+    if(!confirm("¿Descargar reporte en Excel?")) return;
+    
+    const [s, e, p] = await Promise.all([
+        getDocs(collection(db, "inventario")),
+        getDocs(collection(db, "entradas_stock")),
+        getDocs(collection(db, "pedidos"))
+    ]);
+    
+    let htmlStr = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; margin-bottom: 30px; }
+                th, td { border: 1px solid #dddddd; padding: 8px; text-align: left; }
+                th { color: white; font-weight: bold; }
+                h2 { color: #333333; font-family: Arial, sans-serif; font-size: 18px; margin-bottom: 10px; }
+            </style>
+        </head>
+        <body>
+    `;
+    
+    htmlStr += `<h2>1. INVENTARIO (STOCK ACTUAL)</h2><table><thead><tr style="background-color: #4f46e5;"><th>INSUMO</th><th>CANTIDAD DISPONIBLE</th><th>PRECIO UNIDAD ($)</th><th>STOCK MÍNIMO</th></tr></thead><tbody>`;
+    s.forEach(d => { const x = d.data(); htmlStr += `<tr><td>${d.id.toUpperCase()}</td><td>${x.cantidad}</td><td>${x.precio || 0}</td><td>${x.stockMinimo || 0}</td></tr>`; });
+    htmlStr += `</tbody></table>`;
+    
+    htmlStr += `<h2>2. HISTORIAL DE ENTRADAS (STOCK AGREGADO)</h2><table><thead><tr style="background-color: #059669;"><th>FECHA Y HORA</th><th>INSUMO</th><th>CANTIDAD AGREGADA</th><th>USUARIO RESPONSABLE</th></tr></thead><tbody>`;
+    e.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp).forEach(mov => { htmlStr += `<tr><td>${mov.fecha}</td><td>${(mov.insumo || '').toUpperCase()}</td><td>+${mov.cantidad}</td><td>${(mov.usuario || '').toUpperCase()}</td></tr>`; });
+    htmlStr += `</tbody></table>`;
+    
+    htmlStr += `<h2>3. HISTORIAL DE SALIDAS (PEDIDOS)</h2><table><thead><tr style="background-color: #d97706;"><th>FECHA Y HORA</th><th>INSUMO</th><th>CANTIDAD SOLICITADA</th><th>SOLICITANTE</th><th>SEDE DESTINO</th><th>ESTADO ACTUAL</th></tr></thead><tbody>`;
+    p.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp).forEach(mov => { htmlStr += `<tr><td>${mov.fecha}</td><td>${(mov.insumoNom || '').toUpperCase()}</td><td>-${mov.cantidad}</td><td>${(mov.usuarioId || '').toUpperCase()}</td><td>${(mov.ubicacion || '').toUpperCase()}</td><td>${(mov.estado || 'completado').toUpperCase()}</td></tr>`; });
+    htmlStr += `</tbody></table></body></html>`;
+    
+    const blob = new Blob(['\ufeff', htmlStr], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `FCILog_Reporte_${new Date().toISOString().slice(0, 10)}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+// --- 8. UTILIDADES DOM ADICIONALES ---
+window.prepararEdicionProducto = async (id) => {
+    const s = await getDoc(doc(db,"inventario",id)); 
+    if(!s.exists()) return; 
+    const d = s.data(); 
+    document.getElementById('edit-prod-id').value = id; 
+    document.getElementById('edit-prod-precio').value = d.precio||''; 
+    document.getElementById('edit-prod-min').value = d.stockMinimo||''; 
+    document.getElementById('edit-prod-img').value = d.imagen||''; 
+    const preview = document.getElementById('preview-img');
+    if(d.imagen) { preview.src = d.imagen; preview.classList.remove('hidden'); } else { preview.classList.add('hidden'); }
+    document.getElementById('modal-detalles').classList.remove('hidden');
+};
+
+window.guardarDetallesProducto = async () => {
+    const id = document.getElementById('edit-prod-id').value; 
+    const p = parseFloat(document.getElementById('edit-prod-precio').value)||0; 
+    const m = parseInt(document.getElementById('edit-prod-min').value)||0; 
+    const i = document.getElementById('edit-prod-img').value; 
+    await updateDoc(doc(db,"inventario",id),{precio:p,stockMinimo:m,imagen:i}); 
+    window.cerrarModalDetalles(); 
+    alert("Detalles guardados.");
+};
+
+window.guardarUsuario = async () => {
+    const id = document.getElementById("new-user").value.trim().toLowerCase(); 
+    const p = document.getElementById("new-pass").value.trim(); 
+    const e = document.getElementById("new-email").value.trim(); 
+    const r = document.getElementById("new-role").value; 
+    if(!id||!p) return alert("Faltan datos obligatorios."); 
+    await setDoc(doc(db,"usuarios",id),{pass:p,rol:r,email:e},{merge:true}); 
+    alert("Usuario guardado."); 
+    window.cancelarEdicionUsuario();
+};
+
+window.prepararEdicionUsuario = (i,p,r,e) => {
+    document.getElementById("edit-mode-id").value = i; 
+    const userInput = document.getElementById("new-user");
+    userInput.value = i; userInput.disabled = true; 
+    document.getElementById("new-pass").value = p; 
+    document.getElementById("new-email").value = e||""; 
+    document.getElementById("new-role").value = r; 
+    document.getElementById("btn-guardar-usuario").innerText = "Actualizar"; 
+    document.getElementById("cancel-edit-msg").classList.remove("hidden");
+};
+
+window.cancelarEdicionUsuario = () => {
+    document.getElementById("edit-mode-id").value = ""; 
+    const userInput = document.getElementById("new-user");
+    userInput.value = ""; userInput.disabled = false; 
+    document.getElementById("new-pass").value = ""; 
+    document.getElementById("new-email").value = ""; 
+    document.getElementById("btn-guardar-usuario").innerText = "Guardar"; 
+    document.getElementById("cancel-edit-msg").classList.add("hidden");
+};
+
+window.abrirModalInsumo = () => { const m = document.getElementById("modal-insumo"); if(m) m.classList.remove("hidden"); };
+window.cerrarModalInsumo = () => { const m = document.getElementById("modal-insumo"); if(m) m.classList.add("hidden"); };
+window.cerrarModalDetalles = () => { const m = document.getElementById("modal-detalles"); if(m) m.classList.add("hidden"); const img = document.getElementById('preview-img'); if(img) img.classList.add('hidden');};
+window.eliminarDato = async (c,i) => { if(confirm("¿Estás seguro de eliminar este registro permanentemente?")) await deleteDoc(doc(db,c,i)); };
+
+// CHARTS
+window.renderChart = (id, l, d, t, c, i, s) => { 
+    const x = document.getElementById(id); 
+    if(!x) return; 
+    if(i) i.destroy(); 
+    s(new Chart(x, {
+        type: id === 'locationChart' ? 'doughnut' : 'bar',
+        data: { labels: l, datasets: [{ label: t, data: d, backgroundColor: c, borderRadius: 5 }] },
+        options: { responsive: true, plugins: { legend: { display: id === 'locationChart', position: 'bottom' } } }
+    }));
+};
+
+// INIT SYSTEM TRIGGERS ON LOAD
+window.addEventListener('DOMContentLoaded', () => {
+    // Si cloudinary se carga tarde
+    if (typeof cloudinary === "undefined") {
+        setTimeout(window.setupCloudinaryWidget, 2000);
+    }
+});
