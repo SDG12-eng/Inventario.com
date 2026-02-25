@@ -22,6 +22,13 @@ window.stockChart = null;
 window.locationChart = null;
 window.cloudinaryWidget = null;
 
+// Paleta de colores amplia para los gráficos
+const chartPalette = [
+    '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+    '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6',
+    '#3b82f6', '#f97316', '#0ea5e9', '#ec4899', '#eab308'
+];
+
 const EMAIL_SERVICE_ID = 'service_a7yozqh'; 
 const EMAIL_TEMPLATE_ID = 'template_zglatmb'; 
 const EMAIL_PUBLIC_KEY = '2jVnfkJKKG0bpKN-U'; 
@@ -79,6 +86,7 @@ window.switchTab = (tab) => {
     }
 };
 
+// FILTROS LOCALES BÚSQUEDA
 window.filtrarTabla = (idTabla, texto) => {
     const term = texto.toLowerCase();
     const filas = document.querySelectorAll(`#${idTabla} tr`);
@@ -101,11 +109,10 @@ window.cargarSesion = (datos) => {
     window.usuarioActual = datos;
     localStorage.setItem("fcilog_session", JSON.stringify(datos));
     
-    const pantallaLogin = document.getElementById("pantalla-login");
-    const interfazApp = document.getElementById("interfaz-app");
-    
-    if(pantallaLogin) pantallaLogin.classList.add("hidden");
-    if(interfazApp) interfazApp.classList.remove("hidden");
+    const pLogin = document.getElementById("pantalla-login");
+    const iApp = document.getElementById("interfaz-app");
+    if(pLogin) pLogin.classList.add("hidden");
+    if(iApp) iApp.classList.remove("hidden");
     
     const infoDiv = document.getElementById("info-usuario");
     if(infoDiv) {
@@ -114,13 +121,12 @@ window.cargarSesion = (datos) => {
                 <div class="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-2"><i class="fas fa-user"></i></div>
                 <span class="font-bold text-slate-700 uppercase tracking-wide">${datos.id}</span>
                 <span class="text-[10px] uppercase font-bold text-white bg-indigo-500 px-2 py-0.5 rounded-full mt-1">${datos.rol}</span>
+                <span class="text-[9px] text-slate-400 mt-1 uppercase block">${datos.departamento || 'Sin Depto'}</span>
             </div>`;
     }
 
     const btnAdmin = document.getElementById("btn-admin-stock");
-    if(btnAdmin && ['admin','manager'].includes(datos.rol)) {
-        btnAdmin.classList.remove("hidden");
-    }
+    if(btnAdmin && ['admin','manager'].includes(datos.rol)) btnAdmin.classList.remove("hidden");
 
     window.configurarMenu();
     let inicio = ['admin','manager','supervisor'].includes(datos.rol) ? 'stats' : 'stock';
@@ -133,7 +139,7 @@ window.iniciarSesion = async () => {
     const pass = document.getElementById("login-pass").value.trim();
     
     if(!user || !pass) return alert("Ingrese usuario y contraseña.");
-    if (user === "admin" && pass === "1130") { window.cargarSesion({ id: "admin", rol: "admin" }); return; }
+    if (user === "admin" && pass === "1130") { window.cargarSesion({ id: "admin", rol: "admin", departamento: "SISTEMAS" }); return; }
     
     try {
         const snap = await getDoc(doc(db, "usuarios", user));
@@ -148,10 +154,7 @@ window.iniciarSesion = async () => {
     }
 };
 
-window.cerrarSesion = () => { 
-    localStorage.removeItem("fcilog_session"); 
-    location.reload(); 
-};
+window.cerrarSesion = () => { localStorage.removeItem("fcilog_session"); location.reload(); };
 
 window.configurarMenu = () => {
     const rol = window.usuarioActual.rol;
@@ -173,10 +176,7 @@ window.configurarMenu = () => {
     else if(rol==='manager'||rol==='supervisor') rutas=[items.st, items.sk, items.pd, items.pe, items.hs, items.mp]; 
     else rutas=[items.sk, items.pd, items.mp];
     
-    menu.innerHTML = rutas.map(x => `
-        <button onclick="window.verPagina('${x.id}')" class="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all font-bold text-sm group">
-            <div class="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-white border border-slate-100 flex items-center justify-center transition-colors"><i class="fas fa-${x.i}"></i></div>${x.n}
-        </button>`).join('');
+    menu.innerHTML = rutas.map(x => `<button onclick="window.verPagina('${x.id}')" class="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-white border border-slate-100 flex items-center justify-center transition-colors"><i class="fas fa-${x.i}"></i></div>${x.n}</button>`).join('');
 };
 
 // --- 5. LECTURA Y SINCRONIZACIÓN (REALTIME) ---
@@ -242,12 +242,8 @@ window.activarSincronizacion = () => {
             }
         });
 
-        const elTotal = document.getElementById("metrica-total");
-        if(elTotal) elTotal.innerText = tr;
-        const elStock = document.getElementById("metrica-stock");
-        if(elStock) elStock.innerText = ts;
-        
-        window.renderChart('stockChart', labels, dataStock, 'Stock', '#6366f1', window.stockChart, ch => window.stockChart = ch);
+        const elTotal = document.getElementById("metrica-total"); if(elTotal) elTotal.innerText = tr;
+        const elStock = document.getElementById("metrica-stock"); if(elStock) elStock.innerText = ts;
     });
 
     // B) PEDIDOS
@@ -256,7 +252,6 @@ window.activarSincronizacion = () => {
         window.cachePedidos = [];
         let grupos = {}; 
         let pendingCount = 0;
-        let sedesCount = {};
 
         const lAdmin = document.getElementById("lista-pendientes-admin");
         const lActive = document.getElementById("tab-content-activos");
@@ -272,10 +267,6 @@ window.activarSincronizacion = () => {
             window.pedidosRaw.push(p); 
             window.cachePedidos.push(p);
 
-            if(p.estado !== 'rechazado') {
-                sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad;
-            }
-
             const bKey = p.batchId || p.timestamp;
             if(!grupos[bKey]) grupos[bKey] = { items:[], user:p.usuarioId, sede:p.ubicacion, date:p.fecha, ts:p.timestamp };
             grupos[bKey].items.push(p);
@@ -283,13 +274,13 @@ window.activarSincronizacion = () => {
             if(p.estado === 'pendiente') pendingCount++;
         });
 
-        // Vista Usuario (Ordenados del mas nuevo al mas viejo)
+        // Vista Usuario Mis Pedidos
         const misPedidos = window.cachePedidos.filter(p => p.usuarioId === window.usuarioActual.id).sort((a,b) => b.timestamp - a.timestamp);
         
         misPedidos.forEach(p => {
             let btns = "";
             if(p.estado === 'aprobado') {
-                btns = `<div class="mt-3 pt-3 border-t border-slate-50 flex justify-end gap-2"><button onclick="window.confirmarRecibido('${p.id}')" class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow">Recibir</button><button onclick="window.abrirIncidencia('${p.id}')" class="bg-white border border-red-200 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold">Reportar</button></div>`;
+                btns = `<div class="mt-3 pt-3 border-t border-slate-50 flex justify-end gap-2"><button onclick="window.confirmarRecibido('${p.id}')" class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition">Recibir</button><button onclick="window.abrirIncidencia('${p.id}')" class="bg-white border border-red-200 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-50">Reportar</button></div>`;
             } else if(p.estado === 'recibido' || p.estado === 'devuelto') {
                 btns = `<div class="mt-3 pt-3 border-t border-slate-50 flex justify-end"><button onclick="window.abrirIncidencia('${p.id}')" class="text-amber-500 text-xs font-bold hover:underline flex items-center gap-1"><i class="fas fa-undo"></i> Devolver / Reportar</button></div>`;
             }
@@ -301,6 +292,7 @@ window.activarSincronizacion = () => {
                         <span class="badge status-${p.estado}">${p.estado}</span>
                         <h4 class="font-black text-slate-700 uppercase text-sm mt-2">${p.insumoNom}</h4>
                         <p class="text-xs text-slate-400 font-mono mt-1">x${p.cantidad} • ${p.ubicacion}</p>
+                        <p class="text-[10px] text-slate-300 mt-1">${p.fecha.split(',')[0]}</p>
                     </div>
                 </div>
                 ${btns}
@@ -313,7 +305,7 @@ window.activarSincronizacion = () => {
             }
         });
 
-        // Vista Admin (Grupos Ordenados)
+        // Vista Admin Aprobaciones
         if(lAdmin && ['admin','manager','supervisor'].includes(window.usuarioActual.rol)) {
             const gruposOrdenados = Object.values(grupos).sort((a,b) => b.ts - a.ts);
             
@@ -342,19 +334,15 @@ window.activarSincronizacion = () => {
 
         const elPed = document.getElementById("metrica-pedidos");
         if(elPed) elPed.innerText = pendingCount;
-        
-        window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Sedes', '#10b981', window.locationChart, ch => window.locationChart = ch);
+        window.actualizarDashboard();
         window.renderHistorialUnificado();
     });
 
     // C) ENTRADAS
     onSnapshot(collection(db,"entradas_stock"), s => {
         window.cacheEntradas = []; 
-        s.forEach(x => { 
-            const d = x.data(); 
-            d.id = x.id; 
-            window.cacheEntradas.push(d); 
-        });
+        s.forEach(x => { const d = x.data(); d.id = x.id; window.cacheEntradas.push(d); });
+        window.actualizarDashboard();
         window.renderHistorialUnificado();
     });
 
@@ -373,10 +361,11 @@ window.activarSincronizacion = () => {
                                 <span class="font-bold uppercase text-slate-700">${d.id}</span>
                                 <span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold">${u.rol}</span>
                             </div>
+                            <span class="text-[10px] text-indigo-400 block font-bold uppercase mt-1">${u.departamento || 'SIN DEPTO'}</span>
                             <span class="text-xs text-slate-400 block mt-1"><i class="fas fa-envelope text-[10px]"></i> ${u.email || 'Sin correo'}</span>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="window.prepararEdicionUsuario('${d.id}','${u.pass}','${u.rol}','${u.email||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button>
+                            <button onclick="window.prepararEdicionUsuario('${d.id}','${u.pass}','${u.rol}','${u.email||''}','${u.departamento||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button>
                             <button onclick="window.eliminarDato('usuarios','${d.id}')" class="w-8 h-8 rounded bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
                         </div>
                     </div>`;
@@ -384,6 +373,42 @@ window.activarSincronizacion = () => {
             }
         });
     }
+};
+
+// --- ACTUALIZAR DASHBOARD CON FILTROS ---
+window.actualizarDashboard = () => {
+    let dPedidos = window.cachePedidos;
+    let dInventario = [];
+    
+    // Obtener fechas de filtro
+    const inputDesde = document.getElementById("dash-desde")?.value;
+    const inputHasta = document.getElementById("dash-hasta")?.value;
+
+    if(inputDesde || inputHasta) {
+        const tDesde = inputDesde ? new Date(inputDesde).getTime() : 0;
+        const tHasta = inputHasta ? new Date(inputHasta).setHours(23,59,59,999) : Infinity;
+        
+        dPedidos = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
+    }
+
+    // Calcular Sedes (Gráfica Doughnut)
+    let sedesCount = {};
+    dPedidos.forEach(p => {
+        if(p.estado !== 'rechazado') sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad;
+    });
+
+    // Calcular Top Stock (Gráfica Barras)
+    // Aquí usamos el inventario actual ya que no tiene timestamp histórico por item individual.
+    const grid = document.querySelectorAll("#lista-inventario h4");
+    const gridVals = document.querySelectorAll("#lista-inventario p.text-2xl");
+    let labels = [], dataStock = [];
+    for(let i=0; i<grid.length; i++) {
+        labels.push(grid[i].title.substring(0,10));
+        dataStock.push(parseInt(gridVals[i].innerText));
+    }
+
+    window.renderChart('stockChart', labels, dataStock, 'Stock', chartPalette, window.stockChart, ch => window.stockChart = ch);
+    window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Sedes', chartPalette, window.locationChart, ch => window.locationChart = ch);
 };
 
 window.renderHistorialUnificado = () => {
@@ -411,17 +436,7 @@ window.renderHistorialUnificado = () => {
     });
 };
 
-// --- 6. FUNCIONES DE NEGOCIO ---
-
-// A) CREACIÓN DE PEDIDOS (LIGERO CON WRITEBATCH)
-window.ajustarCantidad = (i,d) => {
-    const n = Math.max(0, (window.carritoGlobal[i]||0) + d); 
-    window.carritoGlobal[i] = n; 
-    const el = document.getElementById(`cant-${i}`);
-    if(el) el.innerText = n;
-    const row = document.getElementById(`row-${i}`);
-    if(row) row.classList.toggle("border-indigo-500", n > 0);
-};
+// --- 6. FUNCIONES DE NEGOCIO (BATCH Y TIEMPOS) ---
 
 window.procesarSolicitudMultiple = async () => {
     const ubi = document.getElementById("sol-ubicacion").value;
@@ -434,7 +449,9 @@ window.procesarSolicitudMultiple = async () => {
     
     try {
         const batch = writeBatch(db);
-        
+        const timestamp = Date.now();
+        const fechaStr = new Date().toLocaleString();
+
         items.forEach(([ins, cant]) => {
             const newRef = doc(collection(db, "pedidos"));
             batch.set(newRef, {
@@ -443,8 +460,10 @@ window.procesarSolicitudMultiple = async () => {
                 cantidad: cant, 
                 ubicacion: ubi, 
                 estado: "pendiente", 
-                fecha: new Date().toLocaleString(), 
-                timestamp: Date.now(), 
+                fecha: fechaStr, 
+                timestamp: timestamp,
+                fecha_solicitud: fechaStr,
+                timestamp_solicitud: timestamp,
                 batchId: batchId
             });
         });
@@ -452,24 +471,19 @@ window.procesarSolicitudMultiple = async () => {
         await batch.commit(); 
         
         window.enviarEmailNotificacion('nuevo_pedido', { usuario: window.usuarioActual.id, sede: ubi, items: itemsData });
-        
         alert("✅ Pedido Enviado Exitosamente."); 
         window.carritoGlobal = {}; 
         document.getElementById("sol-ubicacion").value=""; 
         window.activarSincronizacion(); 
         window.verPagina('notificaciones');
-        
     } catch (error) {
-        console.error("Error al enviar pedido:", error);
-        alert("Ocurrió un error al procesar el pedido. Intente nuevamente.");
+        console.error("Error batch:", error);
+        alert("Ocurrió un error al procesar el pedido.");
     }
 };
 
-window.enviarEmailNotificacion = async (tipo, datos) => {
-    await enviarNotificacionGrupo(tipo, datos);
-};
+window.enviarEmailNotificacion = async (tipo, datos) => { await enviarNotificacionGrupo(tipo, datos); };
 
-// B) ENTRADA STOCK
 window.agregarProductoRapido = async () => {
     const nombre = document.getElementById("nombre-prod").value.trim().toUpperCase();
     const cantidad = parseInt(document.getElementById("cantidad-prod").value);
@@ -490,27 +504,16 @@ window.agregarProductoRapido = async () => {
         }
         
         await addDoc(collection(db, "entradas_stock"), { 
-            insumo: nombre, 
-            cantidad: cantidad, 
-            usuario: window.usuarioActual.id, 
-            fecha: new Date().toLocaleString(), 
-            timestamp: Date.now() 
+            insumo: nombre, cantidad: cantidad, usuario: window.usuarioActual.id, 
+            fecha: new Date().toLocaleString(), timestamp: Date.now() 
         });
         
-        window.cerrarModalInsumo(); 
-        document.getElementById("nombre-prod").value=""; 
-        document.getElementById("cantidad-prod").value="";
-    } else {
-        alert("Ingrese un nombre y cantidad válida.");
-    }
+        window.cerrarModalInsumo(); document.getElementById("nombre-prod").value=""; document.getElementById("cantidad-prod").value="";
+    } else alert("Datos inválidos.");
 };
 
-// C) GESTIÓN ADMIN (APROBAR/RECHAZAR)
 window.abrirModalGrupo = (bKey) => {
-    const m = document.getElementById("modal-grupo-admin");
-    const c = document.getElementById("modal-grupo-contenido");
-    const t = document.getElementById("modal-grupo-titulo");
-    
+    const m = document.getElementById("modal-grupo-admin"), c = document.getElementById("modal-grupo-contenido"), t = document.getElementById("modal-grupo-titulo");
     const items = window.cachePedidos.filter(p => (p.batchId === bKey) || (p.timestamp.toString() === bKey));
     if(items.length === 0) return;
     
@@ -520,16 +523,10 @@ window.abrirModalGrupo = (bKey) => {
     items.forEach(p => {
         let act = `<span class="badge status-${p.estado}">${p.estado}</span>`;
         if(p.estado === 'pendiente' && window.usuarioActual.rol !== 'supervisor') {
-            act = `
-            <div class="flex gap-2 items-center">
-                <input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border border-slate-200 rounded text-center p-1 font-bold text-slate-700">
-                <button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom}')" class="text-white bg-emerald-500 hover:bg-emerald-600 p-1.5 rounded shadow"><i class="fas fa-check"></i></button>
-                <button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-slate-400 border border-slate-200 p-1.5 rounded hover:bg-red-50 hover:text-red-500"><i class="fas fa-times"></i></button>
-            </div>`;
+            act = `<div class="flex gap-2 items-center"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border border-slate-200 rounded text-center p-1 font-bold text-slate-700"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom}')" class="text-white bg-emerald-500 hover:bg-emerald-600 p-1.5 rounded shadow"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-slate-400 border border-slate-200 p-1.5 rounded hover:bg-red-50 hover:text-red-500"><i class="fas fa-times"></i></button></div>`;
         }
         c.innerHTML += `<div class="flex justify-between items-center p-3 border-b border-slate-50 hover:bg-slate-50"><div><b class="uppercase text-sm text-slate-700">${p.insumoNom}</b><br><span class="text-xs text-slate-400">Solicitado: ${p.cantidad}</span></div>${act}</div>`;
     });
-    
     m.classList.remove("hidden");
 };
 
@@ -540,10 +537,7 @@ window.gestionarPedido = async (pid, accion, ins) => {
     const pData = pSnap.data();
     
     let emailSolicitante = ""; 
-    try { 
-        const u = await getDoc(doc(db, "usuarios", pData.usuarioId)); 
-        if(u.exists()) emailSolicitante = u.data().email; 
-    } catch(e){}
+    try { const u = await getDoc(doc(db, "usuarios", pData.usuarioId)); if(u.exists()) emailSolicitante = u.data().email; } catch(e){}
 
     if(accion === 'aprobar') {
         const inp = document.getElementById(`qty-${pid}`);
@@ -554,7 +548,12 @@ window.gestionarPedido = async (pid, accion, ins) => {
         if(iSnap.exists() && iSnap.data().cantidad >= val) {
             const newStock = iSnap.data().cantidad - val;
             await updateDoc(iRef, { cantidad: newStock });
-            await updateDoc(pRef, { estado: "aprobado", cantidad: val });
+            await updateDoc(pRef, { 
+                estado: "aprobado", 
+                cantidad: val,
+                fecha_aprobado: new Date().toLocaleString(),
+                timestamp_aprobado: Date.now()
+            });
             
             if(emailSolicitante) window.enviarEmailNotificacion('aprobado_parcial', { usuario: pData.usuarioId, items: [{insumo:ins, cantidad:val}], target_email: emailSolicitante });
             if (newStock <= (iSnap.data().stockMinimo || 0)) window.enviarEmailNotificacion('stock_bajo', { insumo: ins, actual: newStock, minimo: iSnap.data().stockMinimo });
@@ -564,7 +563,7 @@ window.gestionarPedido = async (pid, accion, ins) => {
             else window.abrirModalGrupo(pData.batchId); 
         } else alert("Stock insuficiente.");
     } else {
-        await updateDoc(pRef, { estado: "rechazado" });
+        await updateDoc(pRef, { estado: "rechazado", fecha_rechazo: new Date().toLocaleString() });
         window.abrirModalGrupo(pData.batchId);
     }
 };
@@ -573,125 +572,133 @@ window.confirmarRecibido = async (pid) => {
     if(confirm("¿Confirmar recepción?")) {
         const pRef = doc(db, "pedidos", pid);
         const snap = await getDoc(pRef);
-        await updateDoc(pRef, { estado: "recibido" });
+        await updateDoc(pRef, { 
+            estado: "recibido",
+            fecha_recibido: new Date().toLocaleString(),
+            timestamp_recibido: Date.now() 
+        });
         if(snap.exists()) window.enviarEmailNotificacion('recibido', {usuario: window.usuarioActual.id, items:[{insumo:snap.data().insumoNom, cantidad:snap.data().cantidad}], sede:snap.data().ubicacion});
     }
 };
 
-window.abrirIncidencia = (pid) => {
-    document.getElementById('incidencia-pid').value = pid;
-    document.getElementById('incidencia-detalle').value = "";
-    document.getElementById('modal-incidencia').classList.remove('hidden');
-};
-
+window.abrirIncidencia = (pid) => { document.getElementById('incidencia-pid').value = pid; document.getElementById('incidencia-detalle').value = ""; document.getElementById('modal-incidencia').classList.remove('hidden'); };
 window.confirmarIncidencia = async (dev) => {
     const pid = document.getElementById('incidencia-pid').value;
     const det = document.getElementById('incidencia-detalle').value.trim();
     if(!det) return alert("Debe describir el motivo.");
     
-    const pRef = doc(db, "pedidos", pid);
-    const pData = (await getDoc(pRef)).data();
-    
+    const pRef = doc(db, "pedidos", pid); const pData = (await getDoc(pRef)).data();
     if(dev){
-        const iRef = doc(db, "inventario", pData.insumoNom.toLowerCase());
-        const iSnap = await getDoc(iRef);
+        const iRef = doc(db, "inventario", pData.insumoNom.toLowerCase()); const iSnap = await getDoc(iRef);
         if(iSnap.exists()) await updateDoc(iRef, { cantidad: iSnap.data().cantidad + pData.cantidad });
     }
-    
-    await updateDoc(pRef, { estado: dev ? "devuelto" : "con_incidencia", detalleIncidencia: det });
-    document.getElementById('modal-incidencia').classList.add('hidden');
-    alert("Registrado correctamente.");
+    await updateDoc(pRef, { estado: dev ? "devuelto" : "con_incidencia", detalleIncidencia: det, fecha_incidencia: new Date().toLocaleString() });
+    document.getElementById('modal-incidencia').classList.add('hidden'); alert("Registrado correctamente.");
 };
 
-// --- 7. EXCEL SEGURO ---
+// --- 7. EXCEL PRO (SHEET.JS) ---
+// Función auxiliar para calcular tiempos en Excel
+function calcularTiempo(inicio, fin) {
+    if(!inicio || !fin) return "N/A";
+    const diffMs = fin - inicio;
+    if(diffMs < 0) return "N/A";
+    const diffMins = Math.round(diffMs / 60000);
+    if(diffMins < 60) return `${diffMins} min`;
+    const diffHrs = (diffMins / 60).toFixed(1);
+    if(diffHrs < 24) return `${diffHrs} hrs`;
+    return `${(diffHrs / 24).toFixed(1)} días`;
+}
+
 window.descargarReporte = async () => {
+    if(typeof XLSX === 'undefined') return alert("La librería Excel aún no ha cargado, intente en un segundo.");
     if(!confirm("¿Descargar reporte en Excel?")) return;
     
-    const [s, e, p] = await Promise.all([
+    const [sSnap, eSnap, pSnap, uSnap] = await Promise.all([
         getDocs(collection(db, "inventario")),
         getDocs(collection(db, "entradas_stock")),
-        getDocs(collection(db, "pedidos"))
+        getDocs(collection(db, "pedidos")),
+        getDocs(collection(db, "usuarios"))
     ]);
     
-    let htmlStr = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; margin-bottom: 30px; }
-                th, td { border: 1px solid #dddddd; padding: 8px; text-align: left; }
-                th { color: white; font-weight: bold; }
-                h2 { color: #333333; font-family: Arial, sans-serif; font-size: 18px; margin-bottom: 10px; }
-            </style>
-        </head>
-        <body>
-    `;
-    
-    htmlStr += `<h2>1. INVENTARIO (STOCK ACTUAL)</h2><table><thead><tr style="background-color: #4f46e5;"><th>INSUMO</th><th>CANTIDAD DISPONIBLE</th><th>PRECIO UNIDAD ($)</th><th>STOCK MÍNIMO</th></tr></thead><tbody>`;
-    s.forEach(d => { const x = d.data(); htmlStr += `<tr><td>${d.id.toUpperCase()}</td><td>${x.cantidad}</td><td>${x.precio || 0}</td><td>${x.stockMinimo || 0}</td></tr>`; });
-    htmlStr += `</tbody></table>`;
-    
-    htmlStr += `<h2>2. HISTORIAL DE ENTRADAS (STOCK AGREGADO)</h2><table><thead><tr style="background-color: #059669;"><th>FECHA Y HORA</th><th>INSUMO</th><th>CANTIDAD AGREGADA</th><th>USUARIO RESPONSABLE</th></tr></thead><tbody>`;
-    const entradas = e.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp);
-    entradas.forEach(mov => { htmlStr += `<tr><td>${mov.fecha}</td><td>${(mov.insumo || '').toUpperCase()}</td><td>+${mov.cantidad}</td><td>${(mov.usuario || '').toUpperCase()}</td></tr>`; });
-    htmlStr += `</tbody></table>`;
-    
-    htmlStr += `<h2>3. HISTORIAL DE SALIDAS (PEDIDOS)</h2><table><thead><tr style="background-color: #d97706;"><th>FECHA Y HORA</th><th>INSUMO</th><th>CANTIDAD SOLICITADA</th><th>SOLICITANTE</th><th>SEDE DESTINO</th><th>ESTADO ACTUAL</th></tr></thead><tbody>`;
-    const salidas = p.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp);
-    salidas.forEach(mov => { htmlStr += `<tr><td>${mov.fecha}</td><td>${(mov.insumoNom || '').toUpperCase()}</td><td>-${mov.cantidad}</td><td>${(mov.usuarioId || '').toUpperCase()}</td><td>${(mov.ubicacion || '').toUpperCase()}</td><td>${(mov.estado || 'completado').toUpperCase()}</td></tr>`; });
-    htmlStr += `</tbody></table></body></html>`;
-    
-    const blob = new Blob(['\ufeff', htmlStr], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `FCILog_Reporte_${new Date().toISOString().slice(0, 10)}.xls`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Mapear usuarios para sacar el departamento
+    const usersMap = {};
+    uSnap.forEach(u => { usersMap[u.id] = u.data(); });
+
+    // 1. DATA STOCK
+    const stockData = [];
+    sSnap.forEach(d => {
+        const x = d.data();
+        stockData.push({
+            "Insumo": d.id.toUpperCase(),
+            "Cantidad Disponible": x.cantidad || 0,
+            "Stock Mínimo": x.stockMinimo || 0,
+            "Precio Unit. ($)": x.precio || 0
+        });
+    });
+
+    // 2. DATA ENTRADAS
+    const entradasData = eSnap.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp).map(mov => ({
+        "Fecha de Entrada": mov.fecha || 'N/A',
+        "Insumo": (mov.insumo || '').toUpperCase(),
+        "Cantidad Ingresada": mov.cantidad || 0,
+        "Usuario Responsable": (mov.usuario || '').toUpperCase()
+    }));
+
+    // 3. DATA SALIDAS (CON TIEMPOS Y DEPTO)
+    const salidasData = pSnap.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp).map(mov => {
+        const uId = mov.usuarioId || '';
+        const userObj = usersMap[uId] || {};
+        const tResp = calcularTiempo(mov.timestamp_solicitud || mov.timestamp, mov.timestamp_aprobado);
+        const tRecp = calcularTiempo(mov.timestamp_aprobado, mov.timestamp_recibido);
+
+        return {
+            "ID Pedido": mov.batchId || 'N/A',
+            "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A',
+            "Insumo": (mov.insumoNom || '').toUpperCase(),
+            "Cant.": mov.cantidad || 0,
+            "Sede Destino": (mov.ubicacion || '').toUpperCase(),
+            "Usuario Solicitante": uId.toUpperCase(),
+            "Departamento": (userObj.departamento || 'N/A').toUpperCase(),
+            "Estado Actual": (mov.estado || '').toUpperCase(),
+            "Fecha Aprobación": mov.fecha_aprobado || 'N/A',
+            "Tiempo de Respuesta": tResp,
+            "Fecha Recepción": mov.fecha_recibido || 'N/A',
+            "Tiempo de Entrega": tRecp,
+            "Notas / Incidencias": mov.detalleIncidencia || ''
+        };
+    });
+
+    // CREAR LIBRO Y HOJAS CON SHEETJS
+    const wb = XLSX.utils.book_new();
+    const wsStock = XLSX.utils.json_to_sheet(stockData);
+    const wsEntradas = XLSX.utils.json_to_sheet(entradasData);
+    const wsSalidas = XLSX.utils.json_to_sheet(salidasData);
+
+    XLSX.utils.book_append_sheet(wb, wsStock, "Inventario Actual");
+    XLSX.utils.book_append_sheet(wb, wsEntradas, "Historial Entradas");
+    XLSX.utils.book_append_sheet(wb, wsSalidas, "Historial Salidas");
+
+    XLSX.writeFile(wb, `Reporte_FCILog_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
 
-// --- 8. UTILIDADES DOM ---
-window.prepararEdicionProducto = async (id) => {
-    const s = await getDoc(doc(db,"inventario",id)); 
-    if(!s.exists()) return; 
-    const d = s.data(); 
-    document.getElementById('edit-prod-id').value = id; 
-    document.getElementById('edit-prod-precio').value = d.precio||''; 
-    document.getElementById('edit-prod-min').value = d.stockMinimo||''; 
-    document.getElementById('edit-prod-img').value = d.imagen||''; 
-    const preview = document.getElementById('preview-img');
-    if(d.imagen) { preview.src = d.imagen; preview.classList.remove('hidden'); } else { preview.classList.add('hidden'); }
-    document.getElementById('modal-detalles').classList.remove('hidden');
-};
-
-window.guardarDetallesProducto = async () => {
-    const id = document.getElementById('edit-prod-id').value; 
-    const p = parseFloat(document.getElementById('edit-prod-precio').value)||0; 
-    const m = parseInt(document.getElementById('edit-prod-min').value)||0; 
-    const i = document.getElementById('edit-prod-img').value; 
-    await updateDoc(doc(db,"inventario",id),{precio:p,stockMinimo:m,imagen:i}); 
-    window.cerrarModalDetalles(); 
-    alert("Detalles guardados.");
-};
-
+// --- 8. USUARIOS Y DOM ---
 window.guardarUsuario = async () => {
     const id = document.getElementById("new-user").value.trim().toLowerCase(); 
     const p = document.getElementById("new-pass").value.trim(); 
     const e = document.getElementById("new-email").value.trim(); 
+    const d = document.getElementById("new-dept").value.trim().toUpperCase(); 
     const r = document.getElementById("new-role").value; 
     if(!id||!p) return alert("Faltan datos obligatorios."); 
-    await setDoc(doc(db,"usuarios",id),{pass:p,rol:r,email:e},{merge:true}); 
-    alert("Usuario guardado."); 
-    window.cancelarEdicionUsuario();
+    await setDoc(doc(db,"usuarios",id),{pass:p,rol:r,email:e,departamento:d},{merge:true}); 
+    alert("Usuario guardado."); window.cancelarEdicionUsuario();
 };
 
-window.prepararEdicionUsuario = (i,p,r,e) => {
+window.prepararEdicionUsuario = (i,p,r,e,d) => {
     document.getElementById("edit-mode-id").value = i; 
-    const userInput = document.getElementById("new-user");
-    userInput.value = i; userInput.disabled = true; 
+    const u = document.getElementById("new-user"); u.value = i; u.disabled = true; 
     document.getElementById("new-pass").value = p; 
     document.getElementById("new-email").value = e||""; 
+    document.getElementById("new-dept").value = d||""; 
     document.getElementById("new-role").value = r; 
     document.getElementById("btn-guardar-usuario").innerText = "Actualizar"; 
     document.getElementById("cancel-edit-msg").classList.remove("hidden");
@@ -699,18 +706,20 @@ window.prepararEdicionUsuario = (i,p,r,e) => {
 
 window.cancelarEdicionUsuario = () => {
     document.getElementById("edit-mode-id").value = ""; 
-    const userInput = document.getElementById("new-user");
-    userInput.value = ""; userInput.disabled = false; 
+    const u = document.getElementById("new-user"); u.value = ""; u.disabled = false; 
     document.getElementById("new-pass").value = ""; 
     document.getElementById("new-email").value = ""; 
-    document.getElementById("btn-guardar-usuario").innerText = "Guardar"; 
+    document.getElementById("new-dept").value = ""; 
+    document.getElementById("btn-guardar-usuario").innerText = "Guardar Usuario"; 
     document.getElementById("cancel-edit-msg").classList.add("hidden");
 };
 
+window.prepararEdicionProducto=async(id)=>{const s=await getDoc(doc(db,"inventario",id)); if(!s.exists())return; const d=s.data(); document.getElementById('edit-prod-id').value=id; document.getElementById('edit-prod-precio').value=d.precio||''; document.getElementById('edit-prod-min').value=d.stockMinimo||''; document.getElementById('edit-prod-img').value=d.imagen||''; const preview = document.getElementById('preview-img'); if(d.imagen) { preview.src = d.imagen; preview.classList.remove('hidden'); } else { preview.classList.add('hidden'); } document.getElementById('modal-detalles').classList.remove('hidden');};
+window.guardarDetallesProducto=async()=>{const id=document.getElementById('edit-prod-id').value, p=parseFloat(document.getElementById('edit-prod-precio').value)||0, m=parseInt(document.getElementById('edit-prod-min').value)||0, i=document.getElementById('edit-prod-img').value; await updateDoc(doc(db,"inventario",id),{precio:p,stockMinimo:m,imagen:i}); window.cerrarModalDetalles(); alert("Guardado");};
 window.abrirModalInsumo = () => { const m = document.getElementById("modal-insumo"); if(m) m.classList.remove("hidden"); };
 window.cerrarModalInsumo = () => { const m = document.getElementById("modal-insumo"); if(m) m.classList.add("hidden"); };
 window.cerrarModalDetalles = () => { const m = document.getElementById("modal-detalles"); if(m) m.classList.add("hidden"); const img = document.getElementById('preview-img'); if(img) img.classList.add('hidden');};
-window.eliminarDato = async (c,i) => { if(confirm("¿Estás seguro de eliminar este registro permanentemente?")) await deleteDoc(doc(db,c,i)); };
+window.eliminarDato = async (c,i) => { if(confirm("¿Eliminar registro permanentemente?")) await deleteDoc(doc(db,c,i)); };
 
 window.renderChart = (id, l, d, t, c, i, s) => { 
     const x = document.getElementById(id); 
@@ -719,52 +728,22 @@ window.renderChart = (id, l, d, t, c, i, s) => {
     s(new Chart(x, {
         type: id === 'locationChart' ? 'doughnut' : 'bar',
         data: { labels: l, datasets: [{ label: t, data: d, backgroundColor: c, borderRadius: 5 }] },
-        options: { responsive: true, plugins: { legend: { display: id === 'locationChart', position: 'bottom' } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: id === 'locationChart', position: 'bottom' } } }
     }));
 };
 
-window.setupCloudinaryWidget = () => {
-    if (typeof cloudinary !== "undefined") {
-        window.cloudinaryWidget = cloudinary.createUploadWidget({
-            cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos'
-        }, (error, result) => { 
-            if (!error && result && result.event === "success") { 
-                document.getElementById('edit-prod-img').value = result.info.secure_url;
-                const preview = document.getElementById('preview-img');
-                preview.src = result.info.secure_url;
-                preview.classList.remove('hidden');
-            }
-        });
-        const btnUpload = document.getElementById("upload_widget");
-        if(btnUpload) {
-            const newBtn = btnUpload.cloneNode(true);
-            btnUpload.parentNode.replaceChild(newBtn, btnUpload);
-            newBtn.addEventListener("click", (e) => { e.preventDefault(); if(window.cloudinaryWidget) window.cloudinaryWidget.open(); }, false);
-        }
-    }
-};
-
-// --- 9. INICIALIZACIÓN AUTOMÁTICA DE LA APP ---
+// --- INICIALIZADOR GENERAL ---
 const inicializarApp = () => {
     try {
-        if (typeof emailjs !== "undefined") emailjs.init("2jVnfkJKKG0bpKN-U");
-        
-        // Auto-Login Directo
+        if(typeof emailjs !== "undefined") emailjs.init("2jVnfkJKKG0bpKN-U");
         const sesion = localStorage.getItem("fcilog_session");
-        if (sesion) {
-            window.cargarSesion(JSON.parse(sesion));
-        }
-
-        // Widget de imágenes
+        if(sesion) window.cargarSesion(JSON.parse(sesion));
+        
         if (typeof cloudinary !== "undefined") {
-            window.setupCloudinaryWidget();
-        } else {
-            setTimeout(() => { if(typeof window.setupCloudinaryWidget === 'function') window.setupCloudinaryWidget(); }, 2000);
+            window.cloudinaryWidget = cloudinary.createUploadWidget({cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos'}, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } });
+            const btnUpload = document.getElementById("upload_widget");
+            if(btnUpload) { const newBtn = btnUpload.cloneNode(true); btnUpload.parentNode.replaceChild(newBtn, btnUpload); newBtn.addEventListener("click", (e) => { e.preventDefault(); if(window.cloudinaryWidget) window.cloudinaryWidget.open(); }, false); }
         }
-    } catch (e) {
-        console.error("Error al iniciar aplicación:", e);
-    }
+    } catch(e) { console.error("Error App:", e); }
 };
-
-// Se ejecuta de inmediato al leer el script
-inicializarApp();
+window.addEventListener('DOMContentLoaded', inicializarApp);
