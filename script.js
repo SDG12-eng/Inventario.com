@@ -22,17 +22,13 @@ window.stockChart = null;
 window.locationChart = null;
 window.cloudinaryWidget = null;
 
-// Paleta de colores amplia para los gráficos
-const chartPalette = [
-    '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-    '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6',
-    '#3b82f6', '#f97316', '#0ea5e9', '#ec4899', '#eab308'
-];
+// Paleta de colores amplia para gráficos
+const chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6', '#f97316', '#0ea5e9', '#ec4899', '#eab308'];
 
 const EMAIL_SERVICE_ID = 'service_a7yozqh'; 
 const EMAIL_TEMPLATE_ID = 'template_zglatmb'; 
 const EMAIL_PUBLIC_KEY = '2jVnfkJKKG0bpKN-U'; 
-const ADMIN_EMAIL = 'juniorcede3002@gmail.com'; 
+const ADMIN_EMAIL = 'Emanuel.cedeno@fcipty.com'; 
 
 // --- 3. FUNCIONES DE INTERFAZ Y MENÚ ---
 window.verPagina = (id) => {
@@ -120,7 +116,7 @@ window.cargarSesion = (datos) => {
             <div class="flex flex-col items-center">
                 <div class="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-2"><i class="fas fa-user"></i></div>
                 <span class="font-bold text-slate-700 uppercase tracking-wide">${datos.id}</span>
-                <span class="text-[10px] uppercase font-bold text-white bg-indigo-500 px-2 py-0.5 rounded-full mt-1">${datos.rol}</span>
+                <span class="text-[10px] uppercase font-bold text-white bg-indigo-500 px-2 py-0.5 rounded-full mt-1 shadow-sm">${datos.rol}</span>
                 <span class="text-[9px] text-slate-400 mt-1 uppercase block">${datos.departamento || 'Sin Depto'}</span>
             </div>`;
     }
@@ -198,6 +194,10 @@ window.activarSincronizacion = () => {
         snap.forEach(ds => {
             const p = ds.data(); 
             const nombre = ds.id.toUpperCase();
+            // SANITIZAR ID PARA EL HTML (ELIMINAR ESPACIOS QUE ROMPEN EL ONCLICK)
+            const safeId = ds.id.replace(/[^a-zA-Z0-9]/g, '_');
+            const jsId = ds.id.replace(/'/g, "\\'"); // Escapar comillas para el evento click
+
             tr++; ts += p.cantidad; 
             labels.push(nombre.substring(0, 10)); 
             dataStock.push(p.cantidad);
@@ -207,7 +207,7 @@ window.activarSincronizacion = () => {
             const isAdmin = ['admin','manager'].includes(window.usuarioActual.rol);
             let controls = "";
             if (isAdmin) {
-                controls = `<div class="flex gap-2"><button onclick="window.prepararEdicionProducto('${ds.id}')" class="text-slate-300 hover:text-indigo-500"><i class="fas fa-cog"></i></button><button onclick="window.eliminarDato('inventario','${ds.id}')" class="text-slate-300 hover:text-red-400"><i class="fas fa-trash"></i></button></div>`;
+                controls = `<div class="flex gap-2"><button onclick="window.prepararEdicionProducto('${jsId}')" class="text-slate-300 hover:text-indigo-500"><i class="fas fa-cog"></i></button><button onclick="window.eliminarDato('inventario','${jsId}')" class="text-slate-300 hover:text-red-400"><i class="fas fa-trash"></i></button></div>`;
             }
 
             const img = p.imagen ? `<img src="${p.imagen}" class="w-12 h-12 object-cover rounded-lg border mb-2">` : `<div class="w-12 h-12 bg-slate-50 rounded-lg border flex items-center justify-center text-slate-300 mb-2"><i class="fas fa-image"></i></div>`;
@@ -227,16 +227,18 @@ window.activarSincronizacion = () => {
             if(cartContainer && p.cantidad > 0) {
                 const enCarro = window.carritoGlobal[ds.id] || 0;
                 const active = enCarro > 0 ? "border-indigo-500 bg-indigo-50/50" : "border-slate-100 bg-white";
+                
+                // AQUÍ SE CORRIGIÓ EL ERROR DE LOS BOTONES + y -
                 cartContainer.innerHTML += `
-                <div id="row-${ds.id}" class="flex items-center justify-between p-3 rounded-xl border ${active} transition-all shadow-sm item-tarjeta">
+                <div id="row-${safeId}" class="flex items-center justify-between p-3 rounded-xl border ${active} transition-all shadow-sm item-tarjeta">
                     <div class="flex items-center gap-3 overflow-hidden">
                         ${p.imagen?`<img src="${p.imagen}" class="w-8 h-8 rounded-md object-cover">`:''}
                         <div class="truncate"><p class="font-bold text-xs uppercase text-slate-700 truncate">${nombre}</p><p class="text-[10px] text-slate-400">Disp: ${p.cantidad}</p></div>
                     </div>
-                    <div class="flex items-center gap-2 bg-white rounded-lg p-1 border flex-shrink-0">
-                        <button onclick="window.ajustarCantidad('${ds.id}', -1)" class="w-7 h-7 rounded-md bg-slate-50 font-bold">-</button>
-                        <span id="cant-${ds.id}" class="w-6 text-center font-bold text-indigo-600 text-sm">${enCarro}</span>
-                        <button onclick="window.ajustarCantidad('${ds.id}', 1)" class="w-7 h-7 rounded-md bg-indigo-50 font-bold" ${enCarro>=p.cantidad?'disabled':''}>+</button>
+                    <div class="flex items-center gap-2 bg-white rounded-lg p-1 border flex-shrink-0 z-10 relative">
+                        <button type="button" onclick="window.ajustarCantidad('${jsId}', -1)" class="w-8 h-8 rounded-md bg-slate-100 hover:bg-slate-200 font-black text-lg text-slate-600 transition cursor-pointer active:scale-90 flex items-center justify-center">-</button>
+                        <span id="cant-${safeId}" class="w-8 text-center font-bold text-indigo-600 text-sm">${enCarro}</span>
+                        <button type="button" onclick="window.ajustarCantidad('${jsId}', 1)" class="w-8 h-8 rounded-md bg-indigo-100 hover:bg-indigo-200 font-black text-lg text-indigo-600 transition cursor-pointer active:scale-90 flex items-center justify-center" ${enCarro>=p.cantidad?'disabled':''}>+</button>
                     </div>
                 </div>`;
             }
@@ -244,6 +246,7 @@ window.activarSincronizacion = () => {
 
         const elTotal = document.getElementById("metrica-total"); if(elTotal) elTotal.innerText = tr;
         const elStock = document.getElementById("metrica-stock"); if(elStock) elStock.innerText = ts;
+        window.actualizarDashboard();
     });
 
     // B) PEDIDOS
@@ -274,7 +277,7 @@ window.activarSincronizacion = () => {
             if(p.estado === 'pendiente') pendingCount++;
         });
 
-        // Vista Usuario Mis Pedidos
+        // Vista Usuario (Ordenados del mas nuevo al mas viejo)
         const misPedidos = window.cachePedidos.filter(p => p.usuarioId === window.usuarioActual.id).sort((a,b) => b.timestamp - a.timestamp);
         
         misPedidos.forEach(p => {
@@ -305,7 +308,7 @@ window.activarSincronizacion = () => {
             }
         });
 
-        // Vista Admin Aprobaciones
+        // Vista Admin (Grupos Ordenados)
         if(lAdmin && ['admin','manager','supervisor'].includes(window.usuarioActual.rol)) {
             const gruposOrdenados = Object.values(grupos).sort((a,b) => b.ts - a.ts);
             
@@ -334,6 +337,7 @@ window.activarSincronizacion = () => {
 
         const elPed = document.getElementById("metrica-pedidos");
         if(elPed) elPed.innerText = pendingCount;
+        
         window.actualizarDashboard();
         window.renderHistorialUnificado();
     });
@@ -342,7 +346,6 @@ window.activarSincronizacion = () => {
     onSnapshot(collection(db,"entradas_stock"), s => {
         window.cacheEntradas = []; 
         s.forEach(x => { const d = x.data(); d.id = x.id; window.cacheEntradas.push(d); });
-        window.actualizarDashboard();
         window.renderHistorialUnificado();
     });
 
@@ -354,6 +357,7 @@ window.activarSincronizacion = () => {
                 l.innerHTML = "";
                 snap.forEach(d => {
                     const u = d.data();
+                    const jsId = d.id.replace(/'/g, "\\'");
                     l.innerHTML += `
                     <div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm hover:shadow-md transition">
                         <div>
@@ -365,8 +369,8 @@ window.activarSincronizacion = () => {
                             <span class="text-xs text-slate-400 block mt-1"><i class="fas fa-envelope text-[10px]"></i> ${u.email || 'Sin correo'}</span>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="window.prepararEdicionUsuario('${d.id}','${u.pass}','${u.rol}','${u.email||''}','${u.departamento||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button>
-                            <button onclick="window.eliminarDato('usuarios','${d.id}')" class="w-8 h-8 rounded bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
+                            <button onclick="window.prepararEdicionUsuario('${jsId}','${u.pass}','${u.rol}','${u.email||''}','${u.departamento||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button>
+                            <button onclick="window.eliminarDato('usuarios','${jsId}')" class="w-8 h-8 rounded bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
                         </div>
                     </div>`;
                 });
@@ -375,30 +379,24 @@ window.activarSincronizacion = () => {
     }
 };
 
-// --- ACTUALIZAR DASHBOARD CON FILTROS ---
+// --- DASHBOARD ---
 window.actualizarDashboard = () => {
     let dPedidos = window.cachePedidos;
-    let dInventario = [];
     
-    // Obtener fechas de filtro
     const inputDesde = document.getElementById("dash-desde")?.value;
     const inputHasta = document.getElementById("dash-hasta")?.value;
 
     if(inputDesde || inputHasta) {
         const tDesde = inputDesde ? new Date(inputDesde).getTime() : 0;
         const tHasta = inputHasta ? new Date(inputHasta).setHours(23,59,59,999) : Infinity;
-        
         dPedidos = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
     }
 
-    // Calcular Sedes (Gráfica Doughnut)
     let sedesCount = {};
     dPedidos.forEach(p => {
         if(p.estado !== 'rechazado') sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad;
     });
 
-    // Calcular Top Stock (Gráfica Barras)
-    // Aquí usamos el inventario actual ya que no tiene timestamp histórico por item individual.
     const grid = document.querySelectorAll("#lista-inventario h4");
     const gridVals = document.querySelectorAll("#lista-inventario p.text-2xl");
     let labels = [], dataStock = [];
@@ -411,10 +409,10 @@ window.actualizarDashboard = () => {
     window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Sedes', chartPalette, window.locationChart, ch => window.locationChart = ch);
 };
 
+// --- HISTORIAL TABLA ---
 window.renderHistorialUnificado = () => {
     const t = document.getElementById("tabla-movimientos-unificados");
     if(!t) return;
-    
     t.innerHTML = "";
     
     const entradasFmt = window.cacheEntradas.map(e => ({ fecha:e.fecha, ts:e.timestamp, tipo:'ENTRADA', insumo:e.insumo, cant:e.cantidad, det:`${e.usuario} (Stock)`, est:'completado' }));
@@ -436,7 +434,26 @@ window.renderHistorialUnificado = () => {
     });
 };
 
-// --- 6. FUNCIONES DE NEGOCIO (BATCH Y TIEMPOS) ---
+// --- 6. FUNCIONES DE NEGOCIO (CARRITO) ---
+window.ajustarCantidad = (i,d) => {
+    const safeId = i.replace(/[^a-zA-Z0-9]/g, '_');
+    const n = Math.max(0, (window.carritoGlobal[i]||0) + d); 
+    window.carritoGlobal[i] = n; 
+    
+    const el = document.getElementById(`cant-${safeId}`);
+    if(el) el.innerText = n;
+    
+    const row = document.getElementById(`row-${safeId}`);
+    if(row) {
+        if(n > 0){
+            row.classList.add("border-indigo-500", "bg-indigo-50/50");
+            row.classList.remove("border-slate-100", "bg-white");
+        } else {
+            row.classList.remove("border-indigo-500", "bg-indigo-50/50");
+            row.classList.add("border-slate-100", "bg-white");
+        }
+    }
+};
 
 window.procesarSolicitudMultiple = async () => {
     const ubi = document.getElementById("sol-ubicacion").value;
@@ -522,8 +539,11 @@ window.abrirModalGrupo = (bKey) => {
     
     items.forEach(p => {
         let act = `<span class="badge status-${p.estado}">${p.estado}</span>`;
+        const jsId = p.id.replace(/'/g, "\\'");
+        const jsInsumo = p.insumoNom.replace(/'/g, "\\'");
+
         if(p.estado === 'pendiente' && window.usuarioActual.rol !== 'supervisor') {
-            act = `<div class="flex gap-2 items-center"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border border-slate-200 rounded text-center p-1 font-bold text-slate-700"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom}')" class="text-white bg-emerald-500 hover:bg-emerald-600 p-1.5 rounded shadow"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-slate-400 border border-slate-200 p-1.5 rounded hover:bg-red-50 hover:text-red-500"><i class="fas fa-times"></i></button></div>`;
+            act = `<div class="flex gap-2 items-center"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border border-slate-200 rounded text-center p-1 font-bold text-slate-700"><button onclick="window.gestionarPedido('${jsId}','aprobar','${jsInsumo}')" class="text-white bg-emerald-500 hover:bg-emerald-600 p-1.5 rounded shadow"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${jsId}','rechazar')" class="text-slate-400 border border-slate-200 p-1.5 rounded hover:bg-red-50 hover:text-red-500"><i class="fas fa-times"></i></button></div>`;
         }
         c.innerHTML += `<div class="flex justify-between items-center p-3 border-b border-slate-50 hover:bg-slate-50"><div><b class="uppercase text-sm text-slate-700">${p.insumoNom}</b><br><span class="text-xs text-slate-400">Solicitado: ${p.cantidad}</span></div>${act}</div>`;
     });
@@ -597,7 +617,6 @@ window.confirmarIncidencia = async (dev) => {
 };
 
 // --- 7. EXCEL PRO (SHEET.JS) ---
-// Función auxiliar para calcular tiempos en Excel
 function calcularTiempo(inicio, fin) {
     if(!inicio || !fin) return "N/A";
     const diffMs = fin - inicio;
@@ -614,70 +633,41 @@ window.descargarReporte = async () => {
     if(!confirm("¿Descargar reporte en Excel?")) return;
     
     const [sSnap, eSnap, pSnap, uSnap] = await Promise.all([
-        getDocs(collection(db, "inventario")),
-        getDocs(collection(db, "entradas_stock")),
-        getDocs(collection(db, "pedidos")),
-        getDocs(collection(db, "usuarios"))
+        getDocs(collection(db, "inventario")), getDocs(collection(db, "entradas_stock")),
+        getDocs(collection(db, "pedidos")), getDocs(collection(db, "usuarios"))
     ]);
     
-    // Mapear usuarios para sacar el departamento
     const usersMap = {};
     uSnap.forEach(u => { usersMap[u.id] = u.data(); });
 
-    // 1. DATA STOCK
     const stockData = [];
     sSnap.forEach(d => {
         const x = d.data();
-        stockData.push({
-            "Insumo": d.id.toUpperCase(),
-            "Cantidad Disponible": x.cantidad || 0,
-            "Stock Mínimo": x.stockMinimo || 0,
-            "Precio Unit. ($)": x.precio || 0
-        });
+        stockData.push({ "Insumo": d.id.toUpperCase(), "Cantidad Disponible": x.cantidad || 0, "Stock Mínimo": x.stockMinimo || 0, "Precio Unit. ($)": x.precio || 0 });
     });
 
-    // 2. DATA ENTRADAS
     const entradasData = eSnap.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp).map(mov => ({
-        "Fecha de Entrada": mov.fecha || 'N/A',
-        "Insumo": (mov.insumo || '').toUpperCase(),
-        "Cantidad Ingresada": mov.cantidad || 0,
-        "Usuario Responsable": (mov.usuario || '').toUpperCase()
+        "Fecha de Entrada": mov.fecha || 'N/A', "Insumo": (mov.insumo || '').toUpperCase(), "Cantidad Ingresada": mov.cantidad || 0, "Usuario Responsable": (mov.usuario || '').toUpperCase()
     }));
 
-    // 3. DATA SALIDAS (CON TIEMPOS Y DEPTO)
     const salidasData = pSnap.docs.map(x => x.data()).sort((a,b) => b.timestamp - a.timestamp).map(mov => {
-        const uId = mov.usuarioId || '';
-        const userObj = usersMap[uId] || {};
+        const uId = mov.usuarioId || ''; const userObj = usersMap[uId] || {};
         const tResp = calcularTiempo(mov.timestamp_solicitud || mov.timestamp, mov.timestamp_aprobado);
         const tRecp = calcularTiempo(mov.timestamp_aprobado, mov.timestamp_recibido);
 
         return {
-            "ID Pedido": mov.batchId || 'N/A',
-            "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A',
-            "Insumo": (mov.insumoNom || '').toUpperCase(),
-            "Cant.": mov.cantidad || 0,
-            "Sede Destino": (mov.ubicacion || '').toUpperCase(),
-            "Usuario Solicitante": uId.toUpperCase(),
-            "Departamento": (userObj.departamento || 'N/A').toUpperCase(),
-            "Estado Actual": (mov.estado || '').toUpperCase(),
-            "Fecha Aprobación": mov.fecha_aprobado || 'N/A',
-            "Tiempo de Respuesta": tResp,
-            "Fecha Recepción": mov.fecha_recibido || 'N/A',
-            "Tiempo de Entrega": tRecp,
-            "Notas / Incidencias": mov.detalleIncidencia || ''
+            "ID Pedido": mov.batchId || 'N/A', "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A', "Insumo": (mov.insumoNom || '').toUpperCase(),
+            "Cant.": mov.cantidad || 0, "Sede Destino": (mov.ubicacion || '').toUpperCase(), "Usuario Solicitante": uId.toUpperCase(),
+            "Departamento": (userObj.departamento || 'N/A').toUpperCase(), "Estado Actual": (mov.estado || '').toUpperCase(),
+            "Fecha Aprobación": mov.fecha_aprobado || 'N/A', "Tiempo de Respuesta": tResp, "Fecha Recepción": mov.fecha_recibido || 'N/A',
+            "Tiempo de Entrega": tRecp, "Notas / Incidencias": mov.detalleIncidencia || ''
         };
     });
 
-    // CREAR LIBRO Y HOJAS CON SHEETJS
     const wb = XLSX.utils.book_new();
-    const wsStock = XLSX.utils.json_to_sheet(stockData);
-    const wsEntradas = XLSX.utils.json_to_sheet(entradasData);
-    const wsSalidas = XLSX.utils.json_to_sheet(salidasData);
+    const wsStock = XLSX.utils.json_to_sheet(stockData); const wsEntradas = XLSX.utils.json_to_sheet(entradasData); const wsSalidas = XLSX.utils.json_to_sheet(salidasData);
 
-    XLSX.utils.book_append_sheet(wb, wsStock, "Inventario Actual");
-    XLSX.utils.book_append_sheet(wb, wsEntradas, "Historial Entradas");
-    XLSX.utils.book_append_sheet(wb, wsSalidas, "Historial Salidas");
-
+    XLSX.utils.book_append_sheet(wb, wsStock, "Inventario Actual"); XLSX.utils.book_append_sheet(wb, wsEntradas, "Historial Entradas"); XLSX.utils.book_append_sheet(wb, wsSalidas, "Historial Salidas");
     XLSX.writeFile(wb, `Reporte_FCILog_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
 
@@ -714,8 +704,28 @@ window.cancelarEdicionUsuario = () => {
     document.getElementById("cancel-edit-msg").classList.add("hidden");
 };
 
-window.prepararEdicionProducto=async(id)=>{const s=await getDoc(doc(db,"inventario",id)); if(!s.exists())return; const d=s.data(); document.getElementById('edit-prod-id').value=id; document.getElementById('edit-prod-precio').value=d.precio||''; document.getElementById('edit-prod-min').value=d.stockMinimo||''; document.getElementById('edit-prod-img').value=d.imagen||''; const preview = document.getElementById('preview-img'); if(d.imagen) { preview.src = d.imagen; preview.classList.remove('hidden'); } else { preview.classList.add('hidden'); } document.getElementById('modal-detalles').classList.remove('hidden');};
-window.guardarDetallesProducto=async()=>{const id=document.getElementById('edit-prod-id').value, p=parseFloat(document.getElementById('edit-prod-precio').value)||0, m=parseInt(document.getElementById('edit-prod-min').value)||0, i=document.getElementById('edit-prod-img').value; await updateDoc(doc(db,"inventario",id),{precio:p,stockMinimo:m,imagen:i}); window.cerrarModalDetalles(); alert("Guardado");};
+window.prepararEdicionProducto = async(id) => {
+    const s = await getDoc(doc(db,"inventario",id)); 
+    if(!s.exists()) return; 
+    const d = s.data(); 
+    document.getElementById('edit-prod-id').value = id; 
+    document.getElementById('edit-prod-precio').value = d.precio||''; 
+    document.getElementById('edit-prod-min').value = d.stockMinimo||''; 
+    document.getElementById('edit-prod-img').value = d.imagen||''; 
+    const preview = document.getElementById('preview-img'); 
+    if(d.imagen) { preview.src = d.imagen; preview.classList.remove('hidden'); } else { preview.classList.add('hidden'); } 
+    document.getElementById('modal-detalles').classList.remove('hidden');
+};
+
+window.guardarDetallesProducto = async () => {
+    const id = document.getElementById('edit-prod-id').value; 
+    const p = parseFloat(document.getElementById('edit-prod-precio').value)||0; 
+    const m = parseInt(document.getElementById('edit-prod-min').value)||0; 
+    const i = document.getElementById('edit-prod-img').value; 
+    await updateDoc(doc(db,"inventario",id),{precio:p,stockMinimo:m,imagen:i}); 
+    window.cerrarModalDetalles(); alert("Guardado");
+};
+
 window.abrirModalInsumo = () => { const m = document.getElementById("modal-insumo"); if(m) m.classList.remove("hidden"); };
 window.cerrarModalInsumo = () => { const m = document.getElementById("modal-insumo"); if(m) m.classList.add("hidden"); };
 window.cerrarModalDetalles = () => { const m = document.getElementById("modal-detalles"); if(m) m.classList.add("hidden"); const img = document.getElementById('preview-img'); if(img) img.classList.add('hidden');};
@@ -732,7 +742,7 @@ window.renderChart = (id, l, d, t, c, i, s) => {
     }));
 };
 
-// --- INICIALIZADOR GENERAL ---
+// --- 9. INICIALIZACIÓN AUTOMÁTICA DE LA APP ---
 const inicializarApp = () => {
     try {
         if(typeof emailjs !== "undefined") emailjs.init("2jVnfkJKKG0bpKN-U");
