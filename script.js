@@ -21,7 +21,7 @@ window.cachePedidos = [];
 window.stockChart = null;
 window.locationChart = null;
 window.cloudinaryWidget = null;
-window.cloudinaryFacturasWidget = null; // NUEVO: Para documentos de factura
+window.cloudinaryFacturasWidget = null; 
 
 const chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6', '#f97316', '#0ea5e9', '#ec4899', '#eab308'];
 
@@ -346,8 +346,8 @@ window.activarSincronizacion = () => {
                 snap.forEach(d => fData.push({id: d.id, ...d.data()}));
                 
                 fData.sort((a,b) => b.timestamp - a.timestamp).forEach(f => {
-                    const docLink = f.archivo_url 
-                        ? `<a href="${f.archivo_url}" target="_blank" class="text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg text-[10px] transition"><i class="fas fa-external-link-alt"></i> Ver</a>` 
+                    const docLink = (f.archivo_url && f.archivo_url.trim() !== "") 
+                        ? `<a href="${f.archivo_url}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg text-[10px] transition inline-flex items-center gap-1 cursor-pointer"><i class="fas fa-external-link-alt"></i> Ver Doc</a>` 
                         : '<span class="text-slate-300 text-[10px] font-bold">N/A</span>';
 
                     tf.innerHTML += `
@@ -418,7 +418,7 @@ window.actualizarDashboard = () => {
     window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Sedes', chartPalette, window.locationChart, ch => window.locationChart = ch);
 };
 
-// --- HISTORIAL TABLA (MODIFICADO: Muestra Entregado por) ---
+// --- HISTORIAL TABLA ---
 window.renderHistorialUnificado = () => {
     const t = document.getElementById("tabla-movimientos-unificados");
     if(!t) return;
@@ -452,7 +452,7 @@ window.renderHistorialUnificado = () => {
     });
 };
 
-// --- 6. FUNCIONES DE NEGOCIO (CARRITO Y FACTURAS) ---
+// --- 6. FUNCIONES DE NEGOCIO ---
 window.ajustarCantidad = (i,d) => {
     const safeId = i.replace(/[^a-zA-Z0-9]/g, '_');
     const n = Math.max(0, (window.carritoGlobal[i]||0) + d); 
@@ -536,7 +536,6 @@ window.enviarEmailNotificacion = async (tipo, datos) => {
     } catch (error) { console.error("Error EmailJS:", error); }
 };
 
-// --- FACTURAS (MODIFICADO: Con URL de archivo) ---
 window.abrirModalFactura = () => {
     document.getElementById("fact-proveedor").value = "";
     document.getElementById("fact-gasto").value = "";
@@ -561,7 +560,7 @@ window.guardarFactura = async () => {
             proveedor: prov,
             gasto: gasto,
             fecha_compra: fecha,
-            archivo_url: archivoUrl, // Se guarda la URL del PDF/Imagen
+            archivo_url: archivoUrl, 
             usuarioRegistro: window.usuarioActual.id,
             timestamp: Date.now(),
             fecha_registro: new Date().toLocaleString()
@@ -628,7 +627,6 @@ window.gestionarPedido = async (pid, accion, ins) => {
             const newStock = iSnap.data().cantidad - val;
             await updateDoc(iRef, { cantidad: newStock });
             
-            // AQUI REGISTRAMOS QUIEN APROBÓ/ENTREGÓ EL INSUMO
             await updateDoc(pRef, { 
                 estado: "aprobado", 
                 cantidad: val, 
@@ -822,15 +820,14 @@ const inicializarApp = () => {
             window.cloudinaryWidget = cloudinary.createUploadWidget({cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos'}, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } });
             const btnUpload = document.getElementById("upload_widget"); if(btnUpload) { const newBtn = btnUpload.cloneNode(true); btnUpload.parentNode.replaceChild(newBtn, btnUpload); newBtn.addEventListener("click", (e) => { e.preventDefault(); if(window.cloudinaryWidget) window.cloudinaryWidget.open(); }, false); }
 
-            // Widget para Facturas (Documentos/PDFs/Imágenes)
+            // Widget para Facturas (Documentos, PDFs, Imágenes, etc sin restricción de formato)
             window.cloudinaryFacturasWidget = cloudinary.createUploadWidget({
                 cloudName: 'df79cjklp', 
                 uploadPreset: 'insumos', 
                 sources: ['local'], 
                 multiple: false, 
                 folder: 'fcilog_facturas',
-                clientAllowedFormats: ['png', 'jpg', 'jpeg', 'pdf'], // NUEVO: Permite explícitamente PDFs
-                resourceType: 'auto' // NUEVO: Obligatorio para que procese documentos
+                resourceType: 'auto' // Esto permite que Cloudinary detecte automáticamente si es PDF, Word, Excel, etc.
             }, (error, result) => { 
                 if (!error && result && result.event === "success") { 
                     document.getElementById('fact-archivo-url').value = result.info.secure_url; 
