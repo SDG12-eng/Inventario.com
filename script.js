@@ -21,6 +21,7 @@ window.cachePedidos = [];
 window.stockChart = null;
 window.locationChart = null;
 window.cloudinaryWidget = null;
+window.cloudinaryFacturasWidget = null; // NUEVO: Para documentos de factura
 
 const chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6', '#f97316', '#0ea5e9', '#ec4899', '#eab308'];
 
@@ -335,7 +336,7 @@ window.activarSincronizacion = () => {
         window.renderHistorialUnificado();
     });
 
-    // D) FACTURAS (NUEVO)
+    // D) FACTURAS
     if(['admin','manager'].includes(window.usuarioActual.rol)) {
         onSnapshot(collection(db, "facturas"), snap => {
             const tf = document.getElementById("tabla-facturas-db");
@@ -345,12 +346,17 @@ window.activarSincronizacion = () => {
                 snap.forEach(d => fData.push({id: d.id, ...d.data()}));
                 
                 fData.sort((a,b) => b.timestamp - a.timestamp).forEach(f => {
+                    const docLink = f.archivo_url 
+                        ? `<a href="${f.archivo_url}" target="_blank" class="text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg text-[10px] transition"><i class="fas fa-external-link-alt"></i> Ver</a>` 
+                        : '<span class="text-slate-300 text-[10px] font-bold">N/A</span>';
+
                     tf.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b border-slate-50 last:border-0 transition">
                         <td class="p-4 text-slate-500 text-xs font-mono">${f.fecha_compra}</td>
                         <td class="p-4 font-bold text-slate-700 uppercase text-xs">${f.proveedor}</td>
                         <td class="p-4 font-black text-emerald-600 text-right text-sm">$${parseFloat(f.gasto).toFixed(2)}</td>
                         <td class="p-4 text-slate-400 uppercase text-[10px] text-center font-bold">${f.usuarioRegistro}</td>
+                        <td class="p-4 text-center">${docLink}</td>
                         <td class="p-4 text-slate-300 text-[10px] text-right font-mono">${f.fecha_registro.split(',')[0]}</td>
                     </tr>`;
                 });
@@ -412,14 +418,23 @@ window.actualizarDashboard = () => {
     window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Sedes', chartPalette, window.locationChart, ch => window.locationChart = ch);
 };
 
-// --- HISTORIAL TABLA ---
+// --- HISTORIAL TABLA (MODIFICADO: Muestra Entregado por) ---
 window.renderHistorialUnificado = () => {
     const t = document.getElementById("tabla-movimientos-unificados");
     if(!t) return;
     t.innerHTML = "";
     
-    const entradasFmt = window.cacheEntradas.map(e => ({ id: e.id, fecha: e.fecha, ts: e.timestamp, tipo: 'ENTRADA', insumo: e.insumo, cant: e.cantidad, det: `${e.usuario} ${e.motivo_edicion ? `<br><span class="text-[9px] text-amber-500 font-bold leading-tight"><i class="fas fa-exclamation-triangle"></i> Editado: ${e.motivo_edicion}</span>` : '(Stock)'}`, est: 'completado' }));
-    const salidasFmt = window.cachePedidos.map(p => ({ id: p.id, fecha: p.fecha, ts: p.timestamp, tipo: 'SALIDA', insumo: p.insumoNom, cant: p.cantidad, det: `${p.usuarioId} (${p.ubicacion})`, est: p.estado }));
+    const entradasFmt = window.cacheEntradas.map(e => ({ 
+        id: e.id, fecha: e.fecha, ts: e.timestamp, tipo: 'ENTRADA', insumo: e.insumo, cant: e.cantidad, 
+        det: `${e.usuario} ${e.motivo_edicion ? `<br><span class="text-[9px] text-amber-500 font-bold leading-tight"><i class="fas fa-exclamation-triangle"></i> Editado: ${e.motivo_edicion}</span>` : '(Stock)'}`, 
+        est: 'completado' 
+    }));
+    
+    const salidasFmt = window.cachePedidos.map(p => ({ 
+        id: p.id, fecha: p.fecha, ts: p.timestamp, tipo: 'SALIDA', insumo: p.insumoNom, cant: p.cantidad, 
+        det: `${p.usuarioId} (${p.ubicacion}) ${p.entregado_por ? `<br><span class="text-[9px] text-indigo-500 font-bold"><i class="fas fa-hands-helping"></i> Entregado por: ${p.entregado_por}</span>` : ''}`, 
+        est: p.estado 
+    }));
     
     const unificados = [...entradasFmt, ...salidasFmt].sort((a,b) => b.ts - a.ts);
     const isAdmin = ['admin', 'manager'].includes(window.usuarioActual.rol);
@@ -521,11 +536,13 @@ window.enviarEmailNotificacion = async (tipo, datos) => {
     } catch (error) { console.error("Error EmailJS:", error); }
 };
 
-// --- FACTURAS ---
+// --- FACTURAS (MODIFICADO: Con URL de archivo) ---
 window.abrirModalFactura = () => {
     document.getElementById("fact-proveedor").value = "";
     document.getElementById("fact-gasto").value = "";
     document.getElementById("fact-fecha").value = "";
+    document.getElementById("fact-archivo-url").value = "";
+    document.getElementById("factura-file-name").innerText = "Ninguno";
     document.getElementById("modal-factura").classList.remove("hidden");
 };
 
@@ -535,14 +552,16 @@ window.guardarFactura = async () => {
     const prov = document.getElementById("fact-proveedor").value.trim();
     const gasto = parseFloat(document.getElementById("fact-gasto").value);
     const fecha = document.getElementById("fact-fecha").value;
+    const archivoUrl = document.getElementById("fact-archivo-url").value;
 
-    if(!prov || isNaN(gasto) || !fecha) return alert("Por favor complete todos los campos de la factura.");
+    if(!prov || isNaN(gasto) || !fecha) return alert("Por favor complete todos los campos obligatorios.");
 
     try {
         await addDoc(collection(db, "facturas"), {
             proveedor: prov,
             gasto: gasto,
             fecha_compra: fecha,
+            archivo_url: archivoUrl, // Se guarda la URL del PDF/Imagen
             usuarioRegistro: window.usuarioActual.id,
             timestamp: Date.now(),
             fecha_registro: new Date().toLocaleString()
@@ -608,7 +627,15 @@ window.gestionarPedido = async (pid, accion, ins) => {
         if(iSnap.exists() && iSnap.data().cantidad >= val) {
             const newStock = iSnap.data().cantidad - val;
             await updateDoc(iRef, { cantidad: newStock });
-            await updateDoc(pRef, { estado: "aprobado", cantidad: val, fecha_aprobado: new Date().toLocaleString(), timestamp_aprobado: Date.now() });
+            
+            // AQUI REGISTRAMOS QUIEN APROBÓ/ENTREGÓ EL INSUMO
+            await updateDoc(pRef, { 
+                estado: "aprobado", 
+                cantidad: val, 
+                entregado_por: window.usuarioActual.id,
+                fecha_aprobado: new Date().toLocaleString(), 
+                timestamp_aprobado: Date.now() 
+            });
             
             if(emailSolicitante) window.enviarEmailNotificacion('aprobado_parcial', { usuario: pData.usuarioId, items: [{insumo:ins, cantidad:val}], target_email: emailSolicitante });
             if (newStock <= (iSnap.data().stockMinimo || 0)) window.enviarEmailNotificacion('stock_bajo', { insumo: ins, actual: newStock, minimo: iSnap.data().stockMinimo });
@@ -710,7 +737,8 @@ window.descargarReporte = async () => {
                 "Cant.": mov.cantidad || 0, 
                 "Sede Destino": (mov.ubicacion || '').toUpperCase(), 
                 "Usuario Solicitante": uId.toUpperCase(), 
-                "Departamento": (userObj.departamento || 'N/A').toUpperCase(), 
+                "Departamento": (userObj.departamento || 'N/A').toUpperCase(),
+                "Entregado / Aprobado Por": (mov.entregado_por || 'N/A').toUpperCase(),
                 "Estado Actual": (mov.estado || '').toUpperCase(),
                 "Fecha Aprobación": mov.fecha_aprobado || 'N/A', 
                 "Tiempo de Respuesta": calcularTiempo(mov.timestamp_solicitud || mov.timestamp, mov.timestamp_aprobado), 
@@ -729,6 +757,7 @@ window.descargarReporte = async () => {
             "Proveedor": (f.proveedor || '').toUpperCase(), 
             "Gasto ($)": f.gasto || 0, 
             "Registrado Por": (f.usuarioRegistro || '').toUpperCase(), 
+            "Documento URL": f.archivo_url || 'Sin documento',
             "Fecha Registro Sistema": f.fecha_registro || 'N/A'
         }));
 
@@ -787,9 +816,31 @@ const inicializarApp = () => {
     try {
         if(typeof emailjs !== "undefined") emailjs.init("2jVnfkJKKG0bpKN-U");
         const sesion = localStorage.getItem("fcilog_session"); if(sesion) window.cargarSesion(JSON.parse(sesion));
+        
         if (typeof cloudinary !== "undefined") {
+            // Widget para Insumos (Imágenes)
             window.cloudinaryWidget = cloudinary.createUploadWidget({cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos'}, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } });
             const btnUpload = document.getElementById("upload_widget"); if(btnUpload) { const newBtn = btnUpload.cloneNode(true); btnUpload.parentNode.replaceChild(newBtn, btnUpload); newBtn.addEventListener("click", (e) => { e.preventDefault(); if(window.cloudinaryWidget) window.cloudinaryWidget.open(); }, false); }
+
+            // Widget para Facturas (Documentos/PDFs/Imágenes)
+            window.cloudinaryFacturasWidget = cloudinary.createUploadWidget({
+                cloudName: 'df79cjklp', 
+                uploadPreset: 'insumos', 
+                sources: ['local'], 
+                multiple: false, 
+                folder: 'fcilog_facturas'
+            }, (error, result) => { 
+                if (!error && result && result.event === "success") { 
+                    document.getElementById('fact-archivo-url').value = result.info.secure_url; 
+                    document.getElementById('factura-file-name').innerText = result.info.original_filename + "." + result.info.format;
+                } 
+            });
+            const btnUploadFactura = document.getElementById("btn-upload-factura"); 
+            if(btnUploadFactura) { 
+                const newBtnFact = btnUploadFactura.cloneNode(true); 
+                btnUploadFactura.parentNode.replaceChild(newBtnFact, btnUploadFactura); 
+                newBtnFact.addEventListener("click", (e) => { e.preventDefault(); if(window.cloudinaryFacturasWidget) window.cloudinaryFacturasWidget.open(); }, false); 
+            }
         }
     } catch(e) { console.error("Error App:", e); }
 };
