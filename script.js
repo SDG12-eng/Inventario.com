@@ -828,7 +828,9 @@ const inicializarApp = () => {
                 uploadPreset: 'insumos', 
                 sources: ['local'], 
                 multiple: false, 
-                folder: 'fcilog_facturas'
+                folder: 'fcilog_facturas',
+                clientAllowedFormats: ['png', 'jpg', 'jpeg', 'pdf'], // NUEVO: Permite explícitamente PDFs
+                resourceType: 'auto' // NUEVO: Obligatorio para que procese documentos
             }, (error, result) => { 
                 if (!error && result && result.event === "success") { 
                     document.getElementById('fact-archivo-url').value = result.info.secure_url; 
