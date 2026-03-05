@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FCILog - InsuManager v11 Pro</title>
+    <title>FCILog - InsuManager v12 Pro</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -36,7 +36,7 @@
                     Iniciar Sesión
                 </button>
             </div>
-            <p class="text-[10px] text-slate-300 mt-8 font-mono">v11.5 Pro Stable</p>
+            <p class="text-[10px] text-slate-300 mt-8 font-mono">v12.0 Pro Stable</p>
         </div>
     </div>
 
@@ -73,13 +73,12 @@
                             <h2 class="text-2xl font-black text-slate-800">Dashboard General</h2>
                             <p class="text-slate-400 text-xs">Métricas en tiempo real</p>
                         </div>
-                        
                         <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex-wrap">
                             <span class="text-xs font-bold text-slate-400 ml-2">Desde:</span>
                             <input type="date" id="dash-desde" class="bg-slate-50 border border-slate-200 text-xs p-2 rounded-lg outline-none text-slate-600 font-bold">
                             <span class="text-xs font-bold text-slate-400">Hasta:</span>
                             <input type="date" id="dash-hasta" class="bg-slate-50 border border-slate-200 text-xs p-2 rounded-lg outline-none text-slate-600 font-bold">
-                            <button onclick="window.actualizarDashboard()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow-sm"><i class="fas fa-filter"></i> Filtrar</button>
+                            <button onclick="window.actualizarDashboard()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-700 transition shadow-sm"><i class="fas fa-filter"></i></button>
                             <button onclick="document.getElementById('dash-desde').value=''; document.getElementById('dash-hasta').value=''; window.actualizarDashboard()" class="bg-slate-100 text-slate-500 px-3 py-2 rounded-lg text-xs font-bold hover:bg-slate-200 transition"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
@@ -123,24 +122,65 @@
                     <h2 class="text-2xl font-black text-slate-800">Centro de Aprobaciones</h2>
                     <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-start gap-3 text-indigo-800 text-sm">
                         <i class="fas fa-info-circle mt-1 text-lg"></i>
-                        <div><p class="font-bold">Modo Agrupado</p><p>Las solicitudes se muestran por "Lote". Haz clic en "Ver Detalles" para aprobar cada producto.</p></div>
+                        <div><p class="font-bold">Modo Agrupado y Prioridad</p><p>Las solicitudes se muestran por "Lote". Aquellas marcadas en rojo requieren atención urgente.</p></div>
                     </div>
                     <div id="lista-pendientes-admin" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
                 </section>
 
-                <section id="pag-historial" class="view hidden space-y-6 animate-fade-in">
+                <section id="pag-facturas" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h2 class="text-2xl font-black text-slate-800">Movimientos Globales</h2>
-                            <p class="text-slate-400 text-xs">Entradas, Salidas y Devoluciones (Más reciente primero)</p>
+                            <h2 class="text-2xl font-black text-slate-800">Control de Facturas</h2>
+                            <p class="text-slate-400 text-xs">Registro de compras y proveedores</p>
                         </div>
-                        <button onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition flex items-center gap-2 text-sm">
-                            <i class="fas fa-file-excel"></i> Generar Excel Pro Multi-hoja
+                        <button onclick="window.abrirModalFactura()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm">
+                            <i class="fas fa-file-invoice-dollar"></i> Registrar Factura
                         </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden mt-6">
+                        <div class="overflow-x-auto max-h-[600px] custom-scroll">
+                            <table class="w-full text-left min-w-[700px]">
+                                <thead class="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="p-4 th-header">Fecha Compra</th>
+                                        <th class="p-4 th-header">Proveedor</th>
+                                        <th class="p-4 th-header text-right">Gasto ($)</th>
+                                        <th class="p-4 th-header text-center">Registrado Por</th>
+                                        <th class="p-4 th-header text-right">Sys Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-facturas-db" class="divide-y divide-slate-50 text-xs font-medium"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="pag-historial" class="view hidden space-y-6 animate-fade-in">
+                    <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800">Movimientos Globales</h2>
+                            <p class="text-slate-400 text-xs">Entradas, Salidas y Devoluciones</p>
+                        </div>
+                        
+                        <div class="flex flex-wrap items-center gap-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm w-full xl:w-auto">
+                            <span class="text-xs font-bold text-slate-400 ml-2"><i class="far fa-calendar-alt"></i> Desde:</span>
+                            <input type="date" id="rep-desde" class="bg-slate-50 border border-slate-200 text-xs p-2 rounded-lg outline-none text-slate-600 font-bold flex-1 sm:flex-none">
+                            
+                            <span class="text-xs font-bold text-slate-400"><i class="far fa-calendar-alt"></i> Hasta:</span>
+                            <input type="date" id="rep-hasta" class="bg-slate-50 border border-slate-200 text-xs p-2 rounded-lg outline-none text-slate-600 font-bold flex-1 sm:flex-none">
+                            
+                            <button onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-700 transition shadow-sm w-full sm:w-auto flex justify-center items-center gap-2">
+                                <i class="fas fa-file-excel"></i> Descargar Excel
+                            </button>
+                            <button onclick="document.getElementById('rep-desde').value=''; document.getElementById('rep-hasta').value='';" class="bg-slate-100 text-slate-500 px-3 py-2 rounded-lg text-xs font-bold hover:bg-slate-200 transition" title="Limpiar Fechas">
+                                <i class="fas fa-eraser"></i>
+                            </button>
+                        </div>
                     </div>
                     <input type="text" onkeyup="window.filtrarTabla('tabla-movimientos-unificados', this.value)" placeholder="🔍 Filtrar por insumo, sede, estado o usuario..." class="input-light mb-2 text-sm p-3 shadow-sm">
 
-                    <div class="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden mt-4">
                         <div class="overflow-x-auto max-h-[500px] custom-scroll">
                             <table class="w-full text-left min-w-[800px]">
                                 <thead class="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
@@ -187,7 +227,15 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="label-form">2. Productos Seleccionados</label>
+                                <label class="label-form">2. Prioridad de la Solicitud</label>
+                                <select id="sol-prioridad" class="input-light border-2 border-slate-100 font-bold text-slate-700 cursor-pointer focus:border-indigo-500">
+                                    <option value="normal" selected>🟢 Normal (Estándar)</option>
+                                    <option value="basica">⚪ Básica (Baja prioridad)</option>
+                                    <option value="alta">🔴 Alta (Urgente / Crítico)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label-form">3. Productos Seleccionados</label>
                                 <div id="contenedor-lista-pedidos" class="space-y-3 max-h-[40vh] overflow-y-auto pr-2 custom-scroll bg-slate-50 p-4 rounded-2xl border border-slate-100 min-h-[100px]"><p class="text-center text-slate-300 text-xs py-8">Carrito vacío.</p></div>
                             </div>
                             <button onclick="window.procesarSolicitudMultiple()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-700 transition-all active:scale-95"><i class="fas fa-paper-plane"></i> Confirmar y Enviar</button>
@@ -219,29 +267,28 @@
     
     <div id="modal-incidencia" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl border-t-8 border-red-400"><h3 class="text-xl font-black mb-2 text-center text-slate-800">Reportar / Devolver</h3><p class="text-xs text-center text-slate-400 mb-6">Selecciona una acción para este item.</p><input type="hidden" id="incidencia-pid"><textarea id="incidencia-detalle" class="input-light mb-4 h-24 resize-none p-4 text-sm" placeholder="Escribe el motivo aquí..."></textarea><div class="space-y-3"><button type="button" onclick="window.confirmarIncidencia(true)" class="w-full py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold hover:bg-red-100 transition flex items-center justify-center gap-2"><i class="fas fa-undo"></i> Devolver (Restaurar Stock)</button><button type="button" onclick="window.confirmarIncidencia(false)" class="w-full py-3 bg-amber-50 text-amber-600 border border-amber-100 rounded-xl font-bold hover:bg-amber-100 transition flex items-center justify-center gap-2"><i class="fas fa-flag"></i> Solo Reportar Problema</button><button type="button" onclick="document.getElementById('modal-incidencia').classList.add('hidden')" class="w-full py-3 text-slate-400 font-bold hover:text-slate-600">Cancelar</button></div></div></div>
 
-    <div id="modal-editar-entrada" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl scale-100 transition-transform border-t-8 border-amber-400">
-            <h3 class="text-xl font-black mb-6 text-center text-amber-600"><i class="fas fa-edit"></i> Corregir Entrada</h3>
+    <div id="modal-editar-entrada" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl border-t-8 border-amber-400"><h3 class="text-xl font-black mb-6 text-center text-amber-600"><i class="fas fa-edit"></i> Corregir Entrada</h3><div class="space-y-4"><input type="hidden" id="edit-entrada-id"><input type="hidden" id="edit-entrada-insumo"><input type="hidden" id="edit-entrada-cant-original"><div><label class="label-form">Insumo</label><input id="edit-entrada-insumo-display" type="text" class="input-light uppercase font-bold text-slate-500 bg-slate-50 cursor-not-allowed border-slate-200" disabled></div><div><label class="label-form">Nueva Cantidad Real</label><input id="edit-entrada-cantidad" type="number" placeholder="0" class="input-light font-bold text-2xl text-amber-600 text-center"></div><div><label class="label-form">Motivo de la Corrección</label><textarea id="edit-entrada-motivo" class="input-light h-20 resize-none p-3 text-sm" placeholder="Ej: Error de tipeo, mercancía dañada, etc..."></textarea></div><div class="grid grid-cols-2 gap-3 pt-4"><button type="button" onclick="document.getElementById('modal-editar-entrada').classList.add('hidden')" class="py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button><button type="button" onclick="window.guardarEdicionEntrada()" class="py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg">Actualizar Stock</button></div></div></div></div>
+
+    <div id="modal-factura" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl scale-100 transition-transform">
+            <h3 class="text-xl font-black mb-6 text-center text-indigo-900"><i class="fas fa-file-invoice"></i> Registrar Factura</h3>
             <div class="space-y-4">
-                <input type="hidden" id="edit-entrada-id">
-                <input type="hidden" id="edit-entrada-insumo">
-                <input type="hidden" id="edit-entrada-cant-original">
+                <div>
+                    <label class="label-form">Proveedor</label>
+                    <input id="fact-proveedor" type="text" placeholder="Ej: Empresa S.A." class="input-light font-bold text-slate-700 uppercase">
+                </div>
+                <div>
+                    <label class="label-form">Cantidad de Gasto ($)</label>
+                    <input id="fact-gasto" type="number" step="0.01" placeholder="0.00" class="input-light font-bold text-xl text-emerald-600">
+                </div>
+                <div>
+                    <label class="label-form">Fecha de Compra</label>
+                    <input id="fact-fecha" type="date" class="input-light font-bold text-slate-600">
+                </div>
                 
-                <div>
-                    <label class="label-form">Insumo</label>
-                    <input id="edit-entrada-insumo-display" type="text" class="input-light uppercase font-bold text-slate-500 bg-slate-50 cursor-not-allowed border-slate-200" disabled>
-                </div>
-                <div>
-                    <label class="label-form">Nueva Cantidad Real</label>
-                    <input id="edit-entrada-cantidad" type="number" placeholder="0" class="input-light font-bold text-2xl text-amber-600 text-center">
-                </div>
-                <div>
-                    <label class="label-form">Motivo de la Corrección</label>
-                    <textarea id="edit-entrada-motivo" class="input-light h-20 resize-none p-3 text-sm" placeholder="Ej: Error de tipeo, mercancía dañada, etc..."></textarea>
-                </div>
                 <div class="grid grid-cols-2 gap-3 pt-4">
-                    <button type="button" onclick="document.getElementById('modal-editar-entrada').classList.add('hidden')" class="py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
-                    <button type="button" onclick="window.guardarEdicionEntrada()" class="py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg">Actualizar Stock</button>
+                    <button type="button" onclick="window.cerrarModalFactura()" class="py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
+                    <button type="button" onclick="window.guardarFactura()" class="py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg">Guardar</button>
                 </div>
             </div>
         </div>
