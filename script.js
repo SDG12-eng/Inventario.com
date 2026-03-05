@@ -415,13 +415,41 @@ window.renderHistorialUnificado = () => {
     if(!t) return;
     t.innerHTML = "";
     
-    const entradasFmt = window.cacheEntradas.map(e => ({ fecha:e.fecha, ts:e.timestamp, tipo:'ENTRADA', insumo:e.insumo, cant:e.cantidad, det:`${e.usuario} (Stock)`, est:'completado' }));
-    const salidasFmt = window.cachePedidos.map(p => ({ fecha:p.fecha, ts:p.timestamp, tipo:'SALIDA', insumo:p.insumoNom, cant:p.cantidad, det:`${p.usuarioId} (${p.ubicacion})`, est:p.estado }));
+    // Agregamos el id, y mostramos el motivo si fue editada
+    const entradasFmt = window.cacheEntradas.map(e => ({ 
+        id: e.id, 
+        fecha: e.fecha, 
+        ts: e.timestamp, 
+        tipo: 'ENTRADA', 
+        insumo: e.insumo, 
+        cant: e.cantidad, 
+        det: `${e.usuario} ${e.motivo_edicion ? `<br><span class="text-[9px] text-amber-500 font-bold leading-tight"><i class="fas fa-exclamation-triangle"></i> Editado: ${e.motivo_edicion}</span>` : '(Stock)'}`, 
+        est: 'completado' 
+    }));
+    const salidasFmt = window.cachePedidos.map(p => ({ id: p.id, fecha: p.fecha, ts: p.timestamp, tipo: 'SALIDA', insumo: p.insumoNom, cant: p.cantidad, det: `${p.usuarioId} (${p.ubicacion})`, est: p.estado }));
     
     const unificados = [...entradasFmt, ...salidasFmt].sort((a,b) => b.ts - a.ts);
+    const isAdmin = ['admin', 'manager'].includes(window.usuarioActual.rol);
 
     unificados.forEach(h => {
         const icon = h.tipo==='ENTRADA' ? '<i class="fas fa-arrow-down text-emerald-500"></i>' : '<i class="fas fa-arrow-up text-amber-500"></i>';
+        
+        let actionBtn = `<span class="badge status-${h.est}">${h.est}</span>`;
+        
+        // Botón de editar entrada (solo para roles administrativos)
+        if(h.tipo === 'ENTRADA' && isAdmin) {
+            const jsId = h.id.replace(/'/g, "\\'");
+            const jsInsumo = h.insumo.replace(/'/g, "\\'");
+            actionBtn = `
+                <div class="flex items-center gap-2">
+                    <span class="badge status-${h.est}">${h.est}</span>
+                    <button onclick="window.abrirModalEditarEntrada('${jsId}', '${jsInsumo}', ${h.cant})" class="w-7 h-7 flex items-center justify-center text-amber-500 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 rounded-lg transition" title="Corregir Entrada">
+                        <i class="fas fa-pen text-[10px]"></i>
+                    </button>
+                </div>
+            `;
+        }
+
         t.innerHTML += `
         <tr class="hover:bg-slate-50 border-b border-slate-50 last:border-0 transition">
             <td class="p-3 text-slate-400 text-[10px] font-mono whitespace-nowrap">${h.fecha.split(',')[0]}</td>
@@ -429,7 +457,7 @@ window.renderHistorialUnificado = () => {
             <td class="p-3 font-bold text-slate-700 uppercase text-xs">${h.insumo}</td>
             <td class="p-3 text-sm font-bold text-slate-800 text-center">${h.cant}</td>
             <td class="p-3 text-xs text-slate-500 uppercase">${h.det}</td>
-            <td class="p-3"><span class="badge status-${h.est}">${h.est}</span></td>
+            <td class="p-3">${actionBtn}</td>
         </tr>`;
     });
 };
@@ -499,7 +527,46 @@ window.procesarSolicitudMultiple = async () => {
     }
 };
 
-window.enviarEmailNotificacion = async (tipo, datos) => { await enviarNotificacionGrupo(tipo, datos); };
+window.enviarEmailNotificacion = async (tipo, datos) => {
+    if(typeof emailjs === 'undefined') {
+        console.warn("EmailJS no está cargado. No se enviará la notificación.");
+        return;
+    }
+
+    try {
+        let templateParams = {
+            tipo_notificacion: tipo,
+            admin_email: ADMIN_EMAIL,
+            to_email: datos.target_email || ADMIN_EMAIL, // Si no hay target, lo enviamos al admin
+            usuario: datos.usuario || 'Sistema',
+            sede: datos.sede || 'N/A',
+            detalles: ''
+        };
+
+        if (tipo === 'nuevo_pedido') {
+            templateParams.asunto = `NUEVO PEDIDO - ${datos.sede} - ${datos.usuario}`;
+            templateParams.mensaje = `El usuario ${datos.usuario} ha solicitado insumos para la sede ${datos.sede}.`;
+            templateParams.detalles = datos.items.map(i => `${i.insumo}: ${i.cantidad}`).join('\n');
+        } else if (tipo === 'aprobado_parcial' || tipo === 'aprobado') {
+            templateParams.asunto = `PEDIDO APROBADO - ${datos.usuario}`;
+            templateParams.mensaje = `Su pedido ha sido aprobado.`;
+            templateParams.detalles = datos.items.map(i => `${i.insumo}: ${i.cantidad}`).join('\n');
+        } else if (tipo === 'stock_bajo') {
+            templateParams.asunto = `ALERTA DE STOCK BAJO - ${datos.insumo}`;
+            templateParams.mensaje = `El insumo ${datos.insumo} ha alcanzado un nivel crítico.`;
+            templateParams.detalles = `Stock Actual: ${datos.actual} | Mínimo: ${datos.minimo}`;
+        } else if (tipo === 'recibido') {
+            templateParams.asunto = `CONFIRMACIÓN DE RECEPCIÓN - ${datos.sede}`;
+            templateParams.mensaje = `El usuario ${datos.usuario} ha confirmado la recepción en ${datos.sede}.`;
+            templateParams.detalles = datos.items.map(i => `${i.insumo}: ${i.cantidad}`).join('\n');
+        }
+
+        await emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, templateParams, EMAIL_PUBLIC_KEY);
+        console.log(`Email enviado con éxito: ${tipo}`);
+    } catch (error) {
+        console.error("Error al enviar email a través de EmailJS:", error);
+    }
+};
 
 window.agregarProductoRapido = async () => {
     const nombre = document.getElementById("nombre-prod").value.trim().toUpperCase();
@@ -740,6 +807,69 @@ window.renderChart = (id, l, d, t, c, i, s) => {
         data: { labels: l, datasets: [{ label: t, data: d, backgroundColor: c, borderRadius: 5 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: id === 'locationChart', position: 'bottom' } } }
     }));
+};
+
+window.abrirModalEditarEntrada = (idEntrada, insumo, cantidadActual) => {
+    document.getElementById('edit-entrada-id').value = idEntrada;
+    document.getElementById('edit-entrada-insumo').value = insumo;
+    document.getElementById('edit-entrada-insumo-display').value = insumo;
+    document.getElementById('edit-entrada-cant-original').value = cantidadActual;
+    document.getElementById('edit-entrada-cantidad').value = cantidadActual;
+    document.getElementById('edit-entrada-motivo').value = "";
+    document.getElementById('modal-editar-entrada').classList.remove('hidden');
+};
+
+window.guardarEdicionEntrada = async () => {
+    const idEntrada = document.getElementById('edit-entrada-id').value;
+    const insumo = document.getElementById('edit-entrada-insumo').value.toLowerCase();
+    const cantOriginal = parseInt(document.getElementById('edit-entrada-cant-original').value);
+    const cantNueva = parseInt(document.getElementById('edit-entrada-cantidad').value);
+    const motivo = document.getElementById('edit-entrada-motivo').value.trim();
+
+    if (isNaN(cantNueva) || cantNueva < 0) return alert("Ingrese una cantidad válida mayor o igual a 0.");
+    if (!motivo) return alert("Debe ingresar el motivo de la corrección.");
+
+    const diferencia = cantNueva - cantOriginal;
+
+    if (diferencia === 0) {
+        alert("No se realizaron cambios en la cantidad.");
+        document.getElementById('modal-editar-entrada').classList.add('hidden');
+        return;
+    }
+
+    try {
+        const invRef = doc(db, "inventario", insumo);
+        const invSnap = await getDoc(invRef);
+        
+        if (!invSnap.exists()) return alert("El insumo ya no existe en la base de datos de inventario.");
+        
+        const stockActual = invSnap.data().cantidad;
+        const nuevoStock = stockActual + diferencia;
+
+        // Validamos que el administrador no intente restar más stock del que existe actualmente
+        if (nuevoStock < 0) {
+            return alert(`❌ Error matemático: La corrección dejaría el stock de inventario en negativo (${nuevoStock}). Verifique si ya se procesaron pedidos con este insumo.`);
+        }
+
+        // 1. Actualizar el inventario real
+        await updateDoc(invRef, { cantidad: nuevoStock });
+
+        // 2. Actualizar el registro histórico
+        const entRef = doc(db, "entradas_stock", idEntrada);
+        await updateDoc(entRef, { 
+            cantidad: cantNueva,
+            motivo_edicion: motivo,
+            editado_por: window.usuarioActual.id,
+            fecha_edicion: new Date().toLocaleString()
+        });
+
+        alert("✅ Entrada corregida y stock balanceado exitosamente.");
+        document.getElementById('modal-editar-entrada').classList.add('hidden');
+
+    } catch(e) {
+        console.error("Error al corregir entrada: ", e);
+        alert("Ocurrió un error de conexión al guardar.");
+    }
 };
 
 // --- 9. INICIALIZACIÓN AUTOMÁTICA DE LA APP ---
