@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FCILog</title>
+    <title>FCILog - InsuManager v13.5 Pro</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -36,7 +36,7 @@
                     Iniciar Sesión
                 </button>
             </div>
-            <p class="text-[10px] text-slate-300 mt-8 font-mono">v13.0 Pro Light</p>
+            <p class="text-[10px] text-slate-300 mt-8 font-mono">v13.5 Pro Light</p>
         </div>
     </div>
 
@@ -44,9 +44,7 @@
         
         <header class="md:hidden bg-white/90 backdrop-blur-md border-b border-slate-100 p-4 flex justify-between items-center sticky top-0 z-[50]">
             <span class="font-black text-indigo-600 text-xl tracking-tight"><i class="fas fa-cubes"></i> FCILog</span>
-            <button onclick="window.toggleMenu()" class="text-2xl text-slate-700 p-2 rounded-lg hover:bg-slate-100 transition cursor-pointer">
-                <i class="fas fa-bars"></i>
-            </button>
+            <button onclick="window.toggleMenu()" class="text-2xl text-slate-700 p-2 rounded-lg hover:bg-slate-100 transition cursor-pointer"><i class="fas fa-bars"></i></button>
         </header>
 
         <div class="flex flex-1">
@@ -213,6 +211,18 @@
                     <div id="lista-usuarios-db" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pb-20"></div>
                 </section>
 
+                <section id="pag-sedes" class="view hidden space-y-6 animate-fade-in">
+                    <div class="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <h3 class="font-black text-lg mb-6 flex items-center gap-2 text-indigo-900"><i class="fas fa-map-marker-alt"></i> Gestión de Sedes</h3>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div class="flex-1"><label class="label-form">Nombre de la Sede</label><input id="new-sede" placeholder="Ej: SUCURSAL NORTE" class="input-light uppercase"></div>
+                            <div class="flex items-end"><button onclick="window.guardarSede()" class="w-full sm:w-auto bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition h-12 flex justify-center items-center"><i class="fas fa-plus mr-2"></i> Añadir Sede</button></div>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-slate-800 mt-8 mb-4">Sedes Registradas (Disponibles para pedidos)</h4>
+                    <div id="lista-sedes-db" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-20"></div>
+                </section>
+
                 <section id="pag-solicitar" class="view hidden max-w-xl mx-auto space-y-6 animate-fade-in">
                     <div class="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
                         <div class="text-center mb-6">
@@ -224,7 +234,7 @@
                             <div>
                                 <label class="label-form">1. Sede de Destino</label>
                                 <select id="sol-ubicacion" class="input-light border-2 border-indigo-50 font-bold text-indigo-900 cursor-pointer">
-                                    <option value="" disabled selected>Seleccionar Sede...</option><option value="DC1">📍 DC1</option><option value="DC2">📍 DC2</option><option value="ONX">📍 ONX</option><option value="PDC1">📍 PDC1</option><option value="OCEANIA">📍 OCEANIA</option>
+                                    <option value="" disabled selected>Cargando Sedes...</option>
                                 </select>
                             </div>
                             <div>
@@ -295,7 +305,7 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3 pt-4">
-                    <button type="button" onclick="window.toggleModal('modal-factura', false)" class="py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
+                    <button type="button" onclick="window.cerrarModalFactura()" class="py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
                     <button type="button" onclick="window.guardarFactura()" class="py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg">Guardar</button>
                 </div>
             </div>
