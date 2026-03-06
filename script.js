@@ -16,11 +16,17 @@ window.usuarioActual = null;
 window.carritoGlobal = {};
 window.cachePedidos = [];
 window.cacheEntradas = [];
-window.todosLosGrupos = ["SERVICIOS GENERALES"]; // Grupo por defecto histórico
+window.todosLosGrupos = ["SERVICIOS GENERALES"]; 
 window.grupoActivo = "SERVICIOS GENERALES";
 
 const EMAIL_CFG = { s: 'service_a7yozqh', t: 'template_zglatmb', k: '2jVnfkJKKG0bpKN-U', admin: 'Emanuel.cedeno@fcipty.com' };
-const chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6'];
+
+// Paleta dinámica para las gráficas
+const chartPalette = [
+    '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', 
+    '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', 
+    '#3b82f6', '#f97316', '#a855f7', '#ef4444'
+];
 
 // --- 2. FUNCIONES DE INTERFAZ Y NAVEGACIÓN ---
 window.verPagina = (id) => {
@@ -109,11 +115,9 @@ window.cargarSesion = (datos) => {
             </div>`;
     }
 
-    // Activar botones de admin
     const btnAdmin = document.getElementById("btn-admin-stock");
     if(btnAdmin && ['admin','manager'].includes(datos.rol)) btnAdmin.classList.remove("hidden");
 
-    // Configurar menú de navegación
     const rutas = { 
         st:{id:'stats',n:'Dashboard',i:'chart-pie'}, 
         sk:{id:'stock',n:'Stock',i:'boxes'}, 
@@ -121,7 +125,7 @@ window.cargarSesion = (datos) => {
         pe:{id:'solicitudes',n:'Aprobaciones',i:'clipboard-check'}, 
         hs:{id:'historial',n:'Movimientos',i:'history'}, 
         fc:{id:'facturas',n:'Facturas',i:'file-invoice-dollar'},
-        cf:{id:'config',n:'Ajustes (Config)',i:'cogs'}, // NUEVA RUTA PARA ADMINS
+        cf:{id:'config',n:'Ajustes (Config)',i:'cogs'}, 
         us:{id:'usuarios',n:'Accesos',i:'users-cog'}, 
         mp:{id:'notificaciones',n:'Mis Solicitudes',i:'shipping-fast'} 
     };
@@ -137,9 +141,8 @@ window.cargarSesion = (datos) => {
         menuEl.innerHTML = menuActivo.map(x => `<button onclick="window.verPagina('${x.id}')" class="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-white border border-slate-100 flex items-center justify-center transition-colors"><i class="fas fa-${x.i}"></i></div>${x.n}</button>`).join('');
     }
 
-    // Configurar GRUPOS PERMITIDOS del usuario
-    let misGrupos = datos.grupos || ["SERVICIOS GENERALES"]; // Fallback a histórico
-    if(datos.rol === 'admin') misGrupos = window.todosLosGrupos; // Admin ve todo temporalmente, se actualiza en Sincronización
+    let misGrupos = datos.grupos || ["SERVICIOS GENERALES"]; 
+    if(datos.rol === 'admin') misGrupos = window.todosLosGrupos; 
 
     window.grupoActivo = misGrupos[0];
     window.renderizarSelectorGrupos(misGrupos);
@@ -169,11 +172,12 @@ window.cambiarGrupoActivo = (nuevoGrupo) => {
     const lblSol = document.getElementById("lbl-grupo-solicitud");
     if(lblSol) lblSol.innerText = window.grupoActivo;
 
-    window.carritoGlobal = {}; // Vaciar carrito al cambiar de departamento
-    window.procesarDatosInventario(); // Re-renderizar stock
-    window.procesarDatosPedidos(); // Re-renderizar pedidos
-    window.renderHistorialUnificado(); // Re-renderizar historial
-    window.actualizarDashboard(); // Re-renderizar graficos
+    window.carritoGlobal = {}; 
+    window.procesarDatosInventario(); 
+    window.procesarDatosPedidos(); 
+    window.renderHistorialUnificado(); 
+    window.procesarDatosFacturas(); // Actualiza facturas por grupo
+    window.actualizarDashboard(); 
 };
 
 window.iniciarSesion = async () => {
@@ -191,16 +195,12 @@ window.iniciarSesion = async () => {
         if (snap.exists() && snap.data().pass === pass) {
             window.cargarSesion({ id: user, ...snap.data() });
         } else alert("Credenciales incorrectas.");
-    } catch (e) { 
-        console.error("Error Login:", e); alert("Error de conexión a la base de datos."); 
-    }
+    } catch (e) { alert("Error de conexión a la base de datos."); }
 };
 
 window.cerrarSesion = () => { localStorage.removeItem("fcilog_session"); location.reload(); };
 
 // --- 4. CORE REALTIME (Sincronización) ---
-
-// Variables para guardar datos crudos de Firebase y filtrarlos localmente
 let rawInventario = [];
 let rawEntradas = [];
 let rawFacturas = [];
@@ -208,9 +208,8 @@ let rawFacturas = [];
 window.activarSincronizacion = () => {
     const uRol = window.usuarioActual.rol;
 
-    // 1. SINCRONIZAR CONFIGURACIONES (GRUPOS Y SEDES)
     onSnapshot(collection(db, "grupos"), snap => {
-        window.todosLosGrupos = ["SERVICIOS GENERALES"]; // Base obligatoria
+        window.todosLosGrupos = ["SERVICIOS GENERALES"];
         let listHTML = `<div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center shadow-sm"><span class="font-black uppercase text-indigo-700"><i class="fas fa-lock text-xs mr-1"></i> SERVICIOS GENERALES</span><span class="text-[10px] bg-indigo-200 text-indigo-700 px-2 rounded-full">Base</span></div>`;
         
         snap.forEach(d => {
@@ -224,12 +223,7 @@ window.activarSincronizacion = () => {
                 </div>`;
             }
         });
-
-        // Actualizar selector global si es admin
-        if(uRol === 'admin') {
-            window.renderizarSelectorGrupos(window.todosLosGrupos);
-        }
-
+        if(uRol === 'admin') window.renderizarSelectorGrupos(window.todosLosGrupos);
         const lG = document.getElementById("lista-grupos-db");
         if(lG) lG.innerHTML = listHTML;
         window.actualizarCheckboxesGrupos();
@@ -238,7 +232,6 @@ window.activarSincronizacion = () => {
     onSnapshot(collection(db, "sedes"), snap => {
         let options = '<option value="" disabled selected>Seleccionar Sede...</option>';
         let listHTML = '';
-        
         const sedesArray = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.nombre.localeCompare(b.nombre));
         
         sedesArray.forEach(sede => {
@@ -256,28 +249,24 @@ window.activarSincronizacion = () => {
         if(divSedes) divSedes.innerHTML = listHTML;
     });
 
-    // 2. SINCRONIZAR INVENTARIO
     onSnapshot(collection(db, "inventario"), snap => {
         rawInventario = [];
         snap.forEach(ds => { rawInventario.push({ id: ds.id, ...ds.data() }); });
         window.procesarDatosInventario();
     });
 
-    // 3. SINCRONIZAR PEDIDOS
     onSnapshot(collection(db, "pedidos"), snap => {
         window.pedidosRaw = [];
         snap.forEach(ds => { window.pedidosRaw.push({ id: ds.id, ...ds.data() }); });
         window.procesarDatosPedidos();
     });
 
-    // 4. SINCRONIZAR ENTRADAS
     onSnapshot(collection(db, "entradas_stock"), snap => {
         rawEntradas = [];
         snap.forEach(x => { rawEntradas.push({id: x.id, ...x.data()}); });
         window.renderHistorialUnificado();
     });
 
-    // 5. SINCRONIZAR FACTURAS
     if(['admin','manager'].includes(uRol)) {
         onSnapshot(collection(db, "facturas"), snap => {
             rawFacturas = [];
@@ -286,7 +275,6 @@ window.activarSincronizacion = () => {
         });
     }
 
-    // 6. SINCRONIZAR USUARIOS
     if(uRol === 'admin') {
         onSnapshot(collection(db, "usuarios"), snap => {
             const divUsuarios = document.getElementById("lista-usuarios-db");
@@ -294,10 +282,8 @@ window.activarSincronizacion = () => {
             divUsuarios.innerHTML = "";
             
             snap.forEach(d => {
-                const u = d.data(); 
-                const jsId = d.id.replace(/'/g, "\\'");
+                const u = d.data(); const jsId = d.id.replace(/'/g, "\\'");
                 const gStr = (u.grupos || ["SERVICIOS GENERALES"]).join(", ");
-                
                 divUsuarios.innerHTML += `
                 <div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm">
                     <div class="truncate pr-2 w-full">
@@ -325,13 +311,8 @@ window.procesarDatosInventario = () => {
     const cartContainer = document.getElementById("contenedor-lista-pedidos");
     const dataList = document.getElementById("lista-sugerencias");
     
-    if(grid) grid.innerHTML = ""; 
-    if(cartContainer) cartContainer.innerHTML = ""; 
-    if(dataList) dataList.innerHTML = "";
-    
+    if(grid) grid.innerHTML = ""; if(cartContainer) cartContainer.innerHTML = ""; if(dataList) dataList.innerHTML = "";
     let tr = 0, ts = 0;
-
-    // Filtrar solo los del grupo activo
     const invFiltrado = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
 
     invFiltrado.forEach(p => {
@@ -340,7 +321,6 @@ window.procesarDatosInventario = () => {
         const jsId = p.id.replace(/'/g, "\\'"); 
 
         tr++; ts += p.cantidad; 
-        
         if(dataList) dataList.innerHTML += `<option value="${nombre}">`;
 
         const isAdmin = ['admin','manager'].includes(window.usuarioActual.rol);
@@ -353,31 +333,12 @@ window.procesarDatosInventario = () => {
         const isLow = (p.stockMinimo && p.cantidad <= p.stockMinimo);
         const border = isLow ? "border-2 border-red-500 bg-red-50" : "border border-slate-100 bg-white";
         
-        if(grid) {
-            grid.innerHTML += `
-            <div class="${border} p-4 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col item-tarjeta">
-                <div class="flex justify-between items-start">${img}${controls}</div>
-                <h4 class="font-bold text-slate-700 text-xs truncate" title="${nombre}">${nombre} ${isLow?'<i class="fas fa-exclamation-circle text-red-500 animate-pulse"></i>':''}</h4>
-                <div class="flex justify-between items-end mt-1"><p class="text-2xl font-black text-slate-800">${p.cantidad}</p>${p.precio ? `<span class="text-xs font-bold text-emerald-600">$${p.precio}</span>` : ''}</div>
-            </div>`;
-        }
+        if(grid) grid.innerHTML += `<div class="${border} p-4 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col item-tarjeta"><div class="flex justify-between items-start">${img}${controls}</div><h4 class="font-bold text-slate-700 text-xs truncate" title="${nombre}">${nombre} ${isLow?'<i class="fas fa-exclamation-circle text-red-500 animate-pulse"></i>':''}</h4><div class="flex justify-between items-end mt-1"><p class="text-2xl font-black text-slate-800">${p.cantidad}</p>${p.precio ? `<span class="text-xs font-bold text-emerald-600">$${p.precio}</span>` : ''}</div></div>`;
 
         if(cartContainer && p.cantidad > 0) {
             const enCarro = window.carritoGlobal[p.id] || 0;
             const active = enCarro > 0 ? "border-indigo-500 bg-indigo-50/50" : "border-slate-100 bg-white";
-            
-            cartContainer.innerHTML += `
-            <div id="row-${safeId}" class="flex items-center justify-between p-3 rounded-xl border ${active} transition-all shadow-sm item-tarjeta">
-                <div class="flex items-center gap-3 overflow-hidden">
-                    ${p.imagen?`<img src="${p.imagen}" class="w-8 h-8 rounded-md object-cover">`:''}
-                    <div class="truncate"><p class="font-bold text-xs uppercase text-slate-700 truncate">${nombre}</p><p class="text-[10px] text-slate-400">Disp: ${p.cantidad}</p></div>
-                </div>
-                <div class="flex items-center gap-2 bg-white rounded-lg p-1 border flex-shrink-0 z-10 relative">
-                    <button type="button" onclick="window.ajustarCantidad('${jsId}', -1)" class="w-8 h-8 rounded-md bg-slate-100 hover:bg-slate-200 font-black text-lg text-slate-600 transition">-</button>
-                    <span id="cant-${safeId}" class="w-8 text-center font-bold text-indigo-600 text-sm">${enCarro}</span>
-                    <button type="button" onclick="window.ajustarCantidad('${jsId}', 1)" class="w-8 h-8 rounded-md bg-indigo-100 hover:bg-indigo-200 font-black text-lg text-indigo-600 transition" ${enCarro>=p.cantidad?'disabled':''}>+</button>
-                </div>
-            </div>`;
+            cartContainer.innerHTML += `<div id="row-${safeId}" class="flex items-center justify-between p-3 rounded-xl border ${active} transition-all shadow-sm item-tarjeta"><div class="flex items-center gap-3 overflow-hidden">${p.imagen?`<img src="${p.imagen}" class="w-8 h-8 rounded-md object-cover">`:''}<div class="truncate"><p class="font-bold text-xs uppercase text-slate-700 truncate">${nombre}</p><p class="text-[10px] text-slate-400">Disp: ${p.cantidad}</p></div></div><div class="flex items-center gap-2 bg-white rounded-lg p-1 border flex-shrink-0 z-10 relative"><button type="button" onclick="window.ajustarCantidad('${jsId}', -1)" class="w-8 h-8 rounded-md bg-slate-100 hover:bg-slate-200 font-black text-lg text-slate-600 transition">-</button><span id="cant-${safeId}" class="w-8 text-center font-bold text-indigo-600 text-sm">${enCarro}</span><button type="button" onclick="window.ajustarCantidad('${jsId}', 1)" class="w-8 h-8 rounded-md bg-indigo-100 hover:bg-indigo-200 font-black text-lg text-indigo-600 transition" ${enCarro>=p.cantidad?'disabled':''}>+</button></div></div>`;
         }
     });
 
@@ -386,7 +347,6 @@ window.procesarDatosInventario = () => {
 };
 
 window.procesarDatosPedidos = () => {
-    // Filtrar la cache de pedidos global a solo el grupo activo
     window.cachePedidos = window.pedidosRaw.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
 
     let grupos = {}; let pendingCount = 0;
@@ -403,7 +363,6 @@ window.procesarDatosPedidos = () => {
         if(p.estado === 'pendiente') pendingCount++;
     });
 
-    // Render Mis Pedidos
     const misPedidos = window.cachePedidos.filter(p => p.usuarioId === window.usuarioActual.id).sort((a,b) => b.timestamp - a.timestamp);
     misPedidos.forEach(p => {
         let btns = "";
@@ -414,24 +373,12 @@ window.procesarDatosPedidos = () => {
         }
         
         const prio = p.prioridad || 'normal';
-        const cardHtml = `
-        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm item-tarjeta">
-            <div class="flex justify-between items-start">
-                <div>
-                    <span class="badge status-${p.estado}">${p.estado}</span>
-                    <h4 class="font-black text-slate-700 uppercase text-sm mt-2">${p.insumoNom} <span class="badge status-pri-${prio} ml-1">${prio}</span></h4>
-                    <p class="text-xs text-slate-400 font-mono mt-1">x${p.cantidad} • ${p.ubicacion}</p>
-                    <p class="text-[10px] text-slate-300 mt-1">${p.fecha.split(',')[0]}</p>
-                </div>
-            </div>
-            ${btns}
-        </div>`;
+        const cardHtml = `<div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm item-tarjeta"><div class="flex justify-between items-start"><div><span class="badge status-${p.estado}">${p.estado}</span><h4 class="font-black text-slate-700 uppercase text-sm mt-2">${p.insumoNom} <span class="badge status-pri-${prio} ml-1">${prio}</span></h4><p class="text-xs text-slate-400 font-mono mt-1">x${p.cantidad} • ${p.ubicacion}</p><p class="text-[10px] text-slate-300 mt-1">${p.fecha.split(',')[0]}</p></div></div>${btns}</div>`;
         
         if(['pendiente', 'aprobado'].includes(p.estado)) { if(lActive) lActive.innerHTML += cardHtml; } 
         else { if(lHistory) lHistory.innerHTML += cardHtml; }
     });
 
-    // Render Admin Grupos
     if(lAdmin && ['admin','manager','supervisor'].includes(window.usuarioActual.rol)) {
         Object.values(grupos).sort((a,b) => b.ts - a.ts).forEach(g => {
             const pendingItems = g.items.filter(i => i.estado === 'pendiente');
@@ -446,17 +393,7 @@ window.procesarDatosPedidos = () => {
                     itemsStr += `<span class="bg-slate-50 px-2 py-1 rounded text-[10px] border border-slate-200 uppercase font-bold text-slate-600">${i.insumoNom} (x${i.cantidad}) ${iconPri}</span>`;
                 });
 
-                lAdmin.innerHTML += `
-                <div class="bg-white p-5 rounded-2xl border-l-4 ${headerBorder} shadow-sm cursor-pointer hover:shadow-md transition group" onclick="window.abrirModalGrupo('${g.items[0].batchId || g.ts}')">
-                    <div class="flex justify-between items-center mb-3">
-                        <div>
-                            <h4 class="font-black text-slate-800 text-sm uppercase flex items-center"><i class="fas fa-user text-slate-300 mr-1"></i> ${g.user} ${badgeUrgente}</h4>
-                            <span class="text-xs text-slate-400 font-medium">${g.sede} • ${g.date.split(',')[0]}</span>
-                        </div>
-                        <span class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition"><i class="fas fa-chevron-right text-xs"></i></span>
-                    </div>
-                    <div class="flex flex-wrap gap-1.5">${itemsStr}</div>
-                </div>`;
+                lAdmin.innerHTML += `<div class="bg-white p-5 rounded-2xl border-l-4 ${headerBorder} shadow-sm cursor-pointer hover:shadow-md transition group" onclick="window.abrirModalGrupo('${g.items[0].batchId || g.ts}')"><div class="flex justify-between items-center mb-3"><div><h4 class="font-black text-slate-800 text-sm uppercase flex items-center"><i class="fas fa-user text-slate-300 mr-1"></i> ${g.user} ${badgeUrgente}</h4><span class="text-xs text-slate-400 font-medium">${g.sede} • ${g.date.split(',')[0]}</span></div><span class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition"><i class="fas fa-chevron-right text-xs"></i></span></div><div class="flex flex-wrap gap-1.5">${itemsStr}</div></div>`;
             }
         });
     }
@@ -471,13 +408,15 @@ window.procesarDatosFacturas = () => {
     if(!tf) return;
     tf.innerHTML = "";
     
-    // Filtrar facturas por grupo activo
     const facturasFiltradas = rawFacturas.filter(f => (f.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
 
     facturasFiltradas.sort((a,b) => b.timestamp - a.timestamp).forEach(f => {
         const docLink = (f.archivo_url && f.archivo_url.trim() !== "") 
             ? `<a href="${f.archivo_url}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg text-[10px] transition inline-flex items-center gap-1 cursor-pointer"><i class="fas fa-external-link-alt"></i> Ver Doc</a>` 
             : '<span class="text-slate-300 text-[10px] font-bold">N/A</span>';
+            
+        // Botón de eliminar con confirmación
+        const btnDelete = `<button onclick="window.abrirModalEliminarFactura('${f.id}')" class="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition inline-flex items-center justify-center" title="Eliminar Factura"><i class="fas fa-trash-alt text-xs"></i></button>`;
 
         tf.innerHTML += `
         <tr class="hover:bg-slate-50 border-b border-slate-50 last:border-0 transition">
@@ -486,6 +425,7 @@ window.procesarDatosFacturas = () => {
             <td class="p-4 font-black text-emerald-600 text-right text-sm">$${parseFloat(f.gasto).toFixed(2)}</td>
             <td class="p-4 text-slate-400 uppercase text-[10px] text-center font-bold">${f.usuarioRegistro}</td>
             <td class="p-4 text-center">${docLink}</td>
+            <td class="p-4 text-center">${btnDelete}</td>
         </tr>`;
     });
 };
@@ -495,7 +435,6 @@ window.renderHistorialUnificado = () => {
     if(!t) return;
     t.innerHTML = "";
     
-    // Filtrar entradas por grupo
     const entradasActivas = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
 
     const entradasFmt = entradasActivas.map(e => ({ 
@@ -526,31 +465,74 @@ window.renderHistorialUnificado = () => {
     });
 };
 
+// GRAFICAS ESTILIZADAS CON FILTROS DINAMICOS
+window.renderChart = (id, labels, data, title, palette, chartInstance, setInstance) => { 
+    const ctx = document.getElementById(id); 
+    if(!ctx) return; 
+    if(chartInstance) chartInstance.destroy(); 
+    
+    // Convertir paleta hex a colores con opacidad 80% (agregar 'CC' al final del HEX)
+    const bgColors = palette.map(c => c + 'CC');
+    const borderColors = palette;
+
+    setInstance(new Chart(ctx, { 
+        type: id === 'locationChart' ? 'doughnut' : 'bar', 
+        data: { 
+            labels: labels, 
+            datasets: [{ 
+                label: title, 
+                data: data, 
+                backgroundColor: id === 'locationChart' ? palette : bgColors, 
+                borderColor: borderColors,
+                borderWidth: 1,
+                borderRadius: id === 'locationChart' ? 0 : 8 // Bordes redondeados para barras
+            }] 
+        }, 
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { 
+                legend: { display: id === 'locationChart', position: 'bottom' } 
+            },
+            scales: id === 'locationChart' ? {} : { y: { beginAtZero: true } }
+        } 
+    })); 
+};
+
 window.actualizarDashboard = () => {
     const inputDesde = document.getElementById("dash-desde")?.value;
     const inputHasta = document.getElementById("dash-hasta")?.value;
 
-    let dPedidos = window.cachePedidos;
+    let dPedidos = window.cachePedidos; // Ya está filtrado por grupo activo
 
+    // 1. Filtrar pedidos (Sedes) por fecha
     if(inputDesde || inputHasta) {
-        const tDesde = inputDesde ? new Date(inputDesde).getTime() : 0;
-        const tHasta = inputHasta ? new Date(inputHasta).setHours(23,59,59,999) : Infinity;
+        const tDesde = inputDesde ? new Date(inputDesde + 'T00:00:00').getTime() : 0;
+        const tHasta = inputHasta ? new Date(inputHasta + 'T23:59:59').getTime() : Infinity;
         dPedidos = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
     }
 
+    // Calcular totales de solicitudes por sede en base a los pedidos filtrados
     let sedesCount = {};
-    dPedidos.forEach(p => { if(p.estado !== 'rechazado') sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad; });
+    dPedidos.forEach(p => { 
+        if(p.estado !== 'rechazado') {
+            sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad; 
+        }
+    });
 
-    const grid = document.querySelectorAll("#lista-inventario h4");
-    const gridVals = document.querySelectorAll("#lista-inventario p.text-2xl");
-    let labels = [], dataStock = [];
-    for(let i=0; i<grid.length; i++) {
-        labels.push(grid[i].title.substring(0,10));
-        dataStock.push(parseInt(gridVals[i].innerText));
+    // 2. Extraer datos del Stock Actual (No se filtra por fecha porque es el stock presente)
+    const gridH4 = document.querySelectorAll("#lista-inventario h4");
+    const gridP = document.querySelectorAll("#lista-inventario p.text-2xl");
+    let labelsStock = [], dataStock = [];
+    
+    for(let i=0; i<gridH4.length; i++) {
+        labelsStock.push(gridH4[i].title.substring(0,12));
+        dataStock.push(parseInt(gridP[i].innerText));
     }
 
-    window.renderChart('stockChart', labels, dataStock, 'Stock', chartPalette, window.stockChart, ch => window.stockChart = ch);
-    window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Sedes', chartPalette, window.locationChart, ch => window.locationChart = ch);
+    // Renderizar gráficas con la nueva paleta estética
+    window.renderChart('stockChart', labelsStock, dataStock, 'Stock Actual', chartPalette, window.stockChart, ch => window.stockChart = ch);
+    window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Artículos Solicitados', chartPalette, window.locationChart, ch => window.locationChart = ch);
 };
 
 // --- 6. LOGICA DE NEGOCIO Y MODALES ---
@@ -593,7 +575,7 @@ window.procesarSolicitudMultiple = async () => {
                 cantidad: cant, 
                 ubicacion: ubi, 
                 prioridad: prio,
-                grupo: window.grupoActivo, // SE GUARDA CON EL GRUPO ACTIVO
+                grupo: window.grupoActivo, 
                 estado: "pendiente", 
                 fecha: fechaStr, 
                 timestamp: timestamp,
@@ -604,15 +586,15 @@ window.procesarSolicitudMultiple = async () => {
         });
         
         await batch.commit(); 
-        
         window.enviarEmailNotificacion('nuevo_pedido', { usuario: window.usuarioActual.id, sede: ubi, items: itemsData, prioridad: prio });
         alert("✅ Pedido Enviado Exitosamente."); 
         window.carritoGlobal = {}; document.getElementById("sol-ubicacion").value=""; document.getElementById("sol-prioridad").value="normal";
-        window.procesarDatosInventario(); // Reset carrito UI
+        window.procesarDatosInventario(); 
         window.verPagina('notificaciones');
-    } catch (error) { console.error("Error batch:", error); alert("Ocurrió un error al procesar el pedido."); }
+    } catch (error) { alert("Ocurrió un error al procesar el pedido."); }
 };
 
+// -- LÓGICA DE FACTURAS (ELIMINAR) --
 window.abrirModalFactura = () => { 
     document.getElementById("fact-proveedor").value = ""; 
     document.getElementById("fact-gasto").value = ""; 
@@ -622,9 +604,7 @@ window.abrirModalFactura = () => {
     document.getElementById("modal-factura").classList.remove("hidden");
 };
 
-window.cerrarModalFactura = () => {
-    document.getElementById("modal-factura").classList.add("hidden");
-};
+window.cerrarModalFactura = () => { document.getElementById("modal-factura").classList.add("hidden"); };
 
 window.guardarFactura = async () => {
     const pv = document.getElementById("fact-proveedor").value.trim();
@@ -636,18 +616,48 @@ window.guardarFactura = async () => {
 
     try {
         await addDoc(collection(db, "facturas"), { 
-            proveedor: pv, 
-            gasto: ga, 
-            fecha_compra: fe, 
-            archivo_url: ar, 
-            grupo: window.grupoActivo, // SE GUARDA CON EL GRUPO ACTIVO
-            usuarioRegistro: window.usuarioActual.id, 
-            timestamp: Date.now(), 
-            fecha_registro: new Date().toLocaleString() 
+            proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, 
+            grupo: window.grupoActivo, usuarioRegistro: window.usuarioActual.id, 
+            timestamp: Date.now(), fecha_registro: new Date().toLocaleString() 
         });
         alert("✅ Factura registrada.");
         window.cerrarModalFactura();
     } catch(e) { alert("Error guardando factura."); }
+};
+
+window.abrirModalEliminarFactura = (id) => {
+    document.getElementById("elim-factura-id").value = id;
+    document.getElementById("elim-factura-motivo").value = "";
+    document.getElementById("modal-eliminar-factura").classList.remove("hidden");
+};
+
+window.confirmarEliminarFactura = async () => {
+    const id = document.getElementById("elim-factura-id").value;
+    const motivo = document.getElementById("elim-factura-motivo").value.trim();
+    
+    if(!motivo) return alert("Debe justificar el motivo de la eliminación para la auditoría.");
+    
+    try {
+        const refFactura = doc(db, "facturas", id);
+        const snap = await getDoc(refFactura);
+        
+        if (snap.exists()) {
+            const data = snap.data();
+            // Guardamos la factura en una colección de papelera para auditorías futuras
+            await addDoc(collection(db, "facturas_eliminadas"), {
+                ...data,
+                motivo_eliminacion: motivo,
+                eliminado_por: window.usuarioActual.id,
+                fecha_eliminacion: new Date().toLocaleString(),
+                timestamp_eliminacion: Date.now()
+            });
+            
+            // Eliminamos permanentemente del sistema activo
+            await deleteDoc(refFactura);
+            alert("🗑️ Factura eliminada correctamente.");
+            document.getElementById("modal-eliminar-factura").classList.add("hidden");
+        }
+    } catch(e) { console.error(e); alert("Hubo un error al eliminar la factura."); }
 };
 
 window.agregarProductoRapido = async () => {
@@ -664,18 +674,14 @@ window.agregarProductoRapido = async () => {
             alert(`✅ Stock actualizado: ${n}`);
         } else {
             if(confirm(`"${n}" no existe. ¿Crear nuevo en ${window.grupoActivo}?`)) {
-                await setDoc(r, { cantidad: c, grupo: window.grupoActivo }); // SE GUARDA CON EL GRUPO ACTIVO
+                await setDoc(r, { cantidad: c, grupo: window.grupoActivo }); 
                 alert(`✅ Producto creado: ${n}`);
             } else return;
         }
         
         await addDoc(collection(db, "entradas_stock"), { 
-            insumo: n, 
-            cantidad: c, 
-            grupo: window.grupoActivo, // SE GUARDA CON EL GRUPO ACTIVO
-            usuario: window.usuarioActual.id, 
-            fecha: new Date().toLocaleString(), 
-            timestamp: Date.now() 
+            insumo: n, cantidad: c, grupo: window.grupoActivo, 
+            usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() 
         });
         
         document.getElementById("modal-insumo").classList.add("hidden");
@@ -725,13 +731,7 @@ window.gestionarPedido = async (pid, accion, ins) => {
             const newStock = iSnap.data().cantidad - val;
             await updateDoc(iRef, { cantidad: newStock });
             
-            await updateDoc(pRef, { 
-                estado: "aprobado", 
-                cantidad: val, 
-                entregado_por: window.usuarioActual.id,
-                fecha_aprobado: new Date().toLocaleString(), 
-                timestamp_aprobado: Date.now() 
-            });
+            await updateDoc(pRef, { estado: "aprobado", cantidad: val, entregado_por: window.usuarioActual.id, fecha_aprobado: new Date().toLocaleString(), timestamp_aprobado: Date.now() });
             
             if(emailSolicitante) window.enviarEmailNotificacion('aprobado_parcial', { usuario: pData.usuarioId, items: [{insumo:ins, cantidad:val}], target_email: emailSolicitante });
             if (newStock <= (iSnap.data().stockMinimo || 0)) window.enviarEmailNotificacion('stock_bajo', { insumo: ins, actual: newStock, minimo: iSnap.data().stockMinimo });
@@ -783,8 +783,7 @@ window.descargarReporte = async () => {
     const obtenerMesAno = (timestamp) => {
         if(!timestamp) return 'N/A';
         const d = new Date(timestamp);
-        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        return `${meses[d.getMonth()]} ${d.getFullYear()}`;
+        return `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]} ${d.getFullYear()}`;
     };
 
     const calcularTiempo = (inicio, fin) => {
@@ -822,7 +821,6 @@ window.descargarReporte = async () => {
     XLSX.writeFile(wb, `Reporte_FCILog_${window.grupoActivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
 
-
 // --- 8. CONFIGURACIÓN ADMIN (SED Y GRUPOS) ---
 
 window.guardarSede = async () => {
@@ -856,7 +854,6 @@ window.actualizarCheckboxesGrupos = () => {
     `).join('');
 };
 
-
 // --- 9. USUARIOS Y DOM ---
 
 window.guardarUsuario = async () => {
@@ -865,23 +862,13 @@ window.guardarUsuario = async () => {
     const e = document.getElementById("new-email").value.trim(); 
     const r = document.getElementById("new-role").value; 
     
-    // Recolectar grupos seleccionados
     const checkboxes = document.querySelectorAll('.chk-grupo:checked');
     let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value);
     
-    if(gruposSeleccionados.length === 0) {
-        gruposSeleccionados = ["SERVICIOS GENERALES"]; // Fallback de seguridad
-    }
-
+    if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"]; 
     if(!id || !p) return alert("Faltan datos obligatorios."); 
     
-    await setDoc(doc(db,"usuarios",id), { 
-        pass: p, 
-        rol: r, 
-        email: e, 
-        grupos: gruposSeleccionados 
-    }, { merge: true }); 
-    
+    await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados }, { merge: true }); 
     alert("Usuario guardado exitosamente."); 
     window.cancelarEdicionUsuario();
 };
@@ -899,11 +886,8 @@ window.prepararEdicionUsuario = async (userId) => {
     document.getElementById("new-email").value = u.email || ""; 
     document.getElementById("new-role").value = u.rol; 
     
-    // Marcar checkboxes correspondientes
     const gruposUsuario = u.grupos || ["SERVICIOS GENERALES"];
-    document.querySelectorAll('.chk-grupo').forEach(chk => {
-        chk.checked = gruposUsuario.includes(chk.value);
-    });
+    document.querySelectorAll('.chk-grupo').forEach(chk => { chk.checked = gruposUsuario.includes(chk.value); });
 
     document.getElementById("btn-guardar-usuario").innerText = "Actualizar"; 
     document.getElementById("cancel-edit-msg").classList.remove("hidden"); 
@@ -940,6 +924,7 @@ window.prepararEdicionProducto = async(id) => {
     if(d.imagen) { preview.src = d.imagen; preview.classList.remove('hidden'); } else { preview.classList.add('hidden'); } 
     document.getElementById('modal-detalles').classList.remove('hidden'); 
 };
+
 window.guardarDetallesProducto = async () => { 
     const id = document.getElementById('edit-prod-id').value; 
     const p = parseFloat(document.getElementById('edit-prod-precio').value)||0; 
@@ -950,9 +935,7 @@ window.guardarDetallesProducto = async () => {
 };
 
 window.eliminarDato = async (coleccion, id) => { 
-    if(confirm("¿Eliminar registro permanentemente?")) {
-        await deleteDoc(doc(db, coleccion, id)); 
-    }
+    if(confirm("¿Eliminar registro permanentemente?")) await deleteDoc(doc(db, coleccion, id)); 
 };
 
 window.abrirModalEditarEntrada = (idEntrada, insumo, cantidadActual) => { 
@@ -993,17 +976,6 @@ window.guardarEdicionEntrada = async () => {
     } catch(e) { console.error(e); alert("Ocurrió un error."); }
 };
 
-window.renderChart = (id, l, d, t, c, i, s) => { 
-    const x = document.getElementById(id); 
-    if(!x) return; 
-    if(i) i.destroy(); 
-    s(new Chart(x, { 
-        type: id === 'locationChart' ? 'doughnut' : 'bar', 
-        data: { labels: l, datasets: [{ label: t, data: d, backgroundColor: c, borderRadius: 5 }] }, 
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: id === 'locationChart', position: 'bottom' } } } 
-    })); 
-};
-
 window.enviarEmailNotificacion = async (tipo, datos) => {
     if(typeof emailjs === 'undefined') return;
     try {
@@ -1029,7 +1001,7 @@ window.enviarEmailNotificacion = async (tipo, datos) => {
         }
 
         await emailjs.send(EMAIL_CFG.s, EMAIL_CFG.t, templateParams, EMAIL_CFG.k);
-    } catch (error) { console.error("Error EmailJS:", error); }
+    } catch (error) {}
 };
 
 // --- 10. INICIALIZACIÓN DE LA APP ---
@@ -1040,7 +1012,6 @@ const inicializarApp = () => {
         if(sesion) window.cargarSesion(JSON.parse(sesion));
         
         if (typeof cloudinary !== "undefined") {
-            // Widget para Insumos (Imágenes)
             window.cloudinaryWidget = cloudinary.createUploadWidget({
                 cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos'
             }, (error, result) => { 
@@ -1059,14 +1030,8 @@ const inicializarApp = () => {
                 newBtn.addEventListener("click", (e) => { e.preventDefault(); if(window.cloudinaryWidget) window.cloudinaryWidget.open(); }, false); 
             }
 
-            // Widget para Facturas (Documentos en General)
             window.cloudinaryFacturasWidget = cloudinary.createUploadWidget({
-                cloudName: 'df79cjklp', 
-                uploadPreset: 'insumos', 
-                sources: ['local'], 
-                multiple: false, 
-                folder: 'fcilog_facturas',
-                resourceType: 'auto'
+                cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local'], multiple: false, folder: 'fcilog_facturas', resourceType: 'auto'
             }, (error, result) => { 
                 if (!error && result && result.event === "success") { 
                     document.getElementById('fact-archivo-url').value = result.info.secure_url; 
@@ -1081,6 +1046,6 @@ const inicializarApp = () => {
                 newBtnFact.addEventListener("click", (e) => { e.preventDefault(); if(window.cloudinaryFacturasWidget) window.cloudinaryFacturasWidget.open(); }, false); 
             }
         }
-    } catch(e) { console.error("Error inicializando:", e); }
+    } catch(e) {}
 };
 window.addEventListener('DOMContentLoaded', inicializarApp);
