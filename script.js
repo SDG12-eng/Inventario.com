@@ -28,6 +28,11 @@ const chartPalette = [
     '#3b82f6', '#f97316', '#a855f7', '#ef4444'
 ];
 
+// Datos en crudo
+let rawInventario = [];
+let rawEntradas = [];
+let rawFacturas = [];
+
 // --- 2. FUNCIONES DE INTERFAZ Y NAVEGACIÓN ---
 window.verPagina = (id) => {
     document.querySelectorAll(".view").forEach(v => {
@@ -176,7 +181,7 @@ window.cambiarGrupoActivo = (nuevoGrupo) => {
     window.procesarDatosInventario(); 
     window.procesarDatosPedidos(); 
     window.renderHistorialUnificado(); 
-    window.procesarDatosFacturas(); // Actualiza facturas por grupo
+    window.procesarDatosFacturas(); 
     window.actualizarDashboard(); 
 };
 
@@ -201,10 +206,6 @@ window.iniciarSesion = async () => {
 window.cerrarSesion = () => { localStorage.removeItem("fcilog_session"); location.reload(); };
 
 // --- 4. CORE REALTIME (Sincronización) ---
-let rawInventario = [];
-let rawEntradas = [];
-let rawFacturas = [];
-
 window.activarSincronizacion = () => {
     const uRol = window.usuarioActual.rol;
 
@@ -344,6 +345,9 @@ window.procesarDatosInventario = () => {
 
     const elTotal = document.getElementById("metrica-total"); if(elTotal) elTotal.innerText = tr;
     const elStock = document.getElementById("metrica-stock"); if(elStock) elStock.innerText = ts;
+    
+    // Forzamos actualización para asegurar que el Dashboard dibuje correctamente
+    window.actualizarDashboard();
 };
 
 window.procesarDatosPedidos = () => {
@@ -415,7 +419,6 @@ window.procesarDatosFacturas = () => {
             ? `<a href="${f.archivo_url}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg text-[10px] transition inline-flex items-center gap-1 cursor-pointer"><i class="fas fa-external-link-alt"></i> Ver Doc</a>` 
             : '<span class="text-slate-300 text-[10px] font-bold">N/A</span>';
             
-        // Botón de eliminar con confirmación
         const btnDelete = `<button onclick="window.abrirModalEliminarFactura('${f.id}')" class="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition inline-flex items-center justify-center" title="Eliminar Factura"><i class="fas fa-trash-alt text-xs"></i></button>`;
 
         tf.innerHTML += `
@@ -471,7 +474,7 @@ window.renderChart = (id, labels, data, title, palette, chartInstance, setInstan
     if(!ctx) return; 
     if(chartInstance) chartInstance.destroy(); 
     
-    // Convertir paleta hex a colores con opacidad 80% (agregar 'CC' al final del HEX)
+    // Paleta con opacidad para fondo
     const bgColors = palette.map(c => c + 'CC');
     const borderColors = palette;
 
@@ -485,7 +488,7 @@ window.renderChart = (id, labels, data, title, palette, chartInstance, setInstan
                 backgroundColor: id === 'locationChart' ? palette : bgColors, 
                 borderColor: borderColors,
                 borderWidth: 1,
-                borderRadius: id === 'locationChart' ? 0 : 8 // Bordes redondeados para barras
+                borderRadius: id === 'locationChart' ? 0 : 8 
             }] 
         }, 
         options: { 
@@ -503,16 +506,15 @@ window.actualizarDashboard = () => {
     const inputDesde = document.getElementById("dash-desde")?.value;
     const inputHasta = document.getElementById("dash-hasta")?.value;
 
-    let dPedidos = window.cachePedidos; // Ya está filtrado por grupo activo
+    let dPedidos = window.cachePedidos;
 
-    // 1. Filtrar pedidos (Sedes) por fecha
+    // Filtrar solicitudes por fecha
     if(inputDesde || inputHasta) {
         const tDesde = inputDesde ? new Date(inputDesde + 'T00:00:00').getTime() : 0;
         const tHasta = inputHasta ? new Date(inputHasta + 'T23:59:59').getTime() : Infinity;
         dPedidos = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
     }
 
-    // Calcular totales de solicitudes por sede en base a los pedidos filtrados
     let sedesCount = {};
     dPedidos.forEach(p => { 
         if(p.estado !== 'rechazado') {
@@ -520,17 +522,16 @@ window.actualizarDashboard = () => {
         }
     });
 
-    // 2. Extraer datos del Stock Actual (No se filtra por fecha porque es el stock presente)
-    const gridH4 = document.querySelectorAll("#lista-inventario h4");
-    const gridP = document.querySelectorAll("#lista-inventario p.text-2xl");
-    let labelsStock = [], dataStock = [];
+    // Extracción directa de DB para stock
+    const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+    let labelsStock = [];
+    let dataStock = [];
     
-    for(let i=0; i<gridH4.length; i++) {
-        labelsStock.push(gridH4[i].title.substring(0,12));
-        dataStock.push(parseInt(gridP[i].innerText));
-    }
+    invActivo.forEach(p => {
+        labelsStock.push(p.id.toUpperCase().substring(0,12));
+        dataStock.push(p.cantidad);
+    });
 
-    // Renderizar gráficas con la nueva paleta estética
     window.renderChart('stockChart', labelsStock, dataStock, 'Stock Actual', chartPalette, window.stockChart, ch => window.stockChart = ch);
     window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Artículos Solicitados', chartPalette, window.locationChart, ch => window.locationChart = ch);
 };
@@ -594,7 +595,7 @@ window.procesarSolicitudMultiple = async () => {
     } catch (error) { alert("Ocurrió un error al procesar el pedido."); }
 };
 
-// -- LÓGICA DE FACTURAS (ELIMINAR) --
+// FACTURAS (AGREGAR Y ELIMINAR)
 window.abrirModalFactura = () => { 
     document.getElementById("fact-proveedor").value = ""; 
     document.getElementById("fact-gasto").value = ""; 
@@ -643,7 +644,6 @@ window.confirmarEliminarFactura = async () => {
         
         if (snap.exists()) {
             const data = snap.data();
-            // Guardamos la factura en una colección de papelera para auditorías futuras
             await addDoc(collection(db, "facturas_eliminadas"), {
                 ...data,
                 motivo_eliminacion: motivo,
@@ -651,8 +651,6 @@ window.confirmarEliminarFactura = async () => {
                 fecha_eliminacion: new Date().toLocaleString(),
                 timestamp_eliminacion: Date.now()
             });
-            
-            // Eliminamos permanentemente del sistema activo
             await deleteDoc(refFactura);
             alert("🗑️ Factura eliminada correctamente.");
             document.getElementById("modal-eliminar-factura").classList.add("hidden");
