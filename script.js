@@ -19,6 +19,10 @@ window.cacheEntradas = [];
 window.todosLosGrupos = ["SERVICIOS GENERALES"]; 
 window.grupoActivo = "SERVICIOS GENERALES";
 
+// Variables con nombres únicos para evitar colisiones con el HTML
+window.miGraficoStock = null;
+window.miGraficoUbicacion = null;
+
 const EMAIL_CFG = { s: 'service_a7yozqh', t: 'template_zglatmb', k: '2jVnfkJKKG0bpKN-U', admin: 'Emanuel.cedeno@fcipty.com' };
 
 // Paleta dinámica para las gráficas
@@ -346,7 +350,6 @@ window.procesarDatosInventario = () => {
     const elTotal = document.getElementById("metrica-total"); if(elTotal) elTotal.innerText = tr;
     const elStock = document.getElementById("metrica-stock"); if(elStock) elStock.innerText = ts;
     
-    // Forzamos actualización para asegurar que el Dashboard dibuje correctamente
     window.actualizarDashboard();
 };
 
@@ -468,11 +471,15 @@ window.renderHistorialUnificado = () => {
     });
 };
 
-// GRAFICAS ESTILIZADAS CON FILTROS DINAMICOS
+// GRAFICAS ESTILIZADAS CON FILTROS DINAMICOS (Validado para evitar error de `.destroy()`)
 window.renderChart = (id, labels, data, title, palette, chartInstance, setInstance) => { 
     const ctx = document.getElementById(id); 
     if(!ctx) return; 
-    if(chartInstance) chartInstance.destroy(); 
+    
+    // Validamos que exista y que sea un gráfico de Chart.js antes de intentar destruirlo
+    if(chartInstance && typeof chartInstance.destroy === 'function') {
+        chartInstance.destroy(); 
+    }
     
     // Paleta con opacidad para fondo
     const bgColors = palette.map(c => c + 'CC');
@@ -532,8 +539,9 @@ window.actualizarDashboard = () => {
         dataStock.push(p.cantidad);
     });
 
-    window.renderChart('stockChart', labelsStock, dataStock, 'Stock Actual', chartPalette, window.stockChart, ch => window.stockChart = ch);
-    window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Artículos Solicitados', chartPalette, window.locationChart, ch => window.locationChart = ch);
+    // Usamos las variables seguras 'window.miGraficoStock' y 'window.miGraficoUbicacion'
+    window.renderChart('stockChart', labelsStock, dataStock, 'Stock Actual', chartPalette, window.miGraficoStock, ch => window.miGraficoStock = ch);
+    window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Artículos Solicitados', chartPalette, window.miGraficoUbicacion, ch => window.miGraficoUbicacion = ch);
 };
 
 // --- 6. LOGICA DE NEGOCIO Y MODALES ---
