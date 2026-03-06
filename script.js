@@ -39,8 +39,9 @@ window.cargarSesion = (d) => {
     $("info-usuario").innerHTML = `<div class="flex flex-col items-center"><div class="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-2"><i class="fas fa-user"></i></div><span class="font-bold text-slate-700 uppercase tracking-wide">${d.id}</span><span class="text-[10px] uppercase font-bold text-white bg-indigo-500 px-2 py-0.5 rounded-full mt-1 shadow-sm">${d.rol}</span><span class="text-[9px] text-slate-400 mt-1 uppercase block">${d.departamento || 'Sin Depto'}</span></div>`;
     if(['admin','manager'].includes(d.rol)) window.toggleModal("btn-admin-stock", true);
     
-    const rutas = { st:{id:'stats',n:'Dashboard',i:'chart-pie'}, sk:{id:'stock',n:'Stock',i:'boxes'}, pd:{id:'solicitar',n:'Pedido',i:'cart-plus'}, pe:{id:'solicitudes',n:'Aprobaciones',i:'clipboard-check'}, hs:{id:'historial',n:'Movimientos',i:'history'}, fc:{id:'facturas',n:'Facturas',i:'file-invoice-dollar'}, us:{id:'usuarios',n:'Accesos',i:'users-cog'}, mp:{id:'notificaciones',n:'Mis Solicitudes',i:'shipping-fast'} };
-    let act = d.rol==='admin' ? [rutas.st,rutas.sk,rutas.pd,rutas.pe,rutas.hs,rutas.fc,rutas.us,rutas.mp] : d.rol==='manager' ? [rutas.st,rutas.sk,rutas.pd,rutas.pe,rutas.hs,rutas.fc,rutas.mp] : d.rol==='supervisor' ? [rutas.st,rutas.sk,rutas.pd,rutas.pe,rutas.hs,rutas.mp] : [rutas.sk,rutas.pd,rutas.mp];
+    // Añadida la nueva ruta "sd" (Sedes)
+    const rutas = { st:{id:'stats',n:'Dashboard',i:'chart-pie'}, sk:{id:'stock',n:'Stock',i:'boxes'}, pd:{id:'solicitar',n:'Pedido',i:'cart-plus'}, pe:{id:'solicitudes',n:'Aprobaciones',i:'clipboard-check'}, hs:{id:'historial',n:'Movimientos',i:'history'}, fc:{id:'facturas',n:'Facturas',i:'file-invoice-dollar'}, sd:{id:'sedes',n:'Sedes',i:'map-marker-alt'}, us:{id:'usuarios',n:'Accesos',i:'users-cog'}, mp:{id:'notificaciones',n:'Mis Solicitudes',i:'shipping-fast'} };
+    let act = d.rol==='admin' ? [rutas.st,rutas.sk,rutas.pd,rutas.pe,rutas.hs,rutas.fc,rutas.sd,rutas.us,rutas.mp] : d.rol==='manager' ? [rutas.st,rutas.sk,rutas.pd,rutas.pe,rutas.hs,rutas.fc,rutas.sd,rutas.mp] : d.rol==='supervisor' ? [rutas.st,rutas.sk,rutas.pd,rutas.pe,rutas.hs,rutas.mp] : [rutas.sk,rutas.pd,rutas.mp];
     $("menu-dinamico").innerHTML = act.map(x => `<button onclick="window.verPagina('${x.id}')" class="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-white border border-slate-100 flex items-center justify-center transition-colors"><i class="fas fa-${x.i}"></i></div>${x.n}</button>`).join('');
     
     window.verPagina(['admin','manager','supervisor'].includes(d.rol) ? 'stats' : 'stock'); window.activarSincronizacion();
@@ -120,6 +121,26 @@ window.activarSincronizacion = () => {
         let h = ""; s.forEach(d => { const u = d.data(); h += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm"><div class="truncate pr-2"><div class="flex items-center gap-2"><span class="font-bold uppercase text-slate-700">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold">${u.rol}</span></div><span class="text-[10px] text-indigo-400 block font-bold uppercase mt-1">${u.departamento || 'SIN DEPTO'}</span></div><div class="flex gap-2 flex-shrink-0"><button onclick="window.prepararEdicionUsuario('${d.id.replace(/'/g, "\\'")}','${u.pass}','${u.rol}','${u.email||''}','${u.departamento||''}')" class="w-8 h-8 rounded bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition"><i class="fas fa-pen text-xs"></i></button><button onclick="window.eliminarDato('usuarios','${d.id.replace(/'/g, "\\'")}')" class="w-8 h-8 rounded bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition"><i class="fas fa-trash-alt text-xs"></i></button></div></div>`; });
         if($("lista-usuarios-db")) $("lista-usuarios-db").innerHTML = h;
     });
+
+    // SEDES (NUEVO)
+    onSnapshot(collection(db, "sedes"), s => {
+        let options = '<option value="" disabled selected>Seleccionar Sede...</option>';
+        let listHTML = '';
+        
+        const sedesArray = s.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.nombre.localeCompare(b.nombre));
+        
+        sedesArray.forEach(sede => {
+            options += `<option value="${sede.nombre}">📍 ${sede.nombre}</option>`;
+            listHTML += `
+            <div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm">
+                <span class="font-bold uppercase text-slate-700">📍 ${sede.nombre}</span>
+                <button onclick="window.eliminarDato('sedes','${sede.id}')" class="w-8 h-8 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition"><i class="fas fa-trash-alt text-xs"></i></button>
+            </div>`;
+        });
+        
+        if($("sol-ubicacion")) $("sol-ubicacion").innerHTML = options;
+        if($("lista-sedes-db")) $("lista-sedes-db").innerHTML = listHTML;
+    });
 };
 
 window.renderHistorialUnificado = () => {
@@ -147,10 +168,17 @@ window.procesarSolicitudMultiple = async () => {
 };
 
 window.abrirModalFactura = () => { $("fact-proveedor").value=""; $("fact-gasto").value=""; $("fact-fecha").value=""; $("fact-archivo-url").value=""; $("factura-file-name").innerText="Ninguno"; window.toggleModal("modal-factura", true); };
+
+// CORRECCIÓN: Botón Cancelar Factura ahora sí funciona y limpia los campos
+window.cerrarModalFactura = () => { 
+    $("fact-proveedor").value=""; $("fact-gasto").value=""; $("fact-fecha").value=""; $("fact-archivo-url").value=""; $("factura-file-name").innerText="Ninguno"; 
+    window.toggleModal("modal-factura", false); 
+};
+
 window.guardarFactura = async () => {
     const pv = $("fact-proveedor").value.trim(), ga = parseFloat($("fact-gasto").value), fe = $("fact-fecha").value, ar = $("fact-archivo-url").value;
     if(!pv || isNaN(ga) || !fe) return alert("Complete los campos requeridos.");
-    try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("✅ Factura registrada."); window.toggleModal("modal-factura", false); } catch(e) { alert("Error guardando factura."); }
+    try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("✅ Factura registrada."); window.cerrarModalFactura(); } catch(e) { alert("Error guardando factura."); }
 };
 
 window.agregarProductoRapido = async () => {
@@ -192,7 +220,7 @@ window.abrirModalEditarEntrada = (id, ins, c) => { $("edit-entrada-id").value=id
 window.guardarEdicionEntrada = async () => { const id = $("edit-entrada-id").value, ins = $("edit-entrada-insumo").value.toLowerCase(), cO = parseInt($("edit-entrada-cant-original").value), cN = parseInt($("edit-entrada-cantidad").value), m = $("edit-entrada-motivo").value.trim(); if(isNaN(cN) || cN<0 || !m) return alert("Datos inválidos."); if(cN-cO === 0) return window.toggleModal('modal-editar-entrada', false); try { const ir = doc(db, "inventario", ins), is = await getDoc(ir); if(!is.exists()) return alert("El insumo ya no existe."); const ns = is.data().cantidad + (cN-cO); if(ns < 0) return alert("Error matemático: Stock negativo."); await updateDoc(ir, { cantidad: ns }); await updateDoc(doc(db, "entradas_stock", id), { cantidad: cN, motivo_edicion: m, editado_por: window.usuarioActual.id, fecha_edicion: new Date().toLocaleString() }); window.toggleModal('modal-editar-entrada', false); } catch(e) { alert("Error"); } };
 
 // --- 6. EXCEL Y EMAILS ---
-window.enviarEmailNotificacion = async (t, d) => { if(typeof emailjs === 'undefined') return; try { const as = t==='nuevo_pedido' ? `${d.prioridad==='alta'?'🚨 URGENTE: ':''}NUEVO PEDIDO - ${d.sede} - ${d.usuario}` : t.includes('aprobado') ? `PEDIDO APROBADO - ${d.usuario}` : t==='stock_bajo' ? `ALERTA STOCK - ${d.insumo}` : `RECEPCIÓN - ${d.sede}`, msg = t==='nuevo_pedido' ? `Usuario ${d.usuario} solicitó insumos para ${d.sede}.` : t==='stock_bajo' ? `Stock crítico para ${d.insumo}.` : t.includes('aprobado') ? `Su pedido ha sido aprobado.` : `Recepcion confirmada en ${d.sede}.`; await emailjs.send(EMAIL_CFG.s, EMAIL_CFG.t, { as, msg, detalles: (d.items ? d.items.map(i=>`${i.insumo}: ${i.cantidad}`).join('\\n') : `Actual: ${d.actual} | Mín: ${d.minimo}`), to_email: d.target_email || EMAIL_CFG.admin }, EMAIL_CFG.k); } catch(e){} };
+window.enviarEmailNotificacion = async (t, d) => { if(typeof emailjs === 'undefined') return; try { const as = t==='nuevo_pedido' ? `${d.prioridad==='alta'?'🚨 URGENTE: ':''}NUEVO PEDIDO - ${d.sede} - ${d.usuario}` : t.includes('aprobado') ? `PEDIDO APROBADO - ${d.usuario}` : t==='stock_bajo' ? `ALERTA STOCK - ${d.insumo}` : `RECEPCIÓN - ${d.sede}`, msg = t==='nuevo_pedido' ? `Usuario ${d.usuario} solicitó insumos para ${d.sede}.` : t==='stock_bajo' ? `Stock crítico para ${d.insumo}.` : t.includes('aprobado') ? `Su pedido ha sido aprobado.` : `Recepcion confirmada en ${d.sede}.`; await emailjs.send(EMAIL_CFG.s, EMAIL_CFG.t, { as, msg, detalles: (d.items ? d.items.map(i=>`${i.insumo}: ${i.cantidad}`).join('\n') : `Actual: ${d.actual} | Mín: ${d.minimo}`), to_email: d.target_email || EMAIL_CFG.admin }, EMAIL_CFG.k); } catch(e){} };
 
 window.descargarReporte = async () => {
     if(typeof XLSX === 'undefined') return alert("Cargando librería Excel, reintente en 1s.");
@@ -221,8 +249,19 @@ window.cancelarEdicionUsuario = () => { $("edit-mode-id").value=""; $("new-user"
 window.prepararEdicionProducto = async(id) => { const d = (await getDoc(doc(db,"inventario",id))).data(); $("edit-prod-id").value=id; $("edit-prod-precio").value=d.precio||''; $("edit-prod-min").value=d.stockMinimo||''; $("edit-prod-img").value=d.imagen||''; if(d.imagen){ $("preview-img").src=d.imagen; window.toggleModal("preview-img", true); } else window.toggleModal("preview-img", false); window.toggleModal('modal-detalles', true); };
 window.guardarDetallesProducto = async () => { await updateDoc(doc(db,"inventario",$("edit-prod-id").value),{precio:parseFloat($("edit-prod-precio").value)||0,stockMinimo:parseInt($("edit-prod-min").value)||0,imagen:$("edit-prod-img").value}); window.cerrarModalDetalles(); alert("Guardado"); };
 window.cerrarModalDetalles = () => { window.toggleModal("modal-detalles", false); window.toggleModal("preview-img", false); };
-window.eliminarDato = async (c,i) => { if(confirm("¿Eliminar registro?")) await deleteDoc(doc(db,c,i)); };
+window.eliminarDato = async (c,i) => { if(confirm("¿Eliminar registro permanentemente?")) await deleteDoc(doc(db,c,i)); };
 window.renderChart = (id, l, d, t, c, i, s) => { if(!$(id)) return; if(i) i.destroy(); s(new Chart($(id), { type: id==='locationChart'?'doughnut':'bar', data: { labels: l, datasets: [{ label: t, data: d, backgroundColor: c, borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: id==='locationChart', position: 'bottom' } } } })); };
+
+// LÓGICA DE SEDES (NUEVO)
+window.guardarSede = async () => {
+    const s = $("new-sede").value.trim().toUpperCase();
+    if(!s) return alert("Ingrese el nombre de la sede.");
+    try {
+        await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() });
+        $("new-sede").value = "";
+        alert("✅ Sede guardada exitosamente.");
+    } catch(e) { alert("Error al guardar la sede."); }
+};
 
 window.addEventListener('DOMContentLoaded', () => {
     try {
