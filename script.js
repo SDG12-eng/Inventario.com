@@ -21,17 +21,15 @@ window.grupoActivo = "SERVICIOS GENERALES";
 
 window.miGraficoStock = null;
 window.miGraficoUbicacion = null;
-window.html5QrcodeScanner = null; // Variable para el escáner de cámara
+window.html5QrcodeScanner = null;
 
 const EMAIL_CFG = { s: 'service_a7yozqh', t: 'template_zglatmb', k: '2jVnfkJKKG0bpKN-U', admin: 'Emanuel.cedeno@fcipty.com' };
-
 const chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6', '#f97316', '#a855f7', '#ef4444'];
 
-// Datos en crudo
 let rawInventario = [];
 let rawEntradas = [];
 let rawFacturas = [];
-let rawMantenimiento = []; // NUEVO: Para mantenimiento preventivo
+let rawMantenimiento = [];
 
 // --- 2. FUNCIONES DE INTERFAZ Y NAVEGACIÓN ---
 window.verPagina = (id) => {
@@ -93,13 +91,13 @@ window.cargarSesion = (datos) => {
     const btnAdmin = document.getElementById("btn-admin-stock");
     if(btnAdmin && ['admin','manager'].includes(datos.rol)) btnAdmin.classList.remove("hidden");
 
-    // RUTAS ACTUALIZADAS CON MANTENIMIENTO
+    // RUTAS ACTUALIZADAS CON MANTENIMIENTO PREVENTIVO
     const rutas = { 
         st:{id:'stats',n:'Dashboard',i:'chart-pie'}, 
-        sk:{id:'stock',n:'Stock / Escáner',i:'boxes'}, // Renombrado sutil
+        sk:{id:'stock',n:'Stock / Escáner',i:'boxes'}, 
         pd:{id:'solicitar',n:'Realizar Pedido',i:'cart-plus'}, 
         pe:{id:'solicitudes',n:'Aprobaciones',i:'clipboard-check'}, 
-        mt:{id:'mantenimiento',n:'Mantenimiento',i:'tools'}, // NUEVA RUTA
+        mt:{id:'mantenimiento',n:'Mantenimiento',i:'tools'}, // AQUÍ ESTÁ EL NUEVO TAB
         hs:{id:'historial',n:'Movimientos',i:'history'}, 
         fc:{id:'facturas',n:'Facturas',i:'file-invoice-dollar'},
         cf:{id:'config',n:'Ajustes (Config)',i:'cogs'}, 
@@ -146,7 +144,7 @@ window.cambiarGrupoActivo = (nuevoGrupo) => {
     window.procesarDatosPedidos(); 
     window.renderHistorialUnificado(); 
     window.procesarDatosFacturas(); 
-    window.renderMantenimiento(); // Renderiza mantenimiento del grupo
+    window.renderMantenimiento(); 
     window.actualizarDashboard(); 
 };
 
@@ -209,7 +207,6 @@ window.activarSincronizacion = () => {
         window.renderHistorialUnificado();
     });
     
-    // NUEVO: Sincronizar Mantenimientos
     onSnapshot(collection(db, "mantenimiento"), snap => {
         rawMantenimiento = []; snap.forEach(x => { rawMantenimiento.push({id: x.id, ...x.data()}); });
         window.renderMantenimiento();
@@ -236,43 +233,34 @@ window.activarSincronizacion = () => {
     }
 };
 
-// --- 5. LECTURA DE QR/CÓDIGOS DE BARRAS (NUEVO) ---
+// --- 5. LECTURA DE QR/CÓDIGOS DE BARRAS ---
 window.iniciarScanner = (inputIdTarget) => {
     document.getElementById("modal-scanner").classList.remove("hidden");
-    
-    // Configuramos el escáner para usar la cámara trasera si está en un celular
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-    
     window.html5QrcodeScanner = new Html5Qrcode("reader");
     window.html5QrcodeScanner.start({ facingMode: "environment" }, config, 
         (decodedText) => {
-            // ÉXITO AL ESCANEAR:
-            window.detenerScanner(); // Cierra cámara
+            window.detenerScanner(); 
             const input = document.getElementById(inputIdTarget);
             if(input) {
-                input.value = decodedText; // Ponemos el texto leído
-                input.dispatchEvent(new Event('keyup')); // Disparamos el filtro automáticamente
+                input.value = decodedText; 
+                input.dispatchEvent(new Event('keyup')); 
             }
             alert(`Código escaneado: ${decodedText}`);
         },
-        (errorMessage) => { /* Ignorar errores de frame */ }
-    ).catch(err => {
-        alert("Error iniciando la cámara. Verifica permisos.");
-        window.detenerScanner();
-    });
+        (errorMessage) => { }
+    ).catch(err => { alert("Error iniciando la cámara. Verifica permisos."); window.detenerScanner(); });
 };
 
 window.detenerScanner = () => {
     if(window.html5QrcodeScanner) {
-        window.html5QrcodeScanner.stop().then(() => {
-            window.html5QrcodeScanner.clear();
-        }).catch(err => console.log(err));
+        window.html5QrcodeScanner.stop().then(() => { window.html5QrcodeScanner.clear(); }).catch(err => console.log(err));
     }
     document.getElementById("modal-scanner").classList.add("hidden");
 };
 
 
-// --- 6. RENDERIZADO DE DATOS ---
+// --- 6. RENDERIZADO DE DATOS (INVENTARIO Y PEDIDOS CON COMENTARIOS VISIBLES) ---
 window.procesarDatosInventario = () => {
     const grid = document.getElementById("lista-inventario");
     const cartContainer = document.getElementById("contenedor-lista-pedidos");
@@ -324,7 +312,7 @@ window.procesarDatosPedidos = () => {
 
     window.cachePedidos.forEach(p => {
         const bKey = p.batchId || p.timestamp;
-        if(!grupos[bKey]) grupos[bKey] = { items:[], user:p.usuarioId, sede:p.ubicacion, date:p.fecha, ts:p.timestamp, notas: p.notas };
+        if(!grupos[bKey]) grupos[bKey] = { items:[], user:p.usuarioId, sede:p.ubicacion, date:p.fecha, ts:p.timestamp, notas: p.notas || '' };
         grupos[bKey].items.push(p);
         if(p.estado === 'pendiente') pendingCount++;
     });
@@ -336,7 +324,7 @@ window.procesarDatosPedidos = () => {
         else if(['recibido', 'devuelto'].includes(p.estado)) btns = `<div class="mt-3 pt-3 border-t border-slate-50 flex justify-end"><button onclick="window.abrirIncidencia('${p.id}')" class="text-amber-500 text-xs font-bold hover:underline flex items-center gap-1"><i class="fas fa-undo"></i> Devolver / Reportar</button></div>`;
         
         const prio = p.prioridad || 'normal';
-        const notesHtml = p.notas ? `<p class="text-[10px] text-slate-500 italic mt-2 bg-slate-50 p-1 rounded">"${p.notas}"</p>` : '';
+        const notesHtml = p.notas ? `<p class="text-[10px] text-slate-500 italic mt-2 bg-slate-50 p-1.5 rounded border border-slate-100"><i class="fas fa-comment text-indigo-300"></i> "${p.notas}"</p>` : '';
         const cardHtml = `<div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm item-tarjeta"><div class="flex justify-between items-start"><div><span class="badge status-${p.estado}">${p.estado}</span><h4 class="font-black text-slate-700 uppercase text-sm mt-2">${p.insumoNom} <span class="badge status-pri-${prio} ml-1">${prio}</span></h4><p class="text-xs text-slate-400 font-mono mt-1">x${p.cantidad} • ${p.ubicacion}</p><p class="text-[10px] text-slate-300 mt-1">${p.fecha.split(',')[0]}</p>${notesHtml}</div></div>${btns}</div>`;
         
         if(['pendiente', 'aprobado'].includes(p.estado)) { if(lActive) lActive.innerHTML += cardHtml; } 
@@ -351,14 +339,31 @@ window.procesarDatosPedidos = () => {
                 const hasAlta = pendingItems.some(i => (i.prioridad || 'normal') === 'alta');
                 const headerBorder = hasAlta ? "border-l-red-500" : "border-l-amber-400";
                 const badgeUrgente = hasAlta ? `<span class="bg-red-500 text-white px-2 py-1 rounded-lg text-[10px] uppercase font-black animate-pulse ml-2 shadow-sm"><i class="fas fa-exclamation-triangle"></i> Urgente</span>` : '';
-                const iconNota = g.notas ? `<i class="fas fa-comment-dots text-indigo-400 ml-2" title="Tiene notas"></i>` : '';
+                
+                // AQUÍ HACEMOS QUE EL COMENTARIO SEA MUY VISIBLE EN LA TARJETA PRINCIPAL
+                const blockNota = g.notas ? `<div class="mb-3 text-[11px] text-indigo-700 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 italic font-medium"><i class="fas fa-comment-dots text-indigo-400 mr-1 text-sm"></i> "${g.notas}"</div>` : '';
 
                 pendingItems.forEach(i => {
                     const iconPri = (i.prioridad==='alta') ? '<i class="fas fa-fire text-red-500 ml-1"></i>' : '';
                     itemsStr += `<span class="bg-slate-50 px-2 py-1 rounded text-[10px] border border-slate-200 uppercase font-bold text-slate-600">${i.insumoNom} (x${i.cantidad}) ${iconPri}</span>`;
                 });
 
-                lAdmin.innerHTML += `<div class="bg-white p-5 rounded-2xl border-l-4 ${headerBorder} shadow-sm cursor-pointer hover:shadow-md transition group" onclick="window.abrirModalGrupo('${g.items[0].batchId || g.ts}')"><div class="flex justify-between items-center mb-3"><div><h4 class="font-black text-slate-800 text-sm uppercase flex items-center"><i class="fas fa-user text-slate-300 mr-1"></i> ${g.user} ${badgeUrgente} ${iconNota}</h4><span class="text-xs text-slate-400 font-medium">${g.sede} • ${g.date.split(',')[0]}</span></div><span class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition"><i class="fas fa-chevron-right text-xs"></i></span></div><div class="flex flex-wrap gap-1.5">${itemsStr}</div></div>`;
+                lAdmin.innerHTML += `
+                <div class="bg-white p-5 rounded-2xl border-l-4 ${headerBorder} shadow-sm cursor-pointer hover:shadow-md transition group" onclick="window.abrirModalGrupo('${g.items[0].batchId || g.ts}')">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h4 class="font-black text-slate-800 text-sm uppercase flex items-center">
+                                <i class="fas fa-user text-slate-300 mr-1"></i> ${g.user} ${badgeUrgente}
+                            </h4>
+                            <span class="text-xs text-slate-400 font-medium">${g.sede} • ${g.date.split(',')[0]}</span>
+                        </div>
+                        <span class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </span>
+                    </div>
+                    ${blockNota}
+                    <div class="flex flex-wrap gap-1.5">${itemsStr}</div>
+                </div>`;
             }
         });
     }
@@ -401,7 +406,7 @@ window.renderHistorialUnificado = () => {
     });
 };
 
-// --- 7. MANTENIMIENTO PREVENTIVO (NUEVO) ---
+// --- 7. MANTENIMIENTO PREVENTIVO ---
 window.renderMantenimiento = () => {
     const tb = document.getElementById("tabla-mantenimiento-db");
     if(!tb) return;
@@ -507,7 +512,7 @@ window.actualizarDashboard = () => {
 window.procesarSolicitudMultiple = async () => {
     const ubi = document.getElementById("sol-ubicacion").value;
     const prio = document.getElementById("sol-prioridad").value;
-    const notas = document.getElementById("sol-notas").value.trim(); // NUEVO: Notas
+    const notas = document.getElementById("sol-notas").value.trim(); 
     const items = Object.entries(window.carritoGlobal).filter(([_, c]) => c > 0);
     
     if(!ubi || items.length === 0) return alert("Seleccione sede y al menos un producto.");
@@ -541,16 +546,21 @@ window.abrirModalGrupo = (bKey) => {
     const m = document.getElementById("modal-grupo-admin");
     const c = document.getElementById("modal-grupo-contenido");
     const t = document.getElementById("modal-grupo-titulo");
-    const nt = document.getElementById("modal-grupo-notas"); // Label de notas
+    const ntContainer = document.getElementById("modal-grupo-notas-container"); 
+    const nt = document.getElementById("modal-grupo-notas"); 
 
     const items = window.cachePedidos.filter(p => (p.batchId === bKey) || (p.timestamp.toString() === bKey));
     if(items.length === 0) return;
     
     t.innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion} | ${items[0].fecha}`; 
     
-    // Mostramos notas si existen
-    if(items[0].notas) { nt.innerHTML = `<i class="fas fa-comment"></i> " ${items[0].notas} "`; nt.classList.remove('hidden'); } 
-    else { nt.classList.add('hidden'); }
+    // Mostramos notas si existen EN EL MODAL DE APROBAR
+    if(items[0].notas) { 
+        nt.innerHTML = `"${items[0].notas}"`; 
+        ntContainer.classList.remove('hidden'); 
+    } else { 
+        ntContainer.classList.add('hidden'); 
+    }
 
     c.innerHTML = "";
     items.forEach(p => {
@@ -616,8 +626,6 @@ window.confirmarIncidencia = async (dev) => {
     document.getElementById('modal-incidencia').classList.add('hidden'); alert("Registrado correctamente.");
 };
 
-// --- EL RESTO DE FUNCIONES (Facturas, Configuracion, Excel) SE MANTIENEN IGUALES ---
-// (He dejado el código de eliminación, excel y cloudinary tal como lo veníamos trabajando para no romper nada).
 window.procesarDatosFacturas = () => {
     const tf = document.getElementById("tabla-facturas-db");
     if(!tf) return;
