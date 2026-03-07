@@ -12,7 +12,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ¡DECLARACIÓN SEGURA A NIVEL GLOBAL!
 window.usuarioActual = null;
 window.carritoGlobal = {};
 window.cachePedidos = [];
@@ -42,7 +41,7 @@ window.debounceFiltrarTarjetas = (idContenedor, texto) => {
             const cards = container.querySelectorAll('.item-tarjeta');
             cards.forEach(c => { c.style.display = c.innerText.toLowerCase().includes(term) ? '' : 'none'; });
         }
-    }, 150); // Solo filtra tras dejar de escribir por 150ms
+    }, 150);
 };
 
 window.debounceFiltrarTabla = (idTabla, texto) => {
@@ -90,7 +89,7 @@ window.cargarSesion = (datos) => {
 
     if(document.getElementById("btn-admin-stock") && ['admin','manager'].includes(datos.rol)) document.getElementById("btn-admin-stock").classList.remove("hidden");
 
-    const rutas = { st:{id:'stats',n:'Dashboard',i:'chart-pie'}, sk:{id:'stock',n:'Stock',i:'boxes'}, pd:{id:'solicitar',n:'Pedir',i:'cart-plus'}, pe:{id:'solicitudes',n:'Aprobaciones',i:'check-double'}, mt:{id:'mantenimiento',n:'Mantenimiento',i:'tools'}, hs:{id:'historial',n:'Movimientos',i:'history'}, fc:{id:'facturas',n:'Facturas',i:'file-invoice-dollar'}, cf:{id:'config',n:'Configuración',i:'cogs'}, us:{id:'usuarios',n:'Accesos',i:'users'}, mp:{id:'notificaciones',n:'Mis Pedidos',i:'truck'} };
+    const rutas = { st:{id:'stats',n:'Dashboard',i:'chart-pie'}, sk:{id:'stock',n:'Stock',i:'boxes'}, pd:{id:'solicitar',n:'Pedir',i:'cart-plus'}, pe:{id:'solicitudes',n:'Aprobaciones',i:'check-double'}, mt:{id:'mantenimiento',n:'Mantenimiento',i:'tools'}, hs:{id:'historial',n:'Movimientos',i:'history'}, fc:{id:'facturas',n:'Facturas',i:'file-invoice-dollar'}, cf:{id:'config',n:'Configuración',i:'cogs'}, us:{id:'usuarios',n:'Accesos',i:'users-cog'}, mp:{id:'notificaciones',n:'Mis Pedidos',i:'truck'} };
     let menuActivo = [];
     if(datos.rol === 'admin') menuActivo = [rutas.st, rutas.sk, rutas.pd, rutas.pe, rutas.mt, rutas.hs, rutas.fc, rutas.cf, rutas.us, rutas.mp]; 
     else if(datos.rol === 'manager') menuActivo = [rutas.st, rutas.sk, rutas.pd, rutas.pe, rutas.mt, rutas.hs, rutas.fc, rutas.mp]; 
@@ -124,6 +123,18 @@ window.iniciarSesion = async () => {
 };
 window.cerrarSesion = () => { localStorage.removeItem("fcilog_session"); location.reload(); };
 
+// --- RESTAURADO: CHECKBOXES DE GRUPOS ---
+window.actualizarCheckboxesGrupos = () => {
+    const container = document.getElementById("user-grupos-checkboxes");
+    if(!container) return;
+    container.innerHTML = window.todosLosGrupos.map(g => `
+        <label class="flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition">
+            <input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo">
+            <span class="text-xs font-bold text-slate-700 uppercase">${g}</span>
+        </label>
+    `).join('');
+};
+
 // --- 4. REALTIME DB ---
 window.activarSincronizacion = () => {
     const uRol = window.usuarioActual.rol;
@@ -154,7 +165,6 @@ window.activarSincronizacion = () => {
 };
 
 // --- 5. RENDERIZADO OPTIMIZADO (EVITA COLAPSOS EN GAMA BAJA) ---
-// SE SOLUCIONA EL ERROR DECLARANDO LA FUNCIÓN GLOBALMENTE Y USANDO ACUMULADORES (Strings)
 window.ajustarCantidad = (idInsumo, delta) => {
     const safeId = idInsumo.replace(/[^a-zA-Z0-9]/g, '_');
     const n = Math.max(0, (window.carritoGlobal[idInsumo] || 0) + delta); 
@@ -168,7 +178,7 @@ window.procesarDatosInventario = () => {
     const grid = document.getElementById("lista-inventario"); const cartContainer = document.getElementById("contenedor-lista-pedidos"); const dataList = document.getElementById("lista-sugerencias");
     if(!grid) return;
     
-    let gridHTML = ""; let cartHTML = ""; let listHTML = ""; // Acumuladores de RAM
+    let gridHTML = ""; let cartHTML = ""; let listHTML = "";
     let tr = 0, ts = 0;
     const invFiltrado = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
     const isAdmin = ['admin','manager'].includes(window.usuarioActual.rol);
@@ -192,7 +202,6 @@ window.procesarDatosInventario = () => {
         }
     });
 
-    // Inyección DOM masiva 1 sola vez (Evita que el navegador colapse)
     grid.innerHTML = gridHTML; 
     if(cartContainer) cartContainer.innerHTML = cartHTML || `<p class="text-center text-slate-300 text-xs py-8">Vacío.</p>`; 
     if(dataList) dataList.innerHTML = listHTML;
@@ -277,7 +286,6 @@ window.renderMantenimiento = () => {
             actions = `<button onclick="window.iniciarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-[10px] font-bold mr-1 mb-1 whitespace-nowrap"><i class="fas fa-play"></i> Iniciar Tarea</button>`;
         }
         
-        // Botón de Bitácora siempre visible
         actions += `<button onclick="window.abrirBitacora('${m.id}')" class="text-slate-500 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm whitespace-nowrap"><i class="fas fa-book"></i> Bitácora (${(m.bitacora||[]).length})</button>`;
 
         const isAdmin = ['admin','manager'].includes(window.usuarioActual.rol);
@@ -323,18 +331,15 @@ window.abrirBitacora = async (id) => {
     
     document.getElementById("bitacora-equipo-titulo").innerText = m.equipo.toUpperCase();
     
-    // Si ya está completado, idealmente no se debería agregar más, pero lo dejamos a criterio de uso.
     const tl = document.getElementById("bitacora-timeline");
     let html = "";
     
-    // Mostramos descripción original como primer evento
     html += `<div class="relative pl-6 border-l-2 border-indigo-200 pb-4"><div class="absolute w-3 h-3 bg-indigo-500 rounded-full -left-[7px] top-1"></div><p class="text-[10px] text-slate-400 font-bold mb-1">TAREA ORIGINAL • ${new Date(m.timestamp).toLocaleString()}</p><p class="text-sm font-medium text-slate-700">${m.detalle || 'Sin descripción inicial.'}</p></div>`;
 
     if(m.bitacora && m.bitacora.length > 0) {
         m.bitacora.forEach(b => {
             let mediaHtml = "";
             if(b.mediaUrl) {
-                // Detectar si es video o imagen por la extension (muy básico) o confiamos en cloudinary
                 if(b.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
                     mediaHtml = `<video src="${b.mediaUrl}" controls class="max-h-40 rounded-lg mt-2 border border-slate-200"></video>`;
                 } else {
@@ -368,7 +373,7 @@ window.guardarBitacora = async () => {
             fecha: new Date().toLocaleString(), timestamp: Date.now()
         };
         await updateDoc(mRef, { bitacora: [...bitacoraAnterior, nuevoRegistro] });
-        window.abrirBitacora(id); // Recarga para ver el nuevo
+        window.abrirBitacora(id);
     }
 };
 window.cerrarBitacora = () => { document.getElementById("modal-bitacora").classList.add("hidden"); };
@@ -474,17 +479,71 @@ window.prepararEdicionProducto = async(id) => { const s = await getDoc(doc(db,"i
 window.guardarDetallesProducto = async () => { await updateDoc(doc(db,"inventario",document.getElementById('edit-prod-id').value),{precio:parseFloat(document.getElementById('edit-prod-precio').value)||0, stockMinimo:parseInt(document.getElementById('edit-prod-min').value)||0}); document.getElementById('modal-detalles').classList.add('hidden'); };
 window.eliminarDato = async (col, id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, col, id)); };
 
-// Inicialización & Cloudinary (Fotos Facturas, Inventario, y Ahora Bitacora)
+// --- RESTAURADO: DESCARGAR EXCEL ---
+window.descargarReporte = async () => {
+    if(typeof XLSX === 'undefined') return alert("La librería Excel aún no ha cargado, intente en un segundo.");
+    const inputDesde = document.getElementById("rep-desde")?.value; const inputHasta = document.getElementById("rep-hasta")?.value;
+    let tDesde = 0; let tHasta = Infinity;
+    if(inputDesde) tDesde = new Date(inputDesde + 'T00:00:00').getTime(); if(inputHasta) tHasta = new Date(inputHasta + 'T23:59:59').getTime();
+    if(!confirm(`¿Descargar reporte Excel del grupo ${window.grupoActivo}?`)) return;
+    
+    const uSnap = await getDocs(collection(db, "usuarios")); const usersMap = {}; uSnap.forEach(u => { usersMap[u.id] = u.data(); });
+    const obtenerMesAno = (timestamp) => { if(!timestamp) return 'N/A'; const d = new Date(timestamp); return `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]} ${d.getFullYear()}`; };
+    const calcularTiempo = (inicio, fin) => { if(!inicio || !fin) return "N/A"; const diffMs = fin - inicio; if(diffMs < 0) return "N/A"; const diffMins = Math.round(diffMs / 60000); if(diffMins < 60) return `${diffMins} min`; const diffHrs = (diffMins / 60).toFixed(1); if(diffHrs < 24) return `${diffHrs} hrs`; return `${(diffHrs / 24).toFixed(1)} días`; };
+
+    const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+    const stockData = invActivo.map(p => ({ "Insumo": p.id.toUpperCase(), "Cantidad Disponible": p.cantidad || 0, "Stock Mínimo": p.stockMinimo || 0, "Precio Unit. ($)": p.precio || 0 }));
+    const entActivas = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo && e.timestamp >= tDesde && e.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
+    const entradasData = entActivas.map(mov => ({ "Mes y Año": obtenerMesAno(mov.timestamp), "Fecha de Entrada": mov.fecha || 'N/A', "Insumo": (mov.insumo || '').toUpperCase(), "Cantidad Ingresada": mov.cantidad || 0, "Usuario Responsable": (mov.usuario || '').toUpperCase() }));
+    const salActivas = window.pedidosRaw.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo && p.timestamp >= tDesde && p.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
+    const salidasData = salActivas.map(mov => { const uId = mov.usuarioId || ''; const userObj = usersMap[uId] || {}; return { "Mes y Año": obtenerMesAno(mov.timestamp), "ID Pedido": mov.batchId || 'N/A', "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A', "Prioridad": (mov.prioridad || 'NORMAL').toUpperCase(), "Insumo": (mov.insumoNom || '').toUpperCase(), "Cant.": mov.cantidad || 0, "Sede Destino": (mov.ubicacion || '').toUpperCase(), "Usuario Solicitante": uId.toUpperCase(), "Departamento": (userObj.departamento || 'N/A').toUpperCase(), "Entregado / Aprobado Por": (mov.entregado_por || 'N/A').toUpperCase(), "Estado Actual": (mov.estado || '').toUpperCase(), "Fecha Aprobación": mov.fecha_aprobado || 'N/A', "Tiempo de Respuesta": calcularTiempo(mov.timestamp_solicitud || mov.timestamp, mov.timestamp_aprobado), "Fecha Recepción": mov.fecha_recibido || 'N/A', "Tiempo de Entrega": calcularTiempo(mov.timestamp_aprobado, mov.timestamp_recibido), "Notas": mov.detalleIncidencia || '' }; });
+
+    const wb = XLSX.utils.book_new();
+    if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Inventario"); 
+    if(entradasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entradasData), "Entradas"); 
+    if(salidasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salidasData), "Salidas");
+    XLSX.writeFile(wb, `Reporte_FCILog_${window.grupoActivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
+
+// Modales Extras que faltaron
+window.guardarSede = async () => { const s = document.getElementById("new-sede").value.trim().toUpperCase(); if(!s) return alert("Ingrese el nombre de la sede."); try { await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() }); document.getElementById("new-sede").value = ""; alert("✅ Sede guardada exitosamente."); } catch(e) { alert("Error al guardar la sede."); } };
+window.guardarGrupo = async () => { const g = document.getElementById("new-grupo").value.trim().toUpperCase(); if(!g) return alert("Ingrese el nombre del grupo."); try { await addDoc(collection(db, "grupos"), { nombre: g, timestamp: Date.now() }); document.getElementById("new-grupo").value = ""; alert("✅ Grupo creado exitosamente."); } catch(e) { alert("Error al crear el grupo."); } };
+window.guardarUsuario = async () => { const id = document.getElementById("new-user").value.trim().toLowerCase(); const p = document.getElementById("new-pass").value.trim(); const e = document.getElementById("new-email").value.trim(); const r = document.getElementById("new-role").value; const checkboxes = document.querySelectorAll('.chk-grupo:checked'); let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value); if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"]; if(!id || !p) return alert("Faltan datos obligatorios."); await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados }, { merge: true }); alert("Usuario guardado exitosamente."); window.cancelarEdicionUsuario(); };
+window.prepararEdicionUsuario = async (userId) => { const snap = await getDoc(doc(db, "usuarios", userId)); if(!snap.exists()) return; const u = snap.data(); document.getElementById("edit-mode-id").value = userId; const inpU = document.getElementById("new-user"); inpU.value = userId; inpU.disabled = true; document.getElementById("new-pass").value = u.pass; document.getElementById("new-email").value = u.email || ""; document.getElementById("new-role").value = u.rol; const gruposUsuario = u.grupos || ["SERVICIOS GENERALES"]; document.querySelectorAll('.chk-grupo').forEach(chk => { chk.checked = gruposUsuario.includes(chk.value); }); document.getElementById("btn-guardar-usuario").innerText = "Actualizar"; document.getElementById("cancel-edit-msg").classList.remove("hidden"); };
+window.cancelarEdicionUsuario = () => { document.getElementById("edit-mode-id").value = ""; const inpU = document.getElementById("new-user"); inpU.value = ""; inpU.disabled = false; document.getElementById("new-pass").value = ""; document.getElementById("new-email").value = ""; document.getElementById("new-role").value = "user"; document.querySelectorAll('.chk-grupo').forEach(chk => chk.checked = false); document.getElementById("btn-guardar-usuario").innerText = "Guardar Usuario"; document.getElementById("cancel-edit-msg").classList.add("hidden"); };
+window.abrirModalEditarEntrada = (idEntrada, insumo, cantidadActual) => { document.getElementById('edit-entrada-id').value = idEntrada; document.getElementById('edit-entrada-insumo').value = insumo; document.getElementById('edit-entrada-insumo-display').value = insumo; document.getElementById('edit-entrada-cant-original').value = cantidadActual; document.getElementById('edit-entrada-cantidad').value = cantidadActual; document.getElementById('edit-entrada-motivo').value = ""; document.getElementById('modal-editar-entrada').classList.remove('hidden'); };
+window.guardarEdicionEntrada = async () => { const idEntrada = document.getElementById('edit-entrada-id').value; const insumo = document.getElementById('edit-entrada-insumo').value.toLowerCase(); const cantOriginal = parseInt(document.getElementById('edit-entrada-cant-original').value); const cantNueva = parseInt(document.getElementById('edit-entrada-cantidad').value); const motivo = document.getElementById('edit-entrada-motivo').value.trim(); if (isNaN(cantNueva) || cantNueva < 0) return alert("Ingrese una cantidad válida mayor o igual a 0."); if (!motivo) return alert("Debe ingresar el motivo de la corrección."); const diferencia = cantNueva - cantOriginal; if (diferencia === 0) { document.getElementById('modal-editar-entrada').classList.add('hidden'); return; } try { const invRef = doc(db, "inventario", insumo); const invSnap = await getDoc(invRef); if (!invSnap.exists()) return alert("El insumo ya no existe."); const nuevoStock = invSnap.data().cantidad + diferencia; if (nuevoStock < 0) return alert(`❌ Error matemático: El stock quedaría en negativo.`); await updateDoc(invRef, { cantidad: nuevoStock }); await updateDoc(doc(db, "entradas_stock", idEntrada), { cantidad: cantNueva, motivo_edicion: motivo, editado_por: window.usuarioActual.id, fecha_edicion: new Date().toLocaleString() }); alert("✅ Entrada corregida."); document.getElementById('modal-editar-entrada').classList.add('hidden'); } catch(e) { console.error(e); alert("Ocurrió un error."); } };
+window.abrirModalFactura = () => { document.getElementById("fact-proveedor").value = ""; document.getElementById("fact-gasto").value = ""; document.getElementById("fact-fecha").value = ""; document.getElementById("fact-archivo-url").value = ""; document.getElementById("factura-file-name").innerText = "Ninguno"; document.getElementById("modal-factura").classList.remove("hidden"); };
+window.cerrarModalFactura = () => { document.getElementById("modal-factura").classList.add("hidden"); };
+window.guardarFactura = async () => { const pv = document.getElementById("fact-proveedor").value.trim(); const ga = parseFloat(document.getElementById("fact-gasto").value); const fe = document.getElementById("fact-fecha").value; const ar = document.getElementById("fact-archivo-url").value; if(!pv || isNaN(ga) || !fe) return alert("Complete los campos requeridos."); try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, grupo: window.grupoActivo, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("✅ Factura registrada."); window.cerrarModalFactura(); } catch(e) { alert("Error guardando factura."); } };
+window.abrirModalEliminarFactura = (id) => { document.getElementById("elim-factura-id").value = id; document.getElementById("elim-factura-motivo").value = ""; document.getElementById("modal-eliminar-factura").classList.remove("hidden"); };
+window.confirmarEliminarFactura = async () => { const id = document.getElementById("elim-factura-id").value; const motivo = document.getElementById("elim-factura-motivo").value.trim(); if(!motivo) return alert("Debe justificar el motivo de la eliminación para la auditoría."); try { const refFactura = doc(db, "facturas", id); const snap = await getDoc(refFactura); if (snap.exists()) { const data = snap.data(); await addDoc(collection(db, "facturas_eliminadas"), { ...data, motivo_eliminacion: motivo, eliminado_por: window.usuarioActual.id, fecha_eliminacion: new Date().toLocaleString(), timestamp_eliminacion: Date.now() }); await deleteDoc(refFactura); alert("🗑️ Factura eliminada correctamente."); document.getElementById("modal-eliminar-factura").classList.add("hidden"); } } catch(e) { alert("Error al eliminar la factura."); } };
+
+// Inicialización & Cloudinary
 const inicializarApp = () => {
     const sesion = localStorage.getItem("fcilog_session"); if(sesion) window.cargarSesion(JSON.parse(sesion));
     if (typeof cloudinary !== "undefined") {
+        
+        // FOTOS INVENTARIO
+        window.cloudinaryWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } });
+        document.getElementById("upload_widget")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryWidget.open(); }, false);
+        
+        // FOTOS BITÁCORA (NUEVO - CORREGIDO EL FORMATO)
         window.cloudinaryBitacoraWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, folder: 'fcilog_bitacora', resourceType: 'auto' }, (error, result) => { 
             if (!error && result && result.event === "success") { 
                 document.getElementById('bitacora-media-url').value = result.info.secure_url; 
-                const b = document.getElementById('bitacora-media-badge'); b.innerText = result.info.format.toUpperCase(); b.classList.remove('hidden');
+                const b = document.getElementById('bitacora-media-badge'); 
+                // Evitamos el error si 'format' no existe
+                const formt = result.info.format || 'ARCHIVO';
+                b.innerText = formt.toUpperCase(); 
+                b.classList.remove('hidden');
             } 
         });
         document.getElementById("btn-upload-bitacora")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryBitacoraWidget.open(); }, false);
+
+        // FACTURAS
+        window.cloudinaryFacturasWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local'], multiple: false, folder: 'fcilog_facturas', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('fact-archivo-url').value = result.info.secure_url; document.getElementById('factura-file-name').innerText = result.info.original_filename; } });
+        document.getElementById("btn-upload-factura")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryFacturasWidget.open(); }, false);
     }
 };
 window.addEventListener('DOMContentLoaded', inicializarApp);
