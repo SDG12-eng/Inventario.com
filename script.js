@@ -22,7 +22,6 @@ window.miGraficoStock = null;
 window.miGraficoUbicacion = null;
 window.html5QrcodeScanner = null;
 
-const EMAIL_CFG = { s: 'service_a7yozqh', t: 'template_zglatmb', k: '2jVnfkJKKG0bpKN-U', admin: 'Emanuel.cedeno@fcipty.com' };
 const chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6', '#f97316', '#a855f7', '#ef4444'];
 
 let rawInventario = [];
@@ -30,7 +29,7 @@ let rawEntradas = [];
 let rawFacturas = [];
 let rawMantenimiento = [];
 
-// --- OPTIMIZACIÓN DE RENDIMIENTO: DEBOUNCE PARA BUSQUEDAS ---
+// --- 2. OPTIMIZACIÓN DE RENDIMIENTO (DEBOUNCE) ---
 let timeoutBusqueda;
 window.debounceFiltrarTarjetas = (idContenedor, texto) => {
     clearTimeout(timeoutBusqueda);
@@ -53,7 +52,7 @@ window.debounceFiltrarTabla = (idTabla, texto) => {
     }, 150);
 };
 
-// --- 2. INTERFAZ Y NAVEGACIÓN ---
+// --- 3. INTERFAZ Y NAVEGACIÓN ---
 window.verPagina = (id) => {
     document.querySelectorAll(".view").forEach(v => { v.classList.add("hidden"); v.classList.remove("animate-fade-in"); });
     const target = document.getElementById(`pag-${id}`);
@@ -79,7 +78,29 @@ window.switchTab = (tab) => {
     else { document.getElementById('tab-btn-historial').className = onClass; document.getElementById('tab-btn-activos').className = offClass; }
 };
 
-// --- 3. SESIÓN ---
+// --- 4. SESIÓN Y GRUPOS ---
+window.actualizarCheckboxesGrupos = () => {
+    const container = document.getElementById("user-grupos-checkboxes");
+    if(!container) return;
+    container.innerHTML = window.todosLosGrupos.map(g => `
+        <label class="flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition">
+            <input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo">
+            <span class="text-xs font-bold text-slate-700 uppercase">${g}</span>
+        </label>
+    `).join('');
+};
+
+window.renderizarSelectorGrupos = (misGrupos) => {
+    const sel = document.getElementById("selector-grupo-activo"); if(!sel) return;
+    sel.innerHTML = misGrupos.map(g => `<option value="${g}">${g}</option>`).join(''); sel.value = window.grupoActivo;
+    document.getElementById("dash-grupo-label").innerText = window.grupoActivo; document.getElementById("lbl-grupo-solicitud").innerText = window.grupoActivo;
+};
+
+window.cambiarGrupoActivo = (nuevoGrupo) => {
+    window.grupoActivo = nuevoGrupo; document.getElementById("dash-grupo-label").innerText = window.grupoActivo; document.getElementById("lbl-grupo-solicitud").innerText = window.grupoActivo;
+    window.carritoGlobal = {}; window.procesarDatosInventario(); window.procesarDatosPedidos(); window.renderHistorialUnificado(); window.procesarDatosFacturas(); window.renderMantenimiento(); window.actualizarDashboard(); 
+};
+
 window.cargarSesion = (datos) => {
     window.usuarioActual = datos; localStorage.setItem("fcilog_session", JSON.stringify(datos));
     document.getElementById("pantalla-login")?.classList.add("hidden"); document.getElementById("interfaz-app")?.classList.remove("hidden");
@@ -104,38 +125,15 @@ window.cargarSesion = (datos) => {
     window.activarSincronizacion();
 };
 
-window.renderizarSelectorGrupos = (misGrupos) => {
-    const sel = document.getElementById("selector-grupo-activo"); if(!sel) return;
-    sel.innerHTML = misGrupos.map(g => `<option value="${g}">${g}</option>`).join(''); sel.value = window.grupoActivo;
-    document.getElementById("dash-grupo-label").innerText = window.grupoActivo; document.getElementById("lbl-grupo-solicitud").innerText = window.grupoActivo;
-};
-
-window.cambiarGrupoActivo = (nuevoGrupo) => {
-    window.grupoActivo = nuevoGrupo; document.getElementById("dash-grupo-label").innerText = window.grupoActivo; document.getElementById("lbl-grupo-solicitud").innerText = window.grupoActivo;
-    window.carritoGlobal = {}; window.procesarDatosInventario(); window.procesarDatosPedidos(); window.renderHistorialUnificado(); window.procesarDatosFacturas(); window.renderMantenimiento(); window.actualizarDashboard(); 
-};
-
 window.iniciarSesion = async () => {
     const user = document.getElementById("login-user").value.trim().toLowerCase(); const pass = document.getElementById("login-pass").value.trim();
     if(!user || !pass) return alert("Ingrese usuario y contraseña.");
     if (user === "admin" && pass === "1130") { window.cargarSesion({ id: "admin", rol: "admin", grupos: ["SERVICIOS GENERALES"] }); return; }
-    try { const snap = await getDoc(doc(db, "usuarios", user)); if (snap.exists() && snap.data().pass === pass) window.cargarSesion({ id: user, ...snap.data() }); else alert("Credenciales incorrectas."); } catch (e) { alert("Error."); }
+    try { const snap = await getDoc(doc(db, "usuarios", user)); if (snap.exists() && snap.data().pass === pass) window.cargarSesion({ id: user, ...snap.data() }); else alert("Credenciales incorrectas."); } catch (e) { alert("Error de conexión."); }
 };
 window.cerrarSesion = () => { localStorage.removeItem("fcilog_session"); location.reload(); };
 
-// --- RESTAURADO: CHECKBOXES DE GRUPOS ---
-window.actualizarCheckboxesGrupos = () => {
-    const container = document.getElementById("user-grupos-checkboxes");
-    if(!container) return;
-    container.innerHTML = window.todosLosGrupos.map(g => `
-        <label class="flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition">
-            <input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo">
-            <span class="text-xs font-bold text-slate-700 uppercase">${g}</span>
-        </label>
-    `).join('');
-};
-
-// --- 4. REALTIME DB ---
+// --- 5. REALTIME DB ---
 window.activarSincronizacion = () => {
     const uRol = window.usuarioActual.rol;
     onSnapshot(collection(db, "grupos"), snap => {
@@ -164,7 +162,7 @@ window.activarSincronizacion = () => {
     });
 };
 
-// --- 5. RENDERIZADO OPTIMIZADO (EVITA COLAPSOS EN GAMA BAJA) ---
+// --- 6. INVENTARIO Y PEDIDOS OPTIMIZADOS ---
 window.ajustarCantidad = (idInsumo, delta) => {
     const safeId = idInsumo.replace(/[^a-zA-Z0-9]/g, '_');
     const n = Math.max(0, (window.carritoGlobal[idInsumo] || 0) + delta); 
@@ -258,7 +256,7 @@ window.procesarDatosPedidos = () => {
     if(document.getElementById("metrica-pedidos")) document.getElementById("metrica-pedidos").innerText = pendingCount;
 };
 
-// --- 6. MÓDULO MANTENIMIENTO AVANZADO (BITÁCORA Y TIEMPOS) ---
+// --- 7. MÓDULO MANTENIMIENTO AVANZADO (BITÁCORA Y TIEMPOS) ---
 const calcularTiempo = (inicioMs, finMs) => {
     if(!inicioMs || !finMs) return "N/A";
     const diffMs = finMs - inicioMs;
@@ -379,7 +377,33 @@ window.guardarBitacora = async () => {
 window.cerrarBitacora = () => { document.getElementById("modal-bitacora").classList.add("hidden"); };
 
 
-// --- 7. RESTO DE FUNCIONALIDADES OPTIMIZADAS (FACTURAS, HISTORIAL, EXCEL, MODALES) ---
+// --- 8. FUNCIONES DE DESCARGA EXCEL (RESTAURADO) ---
+window.descargarReporte = async () => {
+    if(typeof XLSX === 'undefined') return alert("La librería Excel aún no ha cargado, intente en un segundo.");
+    const inputDesde = document.getElementById("rep-desde")?.value; const inputHasta = document.getElementById("rep-hasta")?.value;
+    let tDesde = 0; let tHasta = Infinity;
+    if(inputDesde) tDesde = new Date(inputDesde + 'T00:00:00').getTime(); if(inputHasta) tHasta = new Date(inputHasta + 'T23:59:59').getTime();
+    if(!confirm(`¿Descargar reporte Excel del grupo ${window.grupoActivo}?`)) return;
+    
+    const uSnap = await getDocs(collection(db, "usuarios")); const usersMap = {}; uSnap.forEach(u => { usersMap[u.id] = u.data(); });
+    const obtenerMesAno = (timestamp) => { if(!timestamp) return 'N/A'; const d = new Date(timestamp); return `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]} ${d.getFullYear()}`; };
+    const calcularTiempoRespuesta = (inicio, fin) => { if(!inicio || !fin) return "N/A"; const diffMs = fin - inicio; if(diffMs < 0) return "N/A"; const diffMins = Math.round(diffMs / 60000); if(diffMins < 60) return `${diffMins} min`; const diffHrs = (diffMins / 60).toFixed(1); if(diffHrs < 24) return `${diffHrs} hrs`; return `${(diffHrs / 24).toFixed(1)} días`; };
+
+    const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+    const stockData = invActivo.map(p => ({ "Insumo": p.id.toUpperCase(), "Cantidad Disponible": p.cantidad || 0, "Stock Mínimo": p.stockMinimo || 0, "Precio Unit. ($)": p.precio || 0 }));
+    const entActivas = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo && e.timestamp >= tDesde && e.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
+    const entradasData = entActivas.map(mov => ({ "Mes y Año": obtenerMesAno(mov.timestamp), "Fecha de Entrada": mov.fecha || 'N/A', "Insumo": (mov.insumo || '').toUpperCase(), "Cantidad Ingresada": mov.cantidad || 0, "Usuario Responsable": (mov.usuario || '').toUpperCase() }));
+    const salActivas = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
+    const salidasData = salActivas.map(mov => { const uId = mov.usuarioId || ''; const userObj = usersMap[uId] || {}; return { "Mes y Año": obtenerMesAno(mov.timestamp), "ID Pedido": mov.batchId || 'N/A', "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A', "Prioridad": (mov.prioridad || 'NORMAL').toUpperCase(), "Insumo": (mov.insumoNom || '').toUpperCase(), "Cant.": mov.cantidad || 0, "Sede Destino": (mov.ubicacion || '').toUpperCase(), "Usuario Solicitante": uId.toUpperCase(), "Departamento": (userObj.departamento || 'N/A').toUpperCase(), "Entregado / Aprobado Por": (mov.entregado_por || 'N/A').toUpperCase(), "Estado Actual": (mov.estado || '').toUpperCase(), "Fecha Aprobación": mov.fecha_aprobado || 'N/A', "Tiempo de Respuesta": calcularTiempoRespuesta(mov.timestamp_solicitud || mov.timestamp, mov.timestamp_aprobado), "Fecha Recepción": mov.fecha_recibido || 'N/A', "Tiempo de Entrega": calcularTiempoRespuesta(mov.timestamp_aprobado, mov.timestamp_recibido), "Notas": mov.detalleIncidencia || '' }; });
+
+    const wb = XLSX.utils.book_new();
+    if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Inventario"); 
+    if(entradasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entradasData), "Entradas"); 
+    if(salidasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salidasData), "Salidas");
+    XLSX.writeFile(wb, `Reporte_FCILog_${window.grupoActivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
+
+// --- 9. MODALES Y FUNCIONES EXTRAS ---
 window.procesarDatosFacturas = () => {
     const tf = document.getElementById("tabla-facturas-db"); if(!tf) return;
     let html = "";
@@ -420,7 +444,6 @@ window.actualizarDashboard = () => {
     window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Demandas', chartPalette, window.miGraficoUbicacion, ch => window.miGraficoUbicacion = ch);
 };
 
-// Pedidos y Escáner...
 window.procesarSolicitudMultiple = async () => {
     const ubi = document.getElementById("sol-ubicacion").value; const prio = document.getElementById("sol-prioridad").value; const notas = document.getElementById("sol-notas").value.trim(); 
     const items = Object.entries(window.carritoGlobal).filter(([_, c]) => c > 0);
@@ -443,7 +466,6 @@ window.iniciarScanner = (inputIdTarget) => {
 };
 window.detenerScanner = () => { if(window.html5QrcodeScanner) window.html5QrcodeScanner.stop().catch(()=>{}); document.getElementById("modal-scanner").classList.add("hidden"); };
 
-// Modales rápidos
 window.abrirModalGrupo = (bKey) => {
     const items = window.cachePedidos.filter(p => p.batchId === bKey || p.timestamp.toString() === bKey); if(items.length===0) return;
     document.getElementById("modal-grupo-titulo").innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion}`; 
@@ -479,47 +501,21 @@ window.prepararEdicionProducto = async(id) => { const s = await getDoc(doc(db,"i
 window.guardarDetallesProducto = async () => { await updateDoc(doc(db,"inventario",document.getElementById('edit-prod-id').value),{precio:parseFloat(document.getElementById('edit-prod-precio').value)||0, stockMinimo:parseInt(document.getElementById('edit-prod-min').value)||0}); document.getElementById('modal-detalles').classList.add('hidden'); };
 window.eliminarDato = async (col, id) => { if(confirm("¿Eliminar?")) await deleteDoc(doc(db, col, id)); };
 
-// --- RESTAURADO: DESCARGAR EXCEL ---
-window.descargarReporte = async () => {
-    if(typeof XLSX === 'undefined') return alert("La librería Excel aún no ha cargado, intente en un segundo.");
-    const inputDesde = document.getElementById("rep-desde")?.value; const inputHasta = document.getElementById("rep-hasta")?.value;
-    let tDesde = 0; let tHasta = Infinity;
-    if(inputDesde) tDesde = new Date(inputDesde + 'T00:00:00').getTime(); if(inputHasta) tHasta = new Date(inputHasta + 'T23:59:59').getTime();
-    if(!confirm(`¿Descargar reporte Excel del grupo ${window.grupoActivo}?`)) return;
-    
-    const uSnap = await getDocs(collection(db, "usuarios")); const usersMap = {}; uSnap.forEach(u => { usersMap[u.id] = u.data(); });
-    const obtenerMesAno = (timestamp) => { if(!timestamp) return 'N/A'; const d = new Date(timestamp); return `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]} ${d.getFullYear()}`; };
-    const calcularTiempo = (inicio, fin) => { if(!inicio || !fin) return "N/A"; const diffMs = fin - inicio; if(diffMs < 0) return "N/A"; const diffMins = Math.round(diffMs / 60000); if(diffMins < 60) return `${diffMins} min`; const diffHrs = (diffMins / 60).toFixed(1); if(diffHrs < 24) return `${diffHrs} hrs`; return `${(diffHrs / 24).toFixed(1)} días`; };
-
-    const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
-    const stockData = invActivo.map(p => ({ "Insumo": p.id.toUpperCase(), "Cantidad Disponible": p.cantidad || 0, "Stock Mínimo": p.stockMinimo || 0, "Precio Unit. ($)": p.precio || 0 }));
-    const entActivas = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo && e.timestamp >= tDesde && e.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
-    const entradasData = entActivas.map(mov => ({ "Mes y Año": obtenerMesAno(mov.timestamp), "Fecha de Entrada": mov.fecha || 'N/A', "Insumo": (mov.insumo || '').toUpperCase(), "Cantidad Ingresada": mov.cantidad || 0, "Usuario Responsable": (mov.usuario || '').toUpperCase() }));
-    const salActivas = window.pedidosRaw.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo && p.timestamp >= tDesde && p.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
-    const salidasData = salActivas.map(mov => { const uId = mov.usuarioId || ''; const userObj = usersMap[uId] || {}; return { "Mes y Año": obtenerMesAno(mov.timestamp), "ID Pedido": mov.batchId || 'N/A', "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A', "Prioridad": (mov.prioridad || 'NORMAL').toUpperCase(), "Insumo": (mov.insumoNom || '').toUpperCase(), "Cant.": mov.cantidad || 0, "Sede Destino": (mov.ubicacion || '').toUpperCase(), "Usuario Solicitante": uId.toUpperCase(), "Departamento": (userObj.departamento || 'N/A').toUpperCase(), "Entregado / Aprobado Por": (mov.entregado_por || 'N/A').toUpperCase(), "Estado Actual": (mov.estado || '').toUpperCase(), "Fecha Aprobación": mov.fecha_aprobado || 'N/A', "Tiempo de Respuesta": calcularTiempo(mov.timestamp_solicitud || mov.timestamp, mov.timestamp_aprobado), "Fecha Recepción": mov.fecha_recibido || 'N/A', "Tiempo de Entrega": calcularTiempo(mov.timestamp_aprobado, mov.timestamp_recibido), "Notas": mov.detalleIncidencia || '' }; });
-
-    const wb = XLSX.utils.book_new();
-    if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Inventario"); 
-    if(entradasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entradasData), "Entradas"); 
-    if(salidasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salidasData), "Salidas");
-    XLSX.writeFile(wb, `Reporte_FCILog_${window.grupoActivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-};
-
-// Modales Extras que faltaron
-window.guardarSede = async () => { const s = document.getElementById("new-sede").value.trim().toUpperCase(); if(!s) return alert("Ingrese el nombre de la sede."); try { await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() }); document.getElementById("new-sede").value = ""; alert("✅ Sede guardada exitosamente."); } catch(e) { alert("Error al guardar la sede."); } };
-window.guardarGrupo = async () => { const g = document.getElementById("new-grupo").value.trim().toUpperCase(); if(!g) return alert("Ingrese el nombre del grupo."); try { await addDoc(collection(db, "grupos"), { nombre: g, timestamp: Date.now() }); document.getElementById("new-grupo").value = ""; alert("✅ Grupo creado exitosamente."); } catch(e) { alert("Error al crear el grupo."); } };
-window.guardarUsuario = async () => { const id = document.getElementById("new-user").value.trim().toLowerCase(); const p = document.getElementById("new-pass").value.trim(); const e = document.getElementById("new-email").value.trim(); const r = document.getElementById("new-role").value; const checkboxes = document.querySelectorAll('.chk-grupo:checked'); let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value); if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"]; if(!id || !p) return alert("Faltan datos obligatorios."); await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados }, { merge: true }); alert("Usuario guardado exitosamente."); window.cancelarEdicionUsuario(); };
+window.guardarSede = async () => { const s = document.getElementById("new-sede").value.trim().toUpperCase(); if(!s) return alert("Ingrese sede."); try { await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() }); document.getElementById("new-sede").value = ""; alert("Sede guardada."); } catch(e) { alert("Error."); } };
+window.guardarGrupo = async () => { const g = document.getElementById("new-grupo").value.trim().toUpperCase(); if(!g) return alert("Ingrese grupo."); try { await addDoc(collection(db, "grupos"), { nombre: g, timestamp: Date.now() }); document.getElementById("new-grupo").value = ""; alert("Grupo creado."); } catch(e) { alert("Error."); } };
+window.guardarUsuario = async () => { const id = document.getElementById("new-user").value.trim().toLowerCase(); const p = document.getElementById("new-pass").value.trim(); const e = document.getElementById("new-email").value.trim(); const r = document.getElementById("new-role").value; const checkboxes = document.querySelectorAll('.chk-grupo:checked'); let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value); if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"]; if(!id || !p) return alert("Faltan datos."); await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados }, { merge: true }); alert("Usuario guardado."); window.cancelarEdicionUsuario(); };
 window.prepararEdicionUsuario = async (userId) => { const snap = await getDoc(doc(db, "usuarios", userId)); if(!snap.exists()) return; const u = snap.data(); document.getElementById("edit-mode-id").value = userId; const inpU = document.getElementById("new-user"); inpU.value = userId; inpU.disabled = true; document.getElementById("new-pass").value = u.pass; document.getElementById("new-email").value = u.email || ""; document.getElementById("new-role").value = u.rol; const gruposUsuario = u.grupos || ["SERVICIOS GENERALES"]; document.querySelectorAll('.chk-grupo').forEach(chk => { chk.checked = gruposUsuario.includes(chk.value); }); document.getElementById("btn-guardar-usuario").innerText = "Actualizar"; document.getElementById("cancel-edit-msg").classList.remove("hidden"); };
-window.cancelarEdicionUsuario = () => { document.getElementById("edit-mode-id").value = ""; const inpU = document.getElementById("new-user"); inpU.value = ""; inpU.disabled = false; document.getElementById("new-pass").value = ""; document.getElementById("new-email").value = ""; document.getElementById("new-role").value = "user"; document.querySelectorAll('.chk-grupo').forEach(chk => chk.checked = false); document.getElementById("btn-guardar-usuario").innerText = "Guardar Usuario"; document.getElementById("cancel-edit-msg").classList.add("hidden"); };
+window.cancelarEdicionUsuario = () => { document.getElementById("edit-mode-id").value = ""; const inpU = document.getElementById("new-user"); inpU.value = ""; inpU.disabled = false; document.getElementById("new-pass").value = ""; document.getElementById("new-email").value = ""; document.getElementById("new-role").value = "user"; document.querySelectorAll('.chk-grupo').forEach(chk => chk.checked = false); document.getElementById("btn-guardar-usuario").innerText = "Guardar"; document.getElementById("cancel-edit-msg").classList.add("hidden"); };
 window.abrirModalEditarEntrada = (idEntrada, insumo, cantidadActual) => { document.getElementById('edit-entrada-id').value = idEntrada; document.getElementById('edit-entrada-insumo').value = insumo; document.getElementById('edit-entrada-insumo-display').value = insumo; document.getElementById('edit-entrada-cant-original').value = cantidadActual; document.getElementById('edit-entrada-cantidad').value = cantidadActual; document.getElementById('edit-entrada-motivo').value = ""; document.getElementById('modal-editar-entrada').classList.remove('hidden'); };
-window.guardarEdicionEntrada = async () => { const idEntrada = document.getElementById('edit-entrada-id').value; const insumo = document.getElementById('edit-entrada-insumo').value.toLowerCase(); const cantOriginal = parseInt(document.getElementById('edit-entrada-cant-original').value); const cantNueva = parseInt(document.getElementById('edit-entrada-cantidad').value); const motivo = document.getElementById('edit-entrada-motivo').value.trim(); if (isNaN(cantNueva) || cantNueva < 0) return alert("Ingrese una cantidad válida mayor o igual a 0."); if (!motivo) return alert("Debe ingresar el motivo de la corrección."); const diferencia = cantNueva - cantOriginal; if (diferencia === 0) { document.getElementById('modal-editar-entrada').classList.add('hidden'); return; } try { const invRef = doc(db, "inventario", insumo); const invSnap = await getDoc(invRef); if (!invSnap.exists()) return alert("El insumo ya no existe."); const nuevoStock = invSnap.data().cantidad + diferencia; if (nuevoStock < 0) return alert(`❌ Error matemático: El stock quedaría en negativo.`); await updateDoc(invRef, { cantidad: nuevoStock }); await updateDoc(doc(db, "entradas_stock", idEntrada), { cantidad: cantNueva, motivo_edicion: motivo, editado_por: window.usuarioActual.id, fecha_edicion: new Date().toLocaleString() }); alert("✅ Entrada corregida."); document.getElementById('modal-editar-entrada').classList.add('hidden'); } catch(e) { console.error(e); alert("Ocurrió un error."); } };
+window.guardarEdicionEntrada = async () => { const idEntrada = document.getElementById('edit-entrada-id').value; const insumo = document.getElementById('edit-entrada-insumo').value.toLowerCase(); const cantOriginal = parseInt(document.getElementById('edit-entrada-cant-original').value); const cantNueva = parseInt(document.getElementById('edit-entrada-cantidad').value); const motivo = document.getElementById('edit-entrada-motivo').value.trim(); if (isNaN(cantNueva) || cantNueva < 0) return alert("Cantidad inválida."); if (!motivo) return alert("Ingrese motivo."); const diferencia = cantNueva - cantOriginal; if (diferencia === 0) { document.getElementById('modal-editar-entrada').classList.add('hidden'); return; } try { const invRef = doc(db, "inventario", insumo); const invSnap = await getDoc(invRef); if (!invSnap.exists()) return; await updateDoc(invRef, { cantidad: invSnap.data().cantidad + diferencia }); await updateDoc(doc(db, "entradas_stock", idEntrada), { cantidad: cantNueva, motivo_edicion: motivo }); alert("✅ Entrada corregida."); document.getElementById('modal-editar-entrada').classList.add('hidden'); } catch(e) { alert("Error."); } };
 window.abrirModalFactura = () => { document.getElementById("fact-proveedor").value = ""; document.getElementById("fact-gasto").value = ""; document.getElementById("fact-fecha").value = ""; document.getElementById("fact-archivo-url").value = ""; document.getElementById("factura-file-name").innerText = "Ninguno"; document.getElementById("modal-factura").classList.remove("hidden"); };
 window.cerrarModalFactura = () => { document.getElementById("modal-factura").classList.add("hidden"); };
-window.guardarFactura = async () => { const pv = document.getElementById("fact-proveedor").value.trim(); const ga = parseFloat(document.getElementById("fact-gasto").value); const fe = document.getElementById("fact-fecha").value; const ar = document.getElementById("fact-archivo-url").value; if(!pv || isNaN(ga) || !fe) return alert("Complete los campos requeridos."); try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, grupo: window.grupoActivo, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("✅ Factura registrada."); window.cerrarModalFactura(); } catch(e) { alert("Error guardando factura."); } };
+window.guardarFactura = async () => { const pv = document.getElementById("fact-proveedor").value.trim(); const ga = parseFloat(document.getElementById("fact-gasto").value); const fe = document.getElementById("fact-fecha").value; const ar = document.getElementById("fact-archivo-url").value; if(!pv || isNaN(ga) || !fe) return alert("Campos requeridos."); try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, grupo: window.grupoActivo, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("Factura registrada."); window.cerrarModalFactura(); } catch(e) { alert("Error."); } };
 window.abrirModalEliminarFactura = (id) => { document.getElementById("elim-factura-id").value = id; document.getElementById("elim-factura-motivo").value = ""; document.getElementById("modal-eliminar-factura").classList.remove("hidden"); };
-window.confirmarEliminarFactura = async () => { const id = document.getElementById("elim-factura-id").value; const motivo = document.getElementById("elim-factura-motivo").value.trim(); if(!motivo) return alert("Debe justificar el motivo de la eliminación para la auditoría."); try { const refFactura = doc(db, "facturas", id); const snap = await getDoc(refFactura); if (snap.exists()) { const data = snap.data(); await addDoc(collection(db, "facturas_eliminadas"), { ...data, motivo_eliminacion: motivo, eliminado_por: window.usuarioActual.id, fecha_eliminacion: new Date().toLocaleString(), timestamp_eliminacion: Date.now() }); await deleteDoc(refFactura); alert("🗑️ Factura eliminada correctamente."); document.getElementById("modal-eliminar-factura").classList.add("hidden"); } } catch(e) { alert("Error al eliminar la factura."); } };
+window.confirmarEliminarFactura = async () => { const id = document.getElementById("elim-factura-id").value; const motivo = document.getElementById("elim-factura-motivo").value.trim(); if(!motivo) return alert("Justifique eliminación."); try { const refFactura = doc(db, "facturas", id); const snap = await getDoc(refFactura); if (snap.exists()) { await addDoc(collection(db, "facturas_eliminadas"), { ...snap.data(), motivo_eliminacion: motivo }); await deleteDoc(refFactura); alert("🗑️ Factura eliminada."); document.getElementById("modal-eliminar-factura").classList.add("hidden"); } } catch(e) { alert("Error."); } };
 
-// Inicialización & Cloudinary
+
+// --- 10. INICIALIZACIÓN Y CLOUDINARY (BLINDADO) ---
 const inicializarApp = () => {
     const sesion = localStorage.getItem("fcilog_session"); if(sesion) window.cargarSesion(JSON.parse(sesion));
     if (typeof cloudinary !== "undefined") {
@@ -528,22 +524,25 @@ const inicializarApp = () => {
         window.cloudinaryWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } });
         document.getElementById("upload_widget")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryWidget.open(); }, false);
         
-        // FOTOS BITÁCORA (NUEVO - CORREGIDO EL FORMATO)
+        // FOTOS BITÁCORA (CORRECCIÓN APLICADA AQUÍ)
         window.cloudinaryBitacoraWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, folder: 'fcilog_bitacora', resourceType: 'auto' }, (error, result) => { 
             if (!error && result && result.event === "success") { 
                 document.getElementById('bitacora-media-url').value = result.info.secure_url; 
                 const b = document.getElementById('bitacora-media-badge'); 
-                // Evitamos el error si 'format' no existe
-                const formt = result.info.format || 'ARCHIVO';
-                b.innerText = formt.toUpperCase(); 
+                
+                // Blindaje contra formatos no detectados (videos de celulares, pdf, etc)
+                const formatoArchivo = (result.info && result.info.format) ? result.info.format.toUpperCase() : "ADJUNTO";
+                
+                b.innerText = formatoArchivo; 
                 b.classList.remove('hidden');
             } 
         });
         document.getElementById("btn-upload-bitacora")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryBitacoraWidget.open(); }, false);
 
         // FACTURAS
-        window.cloudinaryFacturasWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local'], multiple: false, folder: 'fcilog_facturas', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('fact-archivo-url').value = result.info.secure_url; document.getElementById('factura-file-name').innerText = result.info.original_filename; } });
+        window.cloudinaryFacturasWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local'], multiple: false, folder: 'fcilog_facturas', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('fact-archivo-url').value = result.info.secure_url; document.getElementById('factura-file-name').innerText = result.info.original_filename || "Documento"; } });
         document.getElementById("btn-upload-factura")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryFacturasWidget.open(); }, false);
     }
 };
+
 window.addEventListener('DOMContentLoaded', inicializarApp);
