@@ -425,6 +425,37 @@ window.procesarDatosInventario = () => {
     if(document.getElementById("metrica-total")) document.getElementById("metrica-total").innerText = tr;
     if(document.getElementById("metrica-stock")) document.getElementById("metrica-stock").innerText = ts;
     window.actualizarDashboard();
+    
+    window.renderListaInsumos(); // NUEVO: Llamar para el modal de entrada rápida
+};
+
+// NUEVO: Renderiza la lista de insumos en el modal de Entrada Rápida
+window.renderListaInsumos = () => {
+    const contenedor = document.getElementById("contenedor-lista-insumos");
+    if(!contenedor) return;
+    
+    const invFiltrado = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+    contenedor.innerHTML = invFiltrado.map(p => {
+        const nombre = p.id.toUpperCase(); const jsId = p.id.replace(/'/g, "\\'");
+        const img = p.imagen ? `<img src="${p.imagen}" loading="lazy" class="w-10 h-10 object-cover rounded-lg border">` : `<div class="w-10 h-10 bg-white rounded-lg border flex items-center justify-center text-slate-300"><i class="fas fa-box text-lg"></i></div>`;
+        return `
+        <div onclick="window.seleccionarInsumoParaEntrada('${jsId}')" class="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white shadow-sm cursor-pointer hover:border-indigo-100 hover:bg-indigo-50/50 transition item-tarjeta">
+            <div class="flex items-center gap-3 overflow-hidden">
+                ${img}
+                <div class="truncate">
+                    <p class="font-bold text-xs uppercase text-slate-700 truncate">${nombre}</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Stock: ${p.cantidad}</p>
+                </div>
+            </div>
+            <i class="fas fa-chevron-right text-indigo-300 text-xs"></i>
+        </div>`;
+    }).join('');
+};
+
+// NUEVO: Al hacer clic en un insumo de la lista, lo selecciona en el formulario
+window.seleccionarInsumoParaEntrada = (nombreInsumo) => {
+    document.getElementById("nombre-prod").value = nombreInsumo;
+    document.getElementById("nombre-prod").focus();
 };
 
 window.procesarDatosPedidos = () => {
