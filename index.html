@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FCILog </title>
+    <title>FCILog - InsuManager v16.0 Enterprise</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -25,19 +25,11 @@
             <h1 class="text-3xl font-black mb-2 text-indigo-900 tracking-tight">FCILog System</h1>
             <p class="text-slate-400 text-sm mb-8 font-medium">Gestión Integral Empresarial</p>
             <div class="space-y-4">
-                <div class="relative">
-                    <i class="fas fa-user absolute left-4 top-4 text-slate-300"></i>
-                    <input id="login-user" type="text" placeholder="USUARIO" class="input-light pl-12 uppercase font-bold text-slate-600">
-                </div>
-                <div class="relative">
-                    <i class="fas fa-lock absolute left-4 top-4 text-slate-300"></i>
-                    <input id="login-pass" type="password" placeholder="CONTRASEÑA" class="input-light pl-12 font-bold text-slate-600">
-                </div>
-                <button onclick="window.iniciarSesion()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl hover:bg-indigo-700 transition-all active:scale-95">
-                    Iniciar Sesión
-                </button>
+                <div class="relative"><i class="fas fa-user absolute left-4 top-4 text-slate-300"></i><input id="login-user" type="text" placeholder="USUARIO" class="input-light pl-12 uppercase font-bold text-slate-600"></div>
+                <div class="relative"><i class="fas fa-lock absolute left-4 top-4 text-slate-300"></i><input id="login-pass" type="password" placeholder="CONTRASEÑA" class="input-light pl-12 font-bold text-slate-600"></div>
+                <button onclick="window.iniciarSesion()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl hover:bg-indigo-700 transition-all active:scale-95">Iniciar Sesión</button>
             </div>
-            <p class="text-[10px] text-slate-300 mt-8 font-mono">v15.5 Enterprise (Optimizada)</p>
+            <p class="text-[10px] text-slate-300 mt-8 font-mono">v16.0 Enterprise (Módulos Completos)</p>
         </div>
     </div>
 
@@ -69,10 +61,7 @@
                 
                 <section id="pag-stats" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center flex-wrap gap-4">
-                        <div>
-                            <h2 class="text-2xl font-black text-slate-800">Dashboard</h2>
-                            <p id="dash-grupo-label" class="text-indigo-500 font-bold text-xs uppercase tracking-wider">SERVICIOS GENERALES</p>
-                        </div>
+                        <div><h2 class="text-2xl font-black text-slate-800">Dashboard</h2><p id="dash-grupo-label" class="text-indigo-500 font-bold text-xs uppercase tracking-wider">SERVICIOS GENERALES</p></div>
                         <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex-wrap">
                             <span class="text-xs font-bold text-slate-400 ml-2">Desde:</span><input type="date" id="dash-desde" class="bg-slate-50 border border-slate-200 text-xs p-2 rounded-lg outline-none text-slate-600 font-bold">
                             <span class="text-xs font-bold text-slate-400">Hasta:</span><input type="date" id="dash-hasta" class="bg-slate-50 border border-slate-200 text-xs p-2 rounded-lg outline-none text-slate-600 font-bold">
@@ -93,10 +82,7 @@
 
                 <section id="pag-stock" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center sticky top-0 bg-slate-50/95 backdrop-blur py-4 z-10 border-b border-slate-100/50 pb-2">
-                        <div>
-                            <h2 class="text-2xl font-black text-slate-800">Inventario</h2>
-                            <div class="flex items-center gap-2 mt-1"><span class="w-2 h-2 rounded-full bg-red-500 inline-block animate-pulse"></span><span class="text-[10px] font-bold text-slate-400 uppercase">Stock Bajo</span></div>
-                        </div>
+                        <div><h2 class="text-2xl font-black text-slate-800">Inventario (Consumibles)</h2></div>
                         <button id="btn-admin-stock" onclick="window.abrirModalInsumo()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm"><i class="fas fa-plus"></i><span class="hidden sm:inline">Entrada Rápida</span></button>
                     </div>
                     <div class="flex gap-2 mb-4">
@@ -106,37 +92,32 @@
                     <div id="lista-inventario" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20"></div>
                 </section>
 
+                <section id="pag-activos" class="view hidden space-y-6 animate-fade-in">
+                    <div class="flex justify-between items-center sticky top-0 bg-slate-50/95 backdrop-blur py-4 z-10 border-b border-slate-100/50 pb-2">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800">Activos Fijos / Equipos</h2>
+                            <p class="text-slate-400 text-xs font-bold mt-1">Registro y seguimiento de bienes (QR y Bitácora)</p>
+                        </div>
+                        <button id="btn-admin-activos" onclick="window.abrirModalActivo()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm"><i class="fas fa-plus"></i><span class="hidden sm:inline">Nuevo Activo</span></button>
+                    </div>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="buscador-activos" onkeyup="window.debounceFiltrarTarjetas('lista-activos-db', this.value)" placeholder="🔍 Buscar por nombre, marca, ID o categoría..." class="input-light text-sm p-3 shadow-sm border-slate-200 flex-1">
+                        <button onclick="window.iniciarScanner('buscador-activos')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-4 rounded-xl hover:bg-indigo-600 hover:text-white transition shadow-sm" title="Escanear QR de Activo"><i class="fas fa-qrcode text-xl"></i></button>
+                    </div>
+                    <div id="lista-activos-db" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20"></div>
+                </section>
+
                 <section id="pag-mantenimiento" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h2 class="text-2xl font-black text-slate-800">Mantenimiento Preventivo</h2>
-                            <p class="text-slate-400 text-xs">Bitácora, control de tiempos y evidencias</p>
-                        </div>
+                        <div><h2 class="text-2xl font-black text-slate-800">Mantenimiento Preventivo</h2><p class="text-slate-400 text-xs">Bitácora, control de tiempos y evidencias</p></div>
                         <button onclick="window.abrirModalMantenimiento()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm"><i class="fas fa-tools"></i> Programar Tarea</button>
                     </div>
-                    
                     <div class="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden mt-6">
-                        <div class="overflow-x-auto max-h-[600px] custom-scroll">
-                            <table class="w-full text-left min-w-[1000px]">
-                                <thead class="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
-                                    <tr>
-                                        <th class="p-4 th-header">Estado / Tiempo</th>
-                                        <th class="p-4 th-header">Equipo / Área</th>
-                                        <th class="p-4 th-header">Programación</th>
-                                        <th class="p-4 th-header">Responsable</th>
-                                        <th class="p-4 th-header text-center">Gestión y Bitácora</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabla-mantenimiento-db" class="divide-y divide-slate-50 text-xs font-medium"></tbody>
-                            </table>
-                        </div>
+                        <div class="overflow-x-auto max-h-[600px] custom-scroll"><table class="w-full text-left min-w-[1000px]"><thead class="bg-slate-50 border-b border-slate-100 sticky top-0 z-10"><tr><th class="p-4 th-header">Estado / Tiempo</th><th class="p-4 th-header">Equipo / Área</th><th class="p-4 th-header">Programación</th><th class="p-4 th-header">Responsable</th><th class="p-4 th-header text-center">Gestión y Bitácora</th></tr></thead><tbody id="tabla-mantenimiento-db" class="divide-y divide-slate-50 text-xs font-medium"></tbody></table></div>
                     </div>
                 </section>
 
-                <section id="pag-solicitudes" class="view hidden space-y-6 animate-fade-in">
-                    <h2 class="text-2xl font-black text-slate-800">Centro de Aprobaciones</h2>
-                    <div id="lista-pendientes-admin" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
-                </section>
+                <section id="pag-solicitudes" class="view hidden space-y-6 animate-fade-in"><h2 class="text-2xl font-black text-slate-800">Centro de Aprobaciones</h2><div id="lista-pendientes-admin" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div></section>
 
                 <section id="pag-facturas" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -188,47 +169,101 @@
         </div>
     </div>
 
-    <div id="modal-bitacora" class="fixed inset-0 bg-slate-900/80 hidden z-[400] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="bg-slate-800 p-4 text-white flex justify-between items-center">
-                <div><h3 class="font-black text-lg"><i class="fas fa-clipboard-list text-indigo-400 mr-2"></i> Bitácora de Servicio</h3><p id="bitacora-equipo-titulo" class="text-xs text-slate-300 font-mono"></p></div>
-                <button onclick="window.cerrarBitacora()" class="text-slate-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+    <div id="modal-activo" class="fixed inset-0 bg-slate-900/80 hidden z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-6 sm:p-8 rounded-[2rem] w-full max-w-2xl shadow-2xl flex flex-col max-h-[95vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+                <h3 class="text-xl font-black text-indigo-900"><i class="fas fa-desktop"></i> Ficha de Activo</h3>
+                <button onclick="document.getElementById('modal-activo').classList.add('hidden')" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scroll pr-2 space-y-4">
+                <input type="hidden" id="activo-id">
+                <div class="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                    <img id="activo-preview-img" class="h-24 w-24 object-contain rounded-lg mb-3 hidden bg-white border border-slate-100 p-1">
+                    <button type="button" id="btn-upload-activo" class="bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-indigo-200"><i class="fas fa-camera"></i> Foto del Activo</button>
+                    <input type="hidden" id="activo-img-url">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="label-form">Nombre del Equipo / Item *</label><input id="activo-nombre" class="input-light font-bold text-slate-700 uppercase" placeholder="Ej: Laptop Dell XPS"></div>
+                    <div><label class="label-form">Clasificación (Categoría/Sub) *</label><input id="activo-categoria" class="input-light uppercase text-slate-600" placeholder="Ej: Electrónica / Computo"></div>
+                    <div><label class="label-form">Marca / Modelo</label><input id="activo-marca" class="input-light uppercase text-slate-600" placeholder="Ej: Dell XPS 15 9500"></div>
+                    <div><label class="label-form">Proveedor</label><input id="activo-proveedor" class="input-light uppercase text-slate-600" placeholder="Ej: Multimax"></div>
+                    <div><label class="label-form">Ubicación / Asignado a</label><input id="activo-ubicacion" class="input-light uppercase text-slate-600" placeholder="Ej: Oficina Gerencia / Juan P."></div>
+                    <div><label class="label-form">Precio de Compra ($)</label><input id="activo-precio" type="number" step="0.01" class="input-light font-bold text-emerald-600" placeholder="0.00"></div>
+                    <div>
+                        <label class="label-form">Estado Operativo</label>
+                        <select id="activo-estado" class="input-light font-bold">
+                            <option value="Operativo">🟢 Operativo / Activo</option>
+                            <option value="En Mantenimiento">🟡 En Mantenimiento</option>
+                            <option value="Fuera de Servicio">🔴 Fuera de Servicio</option>
+                            <option value="Almacenado">⚪ Almacenado / Sin asignar</option>
+                        </select>
+                    </div>
+                </div>
+                <div><label class="label-form">Descripción / Especificaciones</label><textarea id="activo-descripcion" class="input-light h-20 resize-none p-3 text-sm"></textarea></div>
+                <div><label class="label-form">Observaciones Adicionales</label><textarea id="activo-observacion" class="input-light h-16 resize-none p-3 text-sm" placeholder="Notas internas..."></textarea></div>
+            </div>
+            <div class="pt-4 border-t border-slate-100 mt-2 flex justify-end gap-3">
+                <button onclick="document.getElementById('modal-activo').classList.add('hidden')" class="px-6 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold">Cancelar</button>
+                <button onclick="window.guardarActivo()" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700">Guardar Activo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-activo-detalles" class="fixed inset-0 bg-slate-900/80 hidden z-[400] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-indigo-900 p-4 text-white flex justify-between items-start">
+                <div class="flex items-center gap-4">
+                    <div id="activo-det-qr-container" class="bg-white p-1 rounded-lg shadow-sm"></div>
+                    <div><h3 id="activo-det-nombre" class="font-black text-xl uppercase">Nombre</h3><p id="activo-det-id" class="text-xs text-indigo-300 font-mono tracking-wider"></p></div>
+                </div>
+                <button onclick="window.cerrarDetallesActivo()" class="text-indigo-300 hover:text-white"><i class="fas fa-times text-2xl"></i></button>
             </div>
             
-            <div id="bitacora-timeline" class="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 custom-scroll space-y-4">
-                </div>
-
-            <div class="p-4 bg-white border-t border-slate-100" id="bitacora-form-container">
-                <input type="hidden" id="bitacora-mant-id">
-                <p class="text-[10px] font-bold text-indigo-500 uppercase mb-2">Añadir Observación</p>
-                <textarea id="bitacora-texto" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm resize-none h-20 outline-none focus:border-indigo-500 transition-colors" placeholder="Detalla el trabajo realizado, repuestos usados, etc..."></textarea>
-                
-                <div class="flex items-center justify-between mt-3">
-                    <div class="flex items-center gap-2">
-                        <button id="btn-upload-bitacora" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 transition flex items-center gap-1 border border-slate-200"><i class="fas fa-camera"></i> Foto/Video</button>
-                        <span id="bitacora-media-badge" class="hidden text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded truncate max-w-[120px]">Adjunto listo</span>
-                        <input type="hidden" id="bitacora-media-url">
+            <div class="flex-1 overflow-y-auto custom-scroll flex flex-col md:flex-row">
+                <div class="w-full md:w-1/3 bg-slate-50 p-4 border-r border-slate-200">
+                    <img id="activo-det-img" class="w-full h-40 object-cover rounded-xl border border-slate-200 shadow-sm mb-4 hidden bg-white">
+                    <div class="space-y-3 text-sm">
+                        <div><p class="text-[10px] font-bold text-slate-400 uppercase">Estado</p><div id="activo-det-estado" class="font-bold"></div></div>
+                        <div><p class="text-[10px] font-bold text-slate-400 uppercase">Clasificación</p><p id="activo-det-cat" class="font-bold text-slate-700 uppercase"></p></div>
+                        <div><p class="text-[10px] font-bold text-slate-400 uppercase">Marca / Modelo</p><p id="activo-det-marca" class="font-medium text-slate-600"></p></div>
+                        <div><p class="text-[10px] font-bold text-slate-400 uppercase">Ubicación</p><p id="activo-det-ubi" class="font-medium text-slate-600"></p></div>
+                        <div><p class="text-[10px] font-bold text-slate-400 uppercase">Fecha Registro</p><p id="activo-det-fecha" class="font-mono text-slate-500 text-xs"></p></div>
+                        <div><p class="text-[10px] font-bold text-slate-400 uppercase">Especificaciones</p><p id="activo-det-desc" class="text-xs text-slate-500 italic"></p></div>
                     </div>
-                    <button onclick="window.guardarBitacora()" class="bg-indigo-600 text-white px-5 py-2 rounded-xl font-bold shadow-md hover:bg-indigo-700 transition">Guardar Registro</button>
+                </div>
+                
+                <div class="w-full md:w-2/3 flex flex-col bg-white">
+                    <div class="p-4 border-b border-slate-100 bg-white">
+                        <h4 class="font-black text-slate-700"><i class="fas fa-book-open text-indigo-500"></i> Bitácora del Equipo</h4>
+                        <p class="text-xs text-slate-400">Registra movimientos, mantenimientos o incidencias.</p>
+                    </div>
+                    <div id="activo-bitacora-timeline" class="flex-1 overflow-y-auto p-4 custom-scroll space-y-4 bg-slate-50/50">
+                        </div>
+                    <div class="p-4 bg-white border-t border-slate-100">
+                        <input type="hidden" id="activo-bitacora-id">
+                        <textarea id="activo-bitacora-texto" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm resize-none h-16 outline-none focus:border-indigo-500" placeholder="Añadir nueva observación a la bitácora..."></textarea>
+                        <div class="flex items-center justify-between mt-2">
+                            <div class="flex items-center gap-2">
+                                <button id="btn-upload-activo-bitacora" class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 border border-slate-200"><i class="fas fa-paperclip"></i> Adjuntar Media</button>
+                                <span id="activo-bitacora-badge" class="hidden text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded truncate max-w-[100px]">OK</span>
+                                <input type="hidden" id="activo-bitacora-url">
+                            </div>
+                            <button onclick="window.guardarBitacoraActivo()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold shadow hover:bg-indigo-700">Guardar Nota</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="modal-scanner" class="fixed inset-0 bg-black/90 hidden z-[300] flex flex-col items-center justify-center"><div class="w-full max-w-md bg-white rounded-3xl overflow-hidden"><div class="p-4 bg-indigo-600 text-white flex justify-between"><h3 class="font-black">Escanear</h3><button onclick="window.detenerScanner()"><i class="fas fa-times"></i></button></div><div id="reader" class="w-full min-h-[300px] bg-black"></div></div></div>
-    
+    <div id="modal-bitacora" class="fixed inset-0 bg-slate-900/80 hidden z-[400] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm"><div class="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"><div class="bg-slate-800 p-4 text-white flex justify-between items-center"><div><h3 class="font-black text-lg"><i class="fas fa-clipboard-list text-indigo-400 mr-2"></i> Bitácora de Servicio</h3><p id="bitacora-equipo-titulo" class="text-xs text-slate-300 font-mono"></p></div><button onclick="window.cerrarBitacora()" class="text-slate-400 hover:text-white"><i class="fas fa-times text-xl"></i></button></div><div id="bitacora-timeline" class="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 custom-scroll space-y-4"></div><div class="p-4 bg-white border-t border-slate-100" id="bitacora-form-container"><input type="hidden" id="bitacora-mant-id"><p class="text-[10px] font-bold text-indigo-500 uppercase mb-2">Añadir Observación</p><textarea id="bitacora-texto" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm resize-none h-20 outline-none focus:border-indigo-500 transition-colors" placeholder="Detalla el trabajo realizado..."></textarea><div class="flex items-center justify-between mt-3"><div class="flex items-center gap-2"><button id="btn-upload-bitacora" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 transition border border-slate-200"><i class="fas fa-camera"></i> Foto/Video</button><span id="bitacora-media-badge" class="hidden text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded truncate max-w-[120px]">Adjunto listo</span><input type="hidden" id="bitacora-media-url"></div><button onclick="window.guardarBitacora()" class="bg-indigo-600 text-white px-5 py-2 rounded-xl font-bold shadow-md hover:bg-indigo-700 transition">Guardar Registro</button></div></div></div></div>
+    <div id="modal-scanner" class="fixed inset-0 bg-black/90 hidden z-[500] flex flex-col items-center justify-center"><div class="w-full max-w-md bg-white rounded-3xl overflow-hidden"><div class="p-4 bg-indigo-600 text-white flex justify-between"><h3 class="font-black">Escanear</h3><button onclick="window.detenerScanner()"><i class="fas fa-times"></i></button></div><div id="reader" class="w-full min-h-[300px] bg-black"></div></div></div>
     <div id="modal-mantenimiento" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl border-t-8 border-indigo-500"><h3 class="text-xl font-black mb-6 text-center text-indigo-900"><i class="fas fa-tools"></i> Programar Tarea</h3><div class="space-y-4"><input id="mant-equipo" type="text" placeholder="Equipo / Área" class="input-light uppercase font-bold"><input id="mant-fecha" type="date" class="input-light font-bold"><input id="mant-responsable" type="text" placeholder="Responsable" class="input-light uppercase font-bold"><textarea id="mant-detalle" class="input-light h-20 resize-none p-3 text-sm" placeholder="Instrucciones..."></textarea><div class="grid grid-cols-2 gap-3 pt-4"><button onclick="document.getElementById('modal-mantenimiento').classList.add('hidden')" class="py-3 bg-slate-100 rounded-xl font-bold">Cancelar</button><button onclick="window.guardarMantenimiento()" class="py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg">Guardar</button></div></div></div></div>
-
     <div id="modal-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2rem] w-full max-w-sm"><h3 class="text-xl font-black mb-6 text-center">Agregar Stock</h3><input id="nombre-prod" list="lista-sugerencias" class="input-light uppercase font-bold mb-4" placeholder="Buscar/Crear..."><datalist id="lista-sugerencias"></datalist><input id="cantidad-prod" type="number" class="input-light font-bold text-2xl text-center text-emerald-600 mb-4" placeholder="0"><div class="grid grid-cols-2 gap-3"><button onclick="document.getElementById('modal-insumo').classList.add('hidden')" class="bg-slate-100 py-3 rounded-xl font-bold">Cancelar</button><button onclick="window.agregarProductoRapido()" class="bg-indigo-600 text-white py-3 rounded-xl font-bold">Guardar</button></div></div></div>
-
     <div id="modal-grupo-admin" class="fixed inset-0 bg-slate-900/60 hidden z-[200] flex items-center justify-center p-4"><div class="bg-white p-6 rounded-[2rem] w-full max-w-2xl flex flex-col max-h-[85vh]"><div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4"><div><h3 class="text-xl font-black">Solicitud</h3><p id="modal-grupo-titulo" class="text-xs text-slate-500 font-mono"></p></div><button onclick="document.getElementById('modal-grupo-admin').classList.add('hidden')" class="w-10 h-10 rounded-full bg-slate-50"><i class="fas fa-times"></i></button></div><div id="modal-grupo-notas-container" class="mb-4 hidden"><p class="text-xs font-bold text-indigo-400 uppercase">Notas:</p><div id="modal-grupo-notas" class="text-sm font-medium text-indigo-800 p-3 bg-indigo-50 rounded-xl italic"></div></div><div id="modal-grupo-contenido" class="flex-1 overflow-y-auto custom-scroll space-y-2 p-2"></div></div></div>
-
     <div id="modal-detalles" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2rem] w-full max-w-md"><h3 class="text-xl font-black mb-6 text-center">Editar Detalles</h3><input type="hidden" id="edit-prod-id"><div class="flex flex-col items-center p-4 border-2 border-dashed rounded-xl mb-4"><img id="preview-img" class="h-32 hidden"><button id="upload_widget" class="bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs"><i class="fas fa-camera"></i> Foto</button><input type="hidden" id="edit-prod-img"></div><div class="grid grid-cols-2 gap-4 mb-4"><input id="edit-prod-precio" type="number" step="0.01" class="input-light" placeholder="Precio ($)"><input id="edit-prod-min" type="number" class="input-light text-red-500" placeholder="Min"></div><div class="grid grid-cols-2 gap-3"><button onclick="document.getElementById('modal-detalles').classList.add('hidden')" class="bg-slate-100 py-3 rounded-xl font-bold">Cancelar</button><button onclick="window.guardarDetallesProducto()" class="bg-slate-800 text-white py-3 rounded-xl font-bold">Actualizar</button></div></div></div>
-
     <div id="modal-incidencia" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2rem] w-full max-w-sm border-t-8 border-red-400"><h3 class="text-xl font-black mb-2 text-center">Reportar</h3><input type="hidden" id="incidencia-pid"><textarea id="incidencia-detalle" class="input-light mb-4 h-24 resize-none" placeholder="Motivo..."></textarea><div class="space-y-3"><button onclick="window.confirmarIncidencia(true)" class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold border border-red-100">Devolver Stock</button><button onclick="window.confirmarIncidencia(false)" class="w-full py-3 bg-amber-50 text-amber-600 rounded-xl font-bold border border-amber-100">Solo Reportar</button><button onclick="document.getElementById('modal-incidencia').classList.add('hidden')" class="w-full py-3 text-slate-400 font-bold">Cancelar</button></div></div></div>
-
     <div id="modal-editar-entrada" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm border-t-8 border-amber-400"><h3 class="text-xl font-black mb-6 text-center text-amber-600">Corregir Entrada</h3><div class="space-y-4"><input type="hidden" id="edit-entrada-id"><input type="hidden" id="edit-entrada-insumo"><input type="hidden" id="edit-entrada-cant-original"><input id="edit-entrada-insumo-display" type="text" class="input-light uppercase font-bold text-slate-500 bg-slate-50" disabled><input id="edit-entrada-cantidad" type="number" class="input-light font-bold text-2xl text-amber-600 text-center"><textarea id="edit-entrada-motivo" class="input-light h-20 resize-none p-3 text-sm" placeholder="Motivo de corrección..."></textarea><div class="grid grid-cols-2 gap-3"><button onclick="document.getElementById('modal-editar-entrada').classList.add('hidden')" class="py-3 bg-slate-100 rounded-xl font-bold">Cancelar</button><button onclick="window.guardarEdicionEntrada()" class="py-3 bg-amber-500 text-white rounded-xl font-bold">Actualizar</button></div></div></div></div>
-    
     <div id="modal-factura" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm"><h3 class="text-xl font-black mb-6 text-center">Factura</h3><div class="space-y-4"><input id="fact-proveedor" class="input-light uppercase font-bold" placeholder="Proveedor"><input id="fact-gasto" type="number" step="0.01" class="input-light text-emerald-600 text-xl font-bold" placeholder="0.00"><input id="fact-fecha" type="date" class="input-light font-bold"><div class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border"><button id="btn-upload-factura" class="bg-indigo-100 text-indigo-600 px-3 py-2 rounded-lg font-bold text-xs"><i class="fas fa-paperclip"></i> Archivo</button><span id="factura-file-name" class="text-[10px] truncate max-w-[140px]">Ninguno</span><input type="hidden" id="fact-archivo-url"></div><div class="grid grid-cols-2 gap-3"><button onclick="window.cerrarModalFactura()" class="py-3 bg-slate-100 rounded-xl font-bold">Cancelar</button><button onclick="window.guardarFactura()" class="py-3 bg-indigo-600 text-white rounded-xl font-bold">Guardar</button></div></div></div></div>
 
     <script type="module" src="script.js"></script>
