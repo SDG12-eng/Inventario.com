@@ -30,7 +30,7 @@ let rawFacturas = [];
 let rawMantenimiento = [];
 let rawActivos = [];
 
-// --- 2. NOTIFICACIONES CHROME (NUEVO) ---
+// --- 2. NOTIFICACIONES CHROME ---
 window.solicitarPermisosNotificacion = () => {
     if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
         Notification.requestPermission().then(permission => {
@@ -178,11 +178,9 @@ window.activarSincronizacion = () => {
                 const miRol = window.usuarioActual?.rol;
                 const miId = window.usuarioActual?.id;
                 
-                // Notificar a Admin de nuevo pedido
                 if (change.type === "added" && p.estado === 'pendiente' && ['admin','manager','supervisor'].includes(miRol) && p.usuarioId !== miId) {
                     window.enviarNotificacionNavegador("🚨 Nueva Solicitud", `${p.usuarioId.toUpperCase()} pide ${p.cantidad}x ${p.insumoNom}.\nSede: ${p.ubicacion}`);
                 }
-                // Notificar a Usuario de estado de pedido
                 if (change.type === "modified" && p.usuarioId === miId && ['aprobado', 'rechazado'].includes(p.estado)) {
                     window.enviarNotificacionNavegador("Actualización de Pedido", `Tu pedido de ${p.insumoNom} fue ${p.estado.toUpperCase()}.`);
                 }
@@ -356,7 +354,7 @@ window.agregarProductoRapido = async () => {
 
         if(s.exists()) { 
             let updateData = { cantidad: s.data().cantidad + c };
-            if (imgUrl) updateData.imagen = imgUrl; // Actualiza imagen si se proporcionó una nueva
+            if (imgUrl) updateData.imagen = imgUrl; 
             await updateDoc(r, updateData); 
         } 
         else { await setDoc(r, dataToSave); } 
@@ -364,20 +362,17 @@ window.agregarProductoRapido = async () => {
         await addDoc(collection(db, "entradas_stock"), { insumo: n, cantidad: c, grupo: window.grupoActivo, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() }); 
         document.getElementById("modal-insumo").classList.add("hidden"); 
         
-        // Reset Formulario
         document.getElementById("nombre-prod").value = ""; document.getElementById("cantidad-prod").value = ""; document.getElementById("new-prod-img-url").value = "";
         document.getElementById("new-prod-preview-img").src = ""; document.getElementById("new-prod-preview-img").classList.add("hidden");
     } 
 };
 
-// EDITAR INSUMO - AHORA CON QR
 window.prepararEdicionProducto = async(id) => { 
     const s = await getDoc(doc(db,"inventario",id)); const d = s.data(); 
     document.getElementById('edit-prod-id').value = id; document.getElementById('edit-prod-precio').value = d.precio||''; document.getElementById('edit-prod-min').value = d.stockMinimo||''; 
     if (d.imagen) { document.getElementById('edit-prod-img').value = d.imagen; document.getElementById('preview-img').src = d.imagen; document.getElementById('preview-img').classList.remove('hidden'); } 
     else { document.getElementById('edit-prod-img').value = ''; document.getElementById('preview-img').classList.add('hidden'); }
     
-    // Generar QR para el insumo basado en su ID (nombre)
     document.getElementById('qr-insumo-id-text').innerText = "ID: " + id.toUpperCase();
     document.getElementById('qr-insumo-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=" + encodeURIComponent(id);
 
@@ -389,7 +384,6 @@ window.guardarDetallesProducto = async () => {
     document.getElementById('modal-detalles').classList.add('hidden'); 
 };
 
-// Funciones Standar de Pedidos, Facturas, Reportes, etc.
 window.gestionarPedido = async (pid, accion, ins) => { const pRef = doc(db, "pedidos", pid); const pData = (await getDoc(pRef)).data(); if(accion === 'aprobar') { const val = parseInt(document.getElementById(`qty-${pid}`).value); const iRef = doc(db, "inventario", ins); const iSnap = await getDoc(iRef); if(iSnap.exists() && iSnap.data().cantidad >= val) { await updateDoc(iRef, { cantidad: iSnap.data().cantidad - val }); await updateDoc(pRef, { estado: "aprobado", cantidad: val, entregado_por: window.usuarioActual.id }); const pend = window.cachePedidos.filter(p => p.batchId === pData.batchId && p.estado === 'pendiente' && p.id !== pid); if(pend.length === 0) document.getElementById("modal-grupo-admin").classList.add("hidden"); else window.abrirModalGrupo(pData.batchId); } else alert("Error: Stock insuficiente."); } else { await updateDoc(pRef, { estado: "rechazado" }); window.abrirModalGrupo(pData.batchId); } };
 window.confirmarRecibido = async (pid) => { if(confirm("¿Recibido?")) await updateDoc(doc(db, "pedidos", pid), { estado: "recibido" }); };
 window.abrirIncidencia = (pid) => { document.getElementById('incidencia-pid').value = pid; document.getElementById('modal-incidencia').classList.remove('hidden'); };
@@ -420,15 +414,12 @@ const inicializarApp = () => {
     const sesion = localStorage.getItem("fcilog_session"); if(sesion) window.cargarSesion(JSON.parse(sesion));
     if (typeof cloudinary !== "undefined") {
         
-        // FOTOS INSUMOS NUEVOS (Entrada Rápida) - SE ASIGNÓ A SU PROPIO BOTÓN
         window.cloudinaryNewProdWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('new-prod-img-url').value = result.info.secure_url; const p = document.getElementById('new-prod-preview-img'); p.src = result.info.secure_url; p.classList.remove('hidden'); } });
         document.getElementById("btn-upload-new-prod")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryNewProdWidget.open(); }, false);
 
-        // FOTOS INSUMOS EDITAR (Detalles) - SE ASIGNÓ A SU PROPIO BOTÓN EXCLUSIVO
         window.cloudinaryEditProdWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } });
         document.getElementById("btn-upload-edit-prod")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryEditProdWidget.open(); }, false);
         
-        // FOTOS ACTIVOS Y BITÁCORAS
         window.cloudinaryActivosWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_activos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('activo-img-url').value = result.info.secure_url; const p = document.getElementById('activo-preview-img'); p.src = result.info.secure_url; p.classList.remove('hidden'); } });
         document.getElementById("btn-upload-activo")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryActivosWidget.open(); }, false);
         
