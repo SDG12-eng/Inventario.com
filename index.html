@@ -265,7 +265,7 @@
                 <div class="space-y-4 flex-1 overflow-y-auto pr-2 custom-scroll">
                     <div>
                         <label class="label-form">Buscar o Crear Insumo *</label>
-                        <input id="nombre-prod" list="lista-sugerencias" class="input-light uppercase font-bold border-2 border-indigo-50" placeholder="Ej: Papel Bond">
+                        <input id="nombre-prod" list="lista-sugerencias" onkeyup="window.debounceFiltrarTarjetas('contenedor-lista-insumos', this.value)" class="input-light uppercase font-bold border-2 border-indigo-50" placeholder="Ej: Papel Bond">
                         <datalist id="lista-sugerencias"></datalist>
                     </div>
                     <div>
@@ -297,7 +297,7 @@
         </div>
     </div>
 
-    <div id="modal-detalles" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4">
+    <div id="modal-detalles" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl max-h-[95vh] overflow-y-auto custom-scroll">
             <h3 class="text-xl font-black mb-4 text-center text-slate-800">Editar Insumo</h3>
             <input type="hidden" id="edit-prod-id">
