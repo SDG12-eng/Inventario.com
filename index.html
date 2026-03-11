@@ -417,7 +417,7 @@
         window.renderListaInsumos = () => { const contenedor = document.getElementById("contenedor-lista-insumos"); if(!contenedor) return; const invFiltrado = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo); if(invFiltrado.length === 0) { contenedor.innerHTML = `<p class="text-center text-slate-400 text-xs py-4">No hay insumos creados aún.</p>`; return; } contenedor.innerHTML = invFiltrado.map(p => { const nombre = (p.id || '').toUpperCase(); const jsId = (p.id || '').replace(/'/g, "\\'"); const img = p.imagen ? `<img src="${p.imagen}" loading="lazy" class="w-10 h-10 object-cover rounded-lg border">` : `<div class="w-10 h-10 bg-white rounded-lg border flex items-center justify-center text-slate-300"><i class="fas fa-box text-lg"></i></div>`; return `<div onclick="window.seleccionarInsumoParaEntrada('${jsId}')" class="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white shadow-sm cursor-pointer hover:border-indigo-100 hover:bg-indigo-50/50 transition item-tarjeta"><div class="flex items-center gap-3 flex-1 min-w-0 pr-2">${img}<div class="flex-1 min-w-0"><p class="font-bold text-xs uppercase text-slate-700 break-words whitespace-normal leading-tight">${nombre}</p><p class="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-1">Stock: ${p.cantidad || 0}</p></div></div><i class="fas fa-chevron-right text-indigo-300 text-xs flex-shrink-0"></i></div>`; }).join(''); };
         window.procesarDatosInventario = () => { const grid = document.getElementById("lista-inventario"); const cartContainer = document.getElementById("contenedor-lista-pedidos"); const dataList = document.getElementById("lista-sugerencias"); if(!grid) return; let gridHTML = ""; let cartHTML = ""; let listHTML = ""; let tr = 0, ts = 0; const invFiltrado = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo); const isAdmin = window.usuarioActual && ['admin','manager'].includes(window.usuarioActual.rol); invFiltrado.forEach(p => { const nombre = (p.id || '').toUpperCase(); const safeId = (p.id || '').replace(/[^a-zA-Z0-9]/g, '_'); const jsId = (p.id || '').replace(/'/g, "\\'"); tr++; ts += (p.cantidad || 0); listHTML += `<option value="${nombre}">`; let controls = isAdmin ? `<div class="flex gap-2"><button onclick="window.prepararEdicionProducto('${jsId}')" class="text-slate-300 hover:text-indigo-500"><i class="fas fa-cog"></i></button><button onclick="window.eliminarDato('inventario','${jsId}')" class="text-slate-300 hover:text-red-400"><i class="fas fa-trash"></i></button></div>` : ""; const img = p.imagen ? `<img src="${p.imagen}" loading="lazy" class="w-12 h-12 object-cover rounded-lg border mb-2">` : `<div class="w-12 h-12 bg-slate-50 rounded-lg border flex items-center justify-center text-slate-300 mb-2"><i class="fas fa-image"></i></div>`; const isLow = (p.stockMinimo && p.cantidad <= p.stockMinimo); const border = isLow ? "border-2 border-red-500 bg-red-50" : "border border-slate-100 bg-white"; gridHTML += `<div class="${border} p-4 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col item-tarjeta h-full"><div class="flex justify-between items-start mb-2">${img}${controls}</div><h4 class="font-bold text-slate-700 text-xs break-words whitespace-normal leading-tight flex-1" title="${nombre}">${nombre} ${isLow?'<i class="fas fa-exclamation-circle text-red-500 animate-pulse inline-block ml-1"></i>':''}</h4><div class="flex justify-between items-end mt-3 pt-3 border-t border-slate-50"><p class="text-2xl font-black text-slate-800">${p.cantidad || 0}</p>${p.precio ? `<span class="text-xs font-bold text-emerald-600">$${p.precio}</span>` : ''}</div></div>`; if(cartContainer && p.cantidad > 0) { const enCarro = window.carritoGlobal[p.id] || 0; const active = enCarro > 0 ? "border-indigo-500 bg-indigo-50/50" : "border-slate-100 bg-white"; cartHTML += `<div id="row-${safeId}" class="flex items-center justify-between p-3 rounded-xl border ${active} transition-all shadow-sm item-tarjeta"><div class="flex items-center gap-3 flex-1 min-w-0 pr-3">${p.imagen?`<img src="${p.imagen}" loading="lazy" class="w-10 h-10 rounded-md object-cover flex-shrink-0">`:''}<div class="flex-1 min-w-0"><p class="font-bold text-xs uppercase text-slate-700 break-words whitespace-normal leading-tight">${nombre}</p><p class="text-[10px] text-slate-400 mt-1">Disp: ${p.cantidad}</p></div></div><div class="flex items-center gap-2 bg-white rounded-lg p-1 border flex-shrink-0 z-10"><button type="button" onclick="window.ajustarCantidad('${jsId}', -1)" class="w-8 h-8 rounded-md bg-slate-100 hover:bg-slate-200 font-black text-lg text-slate-600 transition">-</button><span id="cant-${safeId}" class="w-8 text-center font-bold text-indigo-600 text-sm">${enCarro}</span><button type="button" onclick="window.ajustarCantidad('${jsId}', 1)" class="w-8 h-8 rounded-md bg-indigo-100 hover:bg-indigo-200 font-black text-lg text-indigo-600 transition" ${enCarro>=p.cantidad?'disabled':''}>+</button></div></div>`; } }); grid.innerHTML = gridHTML; if(cartContainer) cartContainer.innerHTML = cartHTML || `<p class="text-center text-slate-300 text-xs py-8">Vacío.</p>`; if(dataList) dataList.innerHTML = listHTML; if(document.getElementById("metrica-total")) document.getElementById("metrica-total").innerText = tr; if(document.getElementById("metrica-stock")) document.getElementById("metrica-stock").innerText = ts; window.actualizarDashboard(); window.renderListaInsumos(); };
         
-        // MODIFICADO: Panel de pedidos e historiales con UI de tiempos de atención
+        // MODIFICADO: Panel de pedidos e historiales con UI de tiempos de atención leyendo campos reales de BD
         window.procesarDatosPedidos = () => { 
             window.cachePedidos = window.pedidosRaw.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo); 
             let grupos = {}; let htmlAdmin = "", htmlActive = "", htmlHistory = ""; 
@@ -432,14 +432,18 @@
                 const prio = p.prioridad || 'normal'; 
                 const notesHtml = p.notas ? `<p class="text-[10px] text-slate-500 mt-2 bg-slate-50 p-1.5 rounded border border-slate-100 italic">"${p.notas}"</p>` : ''; 
                 
-                // Generar UI para los Tiempos de seguimiento
+                // Generar UI para los Tiempos de seguimiento usando los campos solicitados
                 let tiemposHtml = `<div class="mt-3 space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-[10px] font-mono text-slate-500">
                     <div class="flex justify-between items-center"><span class="flex items-center gap-1"><i class="fas fa-clock text-slate-400"></i> Pedido:</span> <span class="font-bold">${new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>`;
-                if (p.timestamp_atencion) {
-                    tiemposHtml += `<div class="flex justify-between items-center"><span class="flex items-center gap-1"><i class="fas fa-user-check text-indigo-400"></i> Atendido:</span> <span class="font-bold">${new Date(p.timestamp_atencion).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} <span class="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded ml-1">+${window.formatoTiempoDiferencia(p.timestamp, p.timestamp_atencion)}</span></span></div>`;
+                
+                if (p.timestamp_aprobado) {
+                    tiemposHtml += `<div class="flex justify-between items-center"><span class="flex items-center gap-1"><i class="fas fa-user-check text-indigo-400"></i> Atendido:</span> <span class="font-bold">${new Date(p.timestamp_aprobado).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} <span class="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded ml-1">+${window.formatoTiempoDiferencia(p.timestamp, p.timestamp_aprobado)}</span></span></div>`;
                 }
-                if (p.timestamp_recepcion) {
-                    tiemposHtml += `<div class="flex justify-between items-center text-emerald-600"><span class="flex items-center gap-1"><i class="fas fa-box-open"></i> Recibido:</span> <span class="font-bold">${new Date(p.timestamp_recepcion).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} <span class="text-[9px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded ml-1">+${window.formatoTiempoDiferencia(p.timestamp_atencion, p.timestamp_recepcion)}</span></span></div>`;
+                if (p.timestamp_recibido) {
+                    tiemposHtml += `<div class="flex justify-between items-center text-emerald-600"><span class="flex items-center gap-1"><i class="fas fa-box-open"></i> Recibido:</span> <span class="font-bold">${new Date(p.timestamp_recibido).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} <span class="text-[9px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded ml-1">+${window.formatoTiempoDiferencia(p.timestamp_aprobado || p.timestamp, p.timestamp_recibido)}</span></span></div>`;
+                }
+                if (p.entregado_por) {
+                    tiemposHtml += `<div class="flex justify-between items-center text-slate-600 mt-1 border-t border-slate-200 pt-1"><span class="flex items-center gap-1"><i class="fas fa-handshake text-slate-400"></i> Entregado por:</span> <span class="font-bold uppercase">${p.entregado_por}</span></div>`;
                 }
                 tiemposHtml += `</div>`;
 
@@ -503,24 +507,24 @@
         window.prepararEdicionProducto = async(id) => { const s = await getDoc(doc(db,"inventario",id)); const d = s.data(); document.getElementById('edit-prod-id').value = id; document.getElementById('edit-prod-precio').value = d.precio||''; document.getElementById('edit-prod-min').value = d.stockMinimo||''; if (d.imagen) { document.getElementById('edit-prod-img').value = d.imagen; document.getElementById('preview-img').src = d.imagen; document.getElementById('preview-img').classList.remove('hidden'); } else { document.getElementById('edit-prod-img').value = ''; document.getElementById('preview-img').classList.add('hidden'); } document.getElementById('qr-insumo-id-text').innerText = "ID: " + id.toUpperCase(); document.getElementById('qr-insumo-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=" + encodeURIComponent(id); document.getElementById('modal-detalles').classList.remove('hidden'); };
         window.guardarDetallesProducto = async () => { const imgUrl = document.getElementById('edit-prod-img').value; await updateDoc(doc(db,"inventario",document.getElementById('edit-prod-id').value),{precio:parseFloat(document.getElementById('edit-prod-precio').value)||0, stockMinimo:parseInt(document.getElementById('edit-prod-min').value)||0, imagen: imgUrl}); document.getElementById('modal-detalles').classList.add('hidden'); };
         
-        // MODIFICADO: Aprobaciones y rechazos con tiempo de atención
+        // MODIFICADO: Usar timestamp_aprobado y guardar entregado_por
         window.gestionarPedido = async (pid, accion, ins) => { 
             const pRef = doc(db, "pedidos", pid); const pData = (await getDoc(pRef)).data(); 
             if(accion === 'aprobar') { 
                 const val = parseInt(document.getElementById(`qty-${pid}`).value); const iRef = doc(db, "inventario", ins); const iSnap = await getDoc(iRef); 
                 if(iSnap.exists() && iSnap.data().cantidad >= val) { 
                     await updateDoc(iRef, { cantidad: iSnap.data().cantidad - val }); 
-                    await updateDoc(pRef, { estado: "aprobado", cantidad: val, entregado_por: window.usuarioActual.id, timestamp_atencion: Date.now(), fecha_atencion: new Date().toLocaleString() }); 
+                    await updateDoc(pRef, { estado: "aprobado", cantidad: val, entregado_por: window.usuarioActual.id, timestamp_aprobado: Date.now(), fecha_aprobado: new Date().toLocaleString() }); 
                     const pend = window.cachePedidos.filter(p => p.batchId === pData.batchId && p.estado === 'pendiente' && p.id !== pid); 
                     if(pend.length === 0) document.getElementById("modal-grupo-admin").classList.add("hidden"); else window.abrirModalGrupo(pData.batchId); 
                 } else alert("Error: Stock insuficiente."); 
             } else { 
-                await updateDoc(pRef, { estado: "rechazado", timestamp_atencion: Date.now(), fecha_atencion: new Date().toLocaleString() }); 
+                await updateDoc(pRef, { estado: "rechazado", timestamp_aprobado: Date.now(), fecha_aprobado: new Date().toLocaleString() }); 
                 window.abrirModalGrupo(pData.batchId); 
             } 
         };
-        // MODIFICADO: Recepción con tiempo
-        window.confirmarRecibido = async (pid) => { if(confirm("¿Recibido?")) await updateDoc(doc(db, "pedidos", pid), { estado: "recibido", timestamp_recepcion: Date.now(), fecha_recepcion: new Date().toLocaleString() }); };
+        // MODIFICADO: Recepción con timestamp_recibido
+        window.confirmarRecibido = async (pid) => { if(confirm("¿Recibido?")) await updateDoc(doc(db, "pedidos", pid), { estado: "recibido", timestamp_recibido: Date.now(), fecha_recibido: new Date().toLocaleString() }); };
         
         window.abrirIncidencia = (pid) => { document.getElementById('incidencia-pid').value = pid; document.getElementById('modal-incidencia').classList.remove('hidden'); };
         window.confirmarIncidencia = async (dev) => { 
@@ -553,7 +557,7 @@
         window.detenerScanner = () => { if(window.html5QrcodeScanner) window.html5QrcodeScanner.stop().catch(()=>{}); document.getElementById("modal-scanner").classList.add("hidden"); };
         window.abrirModalGrupo = (bKey) => { const items = window.cachePedidos.filter(p => p.batchId === bKey || p.timestamp.toString() === bKey); if(items.length===0) return; document.getElementById("modal-grupo-titulo").innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion}`; if(items[0].notas) { document.getElementById("modal-grupo-notas").innerHTML = `"${items[0].notas}"`; document.getElementById("modal-grupo-notas-container").classList.remove('hidden'); } else document.getElementById("modal-grupo-notas-container").classList.add('hidden'); let h = ""; items.forEach(p => { let act = `<span class="badge status-${p.estado}">${p.estado}</span>`; if(p.estado === 'pendiente' && window.usuarioActual.rol !== 'supervisor') act = `<div class="flex gap-2"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border rounded text-center font-bold text-xs"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom.replace(/'/g,"\\'")}')" class="text-white bg-emerald-500 px-2 rounded"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-red-400 bg-red-50 px-2 rounded"><i class="fas fa-times"></i></button></div>`; h += `<div class="flex justify-between items-center p-3 border-b"><div class="text-xs"><b>${p.insumoNom}</b> <span class="badge status-pri-${p.prioridad}">${p.prioridad}</span><br>Cant: ${p.cantidad}</div>${act}</div>`; }); document.getElementById("modal-grupo-contenido").innerHTML = h; document.getElementById("modal-grupo-admin").classList.remove("hidden"); };
         
-        // MODIFICADO: Excel con nuevas columnas de Tiempo
+        // MODIFICADO: Excel con nuevas columnas de Tiempo apuntando a los campos solicitados
         window.descargarReporte = async () => { 
             if(typeof XLSX === 'undefined') return alert("Cargando Excel..."); 
             const inputDesde = document.getElementById("rep-desde")?.value; const inputHasta = document.getElementById("rep-hasta")?.value; 
@@ -581,15 +585,16 @@
                     "ID Pedido": mov.batchId || 'N/A', 
                     "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A', 
                     "Hora Solicitud": mov.timestamp ? new Date(mov.timestamp).toLocaleTimeString() : 'N/A',
-                    "Tiempo en Atender": mov.timestamp_atencion ? window.formatoTiempoDiferencia(mov.timestamp, mov.timestamp_atencion) : 'Pendiente',
-                    "Tiempo en Recibir": mov.timestamp_recepcion ? window.formatoTiempoDiferencia(mov.timestamp_atencion, mov.timestamp_recepcion) : (mov.estado === 'recibido' ? 'N/A' : 'Pendiente/No recibido'),
+                    "Tiempo en Atender": mov.timestamp_aprobado ? window.formatoTiempoDiferencia(mov.timestamp, mov.timestamp_aprobado) : 'Pendiente',
+                    "Tiempo en Recibir": mov.timestamp_recibido ? window.formatoTiempoDiferencia(mov.timestamp_aprobado || mov.timestamp, mov.timestamp_recibido) : (mov.estado === 'recibido' ? 'N/A' : 'Pendiente/No recibido'),
                     "Prioridad": (mov.prioridad || 'NORMAL').toUpperCase(), 
                     "Insumo": (mov.insumoNom || '').toUpperCase(), 
                     "Cant.": mov.cantidad || 0, 
                     "Sede Destino": (mov.ubicacion || '').toUpperCase(), 
                     "Usuario Solicitante": uId.toUpperCase(), 
                     "Departamento": (userObj.departamento || 'N/A').toUpperCase(), 
-                    "Estado Actual": (mov.estado || '').toUpperCase() 
+                    "Estado Actual": (mov.estado || '').toUpperCase(),
+                    "Entregado Por": (mov.entregado_por || 'N/A').toUpperCase() 
                 }; 
             }); 
             
