@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FCILog Inventory</title>
+    <title>FCILog - InsuManager v16.0 Enterprise</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -197,7 +197,16 @@
                 </section>
 
                 <section id="pag-usuarios" class="view hidden space-y-6 animate-fade-in"><div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm"><h3 class="font-black text-lg mb-6"><i class="fas fa-user-shield"></i> Gestión Accesos</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4"><div><input id="new-user" placeholder="Usuario" class="input-light"></div><div><input id="new-pass" type="text" placeholder="Pass" class="input-light"></div><div><input id="new-email" type="email" placeholder="Email" class="input-light"></div><div><select id="new-role" class="input-light"><option value="user">Aplicante</option><option value="supervisor">Supervisor</option><option value="manager">Gerente</option><option value="admin">Administrador</option></select></div><input type="hidden" id="edit-mode-id"></div><div id="user-grupos-checkboxes" class="flex flex-wrap gap-3 mb-4"></div><button onclick="window.guardarUsuario()" id="btn-guardar-usuario" class="bg-indigo-600 text-white py-2 px-6 rounded-xl font-bold">Guardar</button><button id="cancel-edit-msg" onclick="window.cancelarEdicionUsuario()" class="hidden py-2 px-6 bg-slate-100 rounded-xl font-bold">Cancelar</button></div><div id="lista-usuarios-db" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div></section>
-                <section id="pag-config" class="view hidden space-y-6 animate-fade-in"><div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm mb-6"><h3 class="font-black text-lg mb-4">Grupos</h3><div class="flex gap-4"><input id="new-grupo" class="input-light uppercase flex-1"><button onclick="window.guardarGrupo()" class="bg-indigo-600 text-white px-6 rounded-xl font-bold">Crear</button></div><div id="lista-grupos-db" class="flex flex-wrap gap-2 mt-4"></div></div><div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm"><h3 class="font-black text-lg mb-4">Sedes</h3><div class="flex gap-4"><input id="new-sede" class="input-light uppercase flex-1"><button onclick="window.guardarSede()" class="bg-emerald-600 text-white px-6 rounded-xl font-bold">Crear</button></div><div id="lista-sedes-db" class="grid grid-cols-3 gap-4 mt-4"></div></div></section>
+                
+                <section id="pag-config" class="view hidden space-y-6 animate-fade-in">
+                    <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm border-l-4 border-amber-500">
+                        <h3 class="font-black text-lg mb-2 text-amber-600"><i class="fas fa-magic"></i> Mantenimiento de Datos</h3>
+                        <p class="text-xs text-slate-500 mb-4">Rellena tiempos de atención y recepción vacíos en pedidos antiguos. Asignará un tiempo aleatorio entre 30 a 60 min para normalizar tu historial.</p>
+                        <button onclick="window.arreglarTiemposAntiguos()" class="bg-amber-100 text-amber-700 px-6 py-2 rounded-xl font-bold hover:bg-amber-200 transition">Ejecutar Corrección Histórica</button>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm mb-6"><h3 class="font-black text-lg mb-4">Grupos</h3><div class="flex gap-4"><input id="new-grupo" class="input-light uppercase flex-1"><button onclick="window.guardarGrupo()" class="bg-indigo-600 text-white px-6 rounded-xl font-bold">Crear</button></div><div id="lista-grupos-db" class="flex flex-wrap gap-2 mt-4"></div></div><div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm"><h3 class="font-black text-lg mb-4">Sedes</h3><div class="flex gap-4"><input id="new-sede" class="input-light uppercase flex-1"><button onclick="window.guardarSede()" class="bg-emerald-600 text-white px-6 rounded-xl font-bold">Crear</button></div><div id="lista-sedes-db" class="grid grid-cols-3 gap-4 mt-4"></div></div>
+                </section>
 
                 <section id="pag-solicitar" class="view hidden max-w-3xl mx-auto space-y-6 animate-fade-in">
                     <div class="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
@@ -416,12 +425,10 @@
         const db = getFirestore(app);
 
         // ================= CONFIGURACIÓN EMAILJS =================
-        // REEMPLAZA ESTOS VALORES con los de tu cuenta de EmailJS (https://www.emailjs.com/)
         const EMAILJS_PUBLIC_KEY = "TU_PUBLIC_KEY_AQUI"; 
         const EMAILJS_SERVICE_ID = "TU_SERVICE_ID_AQUI";
         const EMAILJS_TEMPLATE_ID = "TU_TEMPLATE_ID_AQUI";
         
-        // Inicializar EmailJS (se ejecutará solo si pones la Key correcta)
         if(EMAILJS_PUBLIC_KEY !== "TU_PUBLIC_KEY_AQUI") {
             emailjs.init(EMAILJS_PUBLIC_KEY);
         }
@@ -432,7 +439,6 @@
                 return;
             }
             try {
-                // Tu plantilla en EmailJS debe aceptar las variables: {{to_email}}, {{subject}}, {{message}}
                 await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
                     to_email: correoDestino,
                     subject: asunto,
@@ -450,6 +456,54 @@
         const chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6', '#f97316', '#a855f7', '#ef4444'];
         let rawInventario = [], rawEntradas = [], rawFacturas = [], rawMantenimiento = [], rawActivos = []; window.pedidosRaw = []; let timeoutBusqueda;
 
+        // ================= FUNCION DE MIGRACION DE TIEMPOS ANTIGUOS =================
+        window.arreglarTiemposAntiguos = async () => {
+            if(!confirm("¿Seguro que deseas rellenar con tiempos aleatorios (30 a 60min) los pedidos antiguos que no tengan fecha de atención ni recepción?")) return;
+            
+            try {
+                const snap = await getDocs(collection(db, "pedidos"));
+                const batch = writeBatch(db);
+                let updatesCount = 0;
+                
+                snap.forEach(d => {
+                    const p = d.data();
+                    let changes = {};
+                    let hasChanges = false;
+                    
+                    // Función para generar un random entre 30 min (1800000 ms) y 60 min (3600000 ms)
+                    const getRandomOffset = () => Math.floor(Math.random() * (3600000 - 1800000 + 1)) + 1800000;
+                    
+                    if (['aprobado', 'recibido'].includes(p.estado) && !p.timestamp_aprobado) {
+                        changes.timestamp_aprobado = p.timestamp + getRandomOffset();
+                        changes.fecha_aprobado = new Date(changes.timestamp_aprobado).toLocaleString();
+                        hasChanges = true;
+                    }
+                    
+                    if (p.estado === 'recibido' && !p.timestamp_recibido) {
+                        const baseTime = changes.timestamp_aprobado || p.timestamp_aprobado || p.timestamp;
+                        changes.timestamp_recibido = baseTime + getRandomOffset();
+                        changes.fecha_recibido = new Date(changes.timestamp_recibido).toLocaleString();
+                        hasChanges = true;
+                    }
+                    
+                    if(hasChanges) {
+                        batch.update(doc(db, "pedidos", d.id), changes);
+                        updatesCount++;
+                    }
+                });
+                
+                if(updatesCount > 0) {
+                    await batch.commit();
+                    alert(`¡Éxito! Se normalizaron los tiempos de ${updatesCount} pedidos antiguos.`);
+                } else {
+                    alert("Tu historial está al día. No se encontraron pedidos antiguos que necesiten esta actualización.");
+                }
+            } catch(e) {
+                console.error("Error migrando tiempos:", e);
+                alert("Hubo un error al intentar migrar la base de datos.");
+            }
+        };
+
         // 1. UTILIDADES Y VISTAS
         window.solicitarPermisosNotificacion = () => { if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") { Notification.requestPermission().then(p => { if (p === "granted") console.log("Notificaciones habilitadas"); }); } };
         window.enviarNotificacionNavegador = (titulo, cuerpo) => { if ("Notification" in window && Notification.permission === "granted") { new Notification(titulo, { body: cuerpo, icon: "https://cdn-icons-png.flaticon.com/512/2921/2921222.png" }); } };
@@ -460,7 +514,7 @@
         window.switchTab = (tab) => { document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden')); document.getElementById(`tab-content-${tab}`)?.classList.remove('hidden'); const onC = "flex-1 py-2.5 rounded-xl text-xs font-bold bg-white text-indigo-600 shadow-sm transition-all"; const offC = "flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 transition-all"; if(tab === 'activos') { document.getElementById('tab-btn-activos').className = onC; document.getElementById('tab-btn-historial').className = offC; } else { document.getElementById('tab-btn-historial').className = onC; document.getElementById('tab-btn-activos').className = offC; } };
         window.formatoTiempoDiferencia = (t1, t2) => { let diffMs = Math.abs(t2 - t1); let diffMins = Math.floor(diffMs / 60000); if (diffMins < 60) return diffMins + "m"; let diffHrs = Math.floor(diffMins / 60); let rem = diffMins % 60; if (diffHrs < 24) return diffHrs + "h " + rem + "m"; return Math.floor(diffHrs / 24) + "d " + (diffHrs % 24) + "h"; };
 
-        // 2. DASHBOARD Y GRÁFICOS (ACTUALIZADO CON MÉTRICAS DE ACTIVOS Y MANTENIMIENTO)
+        // 2. DASHBOARD Y GRÁFICOS
         window.renderChart = (id, labels, data, title, palette, chartInstance, setInstance) => { const ctx = document.getElementById(id); if(!ctx) return; if(chartInstance && typeof chartInstance.destroy === 'function') chartInstance.destroy(); const bgColors = id === 'locationChart' ? palette : palette.map(c=>c+'CC'); const newChart = new Chart(ctx, { type: id === 'locationChart' ? 'doughnut' : 'bar', data: { labels: labels, datasets: [{ label: title, data: data, backgroundColor: bgColors, borderColor: palette, borderWidth: 1, borderRadius: id === 'locationChart' ? 0 : 5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: id === 'locationChart', position: 'bottom' } } } }); setInstance(newChart); };
         
         window.actualizarDashboard = () => { 
@@ -470,23 +524,19 @@
             if(desdeInput) tDesde = new Date(desdeInput + 'T00:00:00').getTime(); 
             if(hastaInput) tHasta = new Date(hastaInput + 'T23:59:59').getTime(); 
             
-            // Pedidos
             let pedidosFiltrados = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta); 
             let pendingCount = pedidosFiltrados.filter(p => p.estado === 'pendiente').length; 
             if(document.getElementById("metrica-pedidos")) document.getElementById("metrica-pedidos").innerText = pendingCount; 
             let sedesCount = {}; 
             pedidosFiltrados.forEach(p => { if(p.estado !== 'rechazado') sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad; }); 
             
-            // Activos
             const activosFiltrados = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo && a.timestamp >= tDesde && a.timestamp <= tHasta);
             if(document.getElementById("metrica-activos")) document.getElementById("metrica-activos").innerText = activosFiltrados.length;
             if(document.getElementById("metrica-activos-fallas")) document.getElementById("metrica-activos-fallas").innerText = activosFiltrados.filter(a => ['En Mantenimiento', 'Fuera de Servicio'].includes(a.estado)).length;
 
-            // Mantenimiento
             const mantFiltrados = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.estado !== 'completado' && m.timestamp >= tDesde && m.timestamp <= tHasta);
             if(document.getElementById("metrica-mant-pend")) document.getElementById("metrica-mant-pend").innerText = mantFiltrados.length;
 
-            // Gráficos
             const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo); 
             let lblS = [], datS = []; 
             invActivo.forEach(p => { const n = p.id || 'N/A'; lblS.push(n.toUpperCase().substring(0,10)); datS.push(p.cantidad); }); 
@@ -498,7 +548,6 @@
         window.renderHistorialUnificado = () => { const t = document.getElementById("tabla-movimientos-unificados"); if(!t) return; let html = ""; const ent = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo).map(e => ({ id: e.id, f: e.fecha || new Date(e.timestamp).toLocaleString(), ts: e.timestamp, t: 'ENTRADA', ins: e.insumo || 'N/A', c: e.cantidad || 0, det: `${e.usuario || 'N/A'} ${e.motivo_edicion ? `(Edit: ${e.motivo_edicion})` : ''}`, est: 'completado' })); const sal = window.cachePedidos.map(p => ({ id: p.id, f: p.fecha || new Date(p.timestamp).toLocaleString(), ts: p.timestamp, t: 'SALIDA', ins: p.insumoNom || 'N/A', c: p.cantidad || 0, det: `${p.usuarioId || 'N/A'} (${p.ubicacion || 'N/A'})`, est: p.estado || 'N/A' })); const isAdmin = window.usuarioActual && ['admin', 'manager'].includes(window.usuarioActual.rol); const combinados = [...ent, ...sal].sort((a,b) => b.ts - a.ts); if (combinados.length === 0) { t.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">No hay movimientos registrados.</td></tr>`; return; } combinados.forEach(h => { let btn = `<span class="badge status-${h.est}">${h.est}</span>`; if(h.t === 'ENTRADA' && isAdmin) btn = `<div class="flex gap-2">${btn}<button onclick="window.abrirModalEditarEntrada('${h.id}', '${h.ins.replace(/'/g,"\\'")}', ${h.c})" class="text-amber-500 hover:text-amber-600"><i class="fas fa-pen"></i></button></div>`; html += `<tr class="border-b border-slate-50 hover:bg-slate-50/50 transition"><td class="p-3 text-[10px] font-mono whitespace-nowrap">${h.f.split(',')[0]}</td><td class="p-3 text-xs font-bold whitespace-nowrap">${h.t==='ENTRADA'?'📥':'📤'} ${h.t}</td><td class="p-3 font-bold uppercase text-xs">${h.ins}</td><td class="p-3 font-bold text-center">${h.c}</td><td class="p-3 text-[10px] uppercase">${h.det}</td><td class="p-3">${btn}</td></tr>`; }); t.innerHTML = html; };
         window.procesarDatosFacturas = () => { const tb = document.getElementById("tabla-facturas-db"); if(!tb) return; const factGrupo = rawFacturas.filter(f => (f.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp); let html = ""; factGrupo.forEach(f => { const docLink = f.archivo_url ? `<a href="${f.archivo_url}" target="_blank" class="text-indigo-500 hover:text-indigo-700 font-bold"><i class="fas fa-file-pdf"></i> Ver</a>` : 'N/A'; const trashBtn = ['admin','manager'].includes(window.usuarioActual?.rol) ? `<button onclick="window.eliminarDato('facturas','${f.id}')" class="text-red-400 hover:text-red-600 ml-2"><i class="fas fa-trash"></i></button>` : ''; html += `<tr class="border-b border-slate-50"><td class="p-4 text-xs font-mono">${f.fecha_compra}</td><td class="p-4 text-xs font-bold uppercase">${f.proveedor}</td><td class="p-4 text-xs font-black text-emerald-600 text-right">$${f.gasto.toFixed(2)}</td><td class="p-4 text-xs text-center uppercase">${f.usuarioRegistro}</td><td class="p-4 text-xs text-center">${docLink}</td><td class="p-4 text-center">${trashBtn}</td></tr>`; }); tb.innerHTML = html || '<tr><td colspan="6" class="p-4 text-center text-slate-400">No hay facturas registradas.</td></tr>'; };
         
-        // MANTENIMIENTO CON FECHA NOTIFICACIÓN EN UI
         window.renderMantenimiento = () => { 
             const tb = document.getElementById("tabla-mantenimiento-db"); if(!tb) return; 
             let html = ""; const mantGrupo = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp); 
@@ -629,7 +678,7 @@
         
         window.eliminarDato = async (col, id) => { if(confirm("¿Seguro que deseas eliminar este dato?")) await deleteDoc(doc(db, col, id)); };
 
-        // MODIFICADO: Lógica de guardado de mantenimiento con correos y notificación
+        // MANTENIMIENTO: GUARDAR CON FECHA DE NOTIFICACION
         window.abrirModalMantenimiento = () => { 
             document.getElementById("mant-equipo").value=""; document.getElementById("mant-fecha").value=""; 
             document.getElementById("mant-fecha-notificacion").value=""; document.getElementById("mant-correo").value="";
@@ -648,7 +697,6 @@
                     creado_por: window.usuarioActual.id, timestamp: Date.now(), bitacora: [] 
                 }); 
                 
-                // Enviar correo de notificación si se ingresó un email
                 if(correoNot) {
                     const mensaje = `Hola. Se ha programado un mantenimiento en el sistema InsuManager.\n\nEquipo/Área: ${eq.toUpperCase()}\nFecha Programada: ${fe}\nResponsable: ${re.toUpperCase()}\nDetalle: ${de}\n\nPor favor, ten en cuenta esta fecha.`;
                     window.enviarNotificacionEmail(correoNot, `Mantenimiento Programado: ${eq.toUpperCase()}`, mensaje);
@@ -675,24 +723,28 @@
         window.cerrarModalFactura = () => { document.getElementById("modal-factura").classList.add("hidden"); };
         window.guardarFactura = async () => { const pv = document.getElementById("fact-proveedor").value.trim(); const ga = parseFloat(document.getElementById("fact-gasto").value); const fe = document.getElementById("fact-fecha").value; const ar = document.getElementById("fact-archivo-url").value; if(!pv || isNaN(ga) || !fe) return alert("Campos requeridos."); try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, grupo: window.grupoActivo, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("Factura registrada."); window.cerrarModalFactura(); } catch(e) { alert("Error."); } };
         
-        // MODIFICADO: Agregar envío de correo al hacer solicitud múltiple
+        // NUEVAS SOLICITUDES CON FECHA STRICTA (fecha_iso)
         window.procesarSolicitudMultiple = async () => { 
             const ubi = document.getElementById("sol-ubicacion").value; const prio = document.getElementById("sol-prioridad").value; 
             const notas = document.getElementById("sol-notas").value.trim(); const items = Object.entries(window.carritoGlobal).filter(([_, c]) => c > 0); 
             if(!ubi || items.length === 0) return alert("Seleccione sede y producto."); 
-            const batchId = Date.now().toString(); const ts = Date.now(); const fs = new Date().toLocaleString(); 
+            const batchId = Date.now().toString(); const ts = Date.now(); 
+            const fs = new Date().toLocaleString(); 
+            const fIso = new Date().toISOString().split('T')[0]; // Fecha limpia "YYYY-MM-DD"
             
             try { 
                 const batch = writeBatch(db); 
                 let detalleInsumos = "";
                 items.forEach(([ins, cant]) => { 
                     detalleInsumos += `- ${cant}x ${ins}\n`;
-                    batch.set(doc(collection(db, "pedidos")), { usuarioId: window.usuarioActual.id, insumoNom: ins, cantidad: cant, ubicacion: ubi, prioridad: prio, notas: notas, grupo: window.grupoActivo, estado: "pendiente", fecha: fs, timestamp: ts, batchId: batchId }); 
+                    batch.set(doc(collection(db, "pedidos")), { 
+                        usuarioId: window.usuarioActual.id, insumoNom: ins, cantidad: cant, 
+                        ubicacion: ubi, prioridad: prio, notas: notas, grupo: window.grupoActivo, 
+                        estado: "pendiente", fecha: fs, fecha_iso: fIso, timestamp: ts, batchId: batchId 
+                    }); 
                 }); 
                 await batch.commit(); 
                 
-                // Intentar enviar email de notificación de pedido a almacén (Reemplaza el correo destino)
-                // Usualmente esto iría al correo del rol 'admin' o del almacén central.
                 const adminEmail = "almacen@tuempresa.com"; 
                 const mensajeAlmacen = `El usuario ${window.usuarioActual.id.toUpperCase()} ha realizado un nuevo pedido de insumos.\n\nSede destino: ${ubi}\nPrioridad: ${prio.toUpperCase()}\n\nInsumos solicitados:\n${detalleInsumos}\nNotas: ${notas || 'Ninguna'}`;
                 window.enviarNotificacionEmail(adminEmail, `Nuevo Pedido de Insumos - ${window.usuarioActual.id.toUpperCase()}`, mensajeAlmacen);
@@ -706,7 +758,6 @@
         window.detenerScanner = () => { if(window.html5QrcodeScanner) window.html5QrcodeScanner.stop().catch(()=>{}); document.getElementById("modal-scanner").classList.add("hidden"); };
         window.abrirModalGrupo = (bKey) => { const items = window.cachePedidos.filter(p => p.batchId === bKey || p.timestamp.toString() === bKey); if(items.length===0) return; document.getElementById("modal-grupo-titulo").innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion}`; if(items[0].notas) { document.getElementById("modal-grupo-notas").innerHTML = `"${items[0].notas}"`; document.getElementById("modal-grupo-notas-container").classList.remove('hidden'); } else document.getElementById("modal-grupo-notas-container").classList.add('hidden'); let h = ""; items.forEach(p => { let act = `<span class="badge status-${p.estado}">${p.estado}</span>`; if(p.estado === 'pendiente' && window.usuarioActual.rol !== 'supervisor') act = `<div class="flex gap-2"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border rounded text-center font-bold text-xs"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom.replace(/'/g,"\\'")}')" class="text-white bg-emerald-500 px-2 rounded"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-red-400 bg-red-50 px-2 rounded"><i class="fas fa-times"></i></button></div>`; h += `<div class="flex justify-between items-center p-3 border-b"><div class="text-xs"><b>${p.insumoNom}</b> <span class="badge status-pri-${p.prioridad}">${p.prioridad}</span><br>Cant: ${p.cantidad}</div>${act}</div>`; }); document.getElementById("modal-grupo-contenido").innerHTML = h; document.getElementById("modal-grupo-admin").classList.remove("hidden"); };
         
-        // MODIFICADO: Excel ahora incluye pestaña de Mantenimientos Completos
         window.descargarReporte = async () => { 
             if(typeof XLSX === 'undefined') return alert("Cargando Excel..."); 
             const inputDesde = document.getElementById("dash-desde")?.value || document.getElementById("rep-desde")?.value; 
@@ -750,7 +801,6 @@
             const equiposActivos = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo); 
             const activosData = equiposActivos.map(a => ({ "ID Único": a.id, "Nombre": a.nombre, "Clasificación": a.categoria, "Marca/Modelo": a.marca, "Estado": a.estado, "Ubicación": a.ubicacion, "Precio ($)": a.precio })); 
             
-            // Nuevo: Pestaña de Mantenimiento
             const mantActivos = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.timestamp >= tDesde && m.timestamp <= tHasta); 
             const mantData = mantActivos.map(m => ({ "Equipo": m.equipo, "Fecha Programada": m.fecha_programada, "Fecha Notificación": m.fecha_notificacion || 'No Aplica', "Responsable": m.responsable, "Estado": (m.estado || 'N/A').toUpperCase(), "Detalle Tarea": m.detalle || '' }));
 
