@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FCILog - InsuManager v16.0 Enterprise</title>
+    <title>FCILog - InsuManager v16.5 Enterprise</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -32,7 +32,7 @@
         .card-metrica { background-color: #ffffff; padding: 1.5rem; border-radius: 1.5rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); border: 1px solid #f1f5f9; display: flex; flex-direction: column; align-items: flex-start; transition: transform 0.2s, box-shadow 0.2s; }
         .card-metrica:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
         .icon-box { width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 1rem; }
-        .card-metrica span { font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; leading-tight; }
+        .card-metrica span { font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; line-height: 1.2; }
         .card-metrica h2 { font-size: 2.25rem; font-weight: 900; color: #0f172a; line-height: 1; }
 
         .th-header { padding: 1rem; font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; }
@@ -71,7 +71,7 @@
                 <div class="relative"><i class="fas fa-lock absolute left-4 top-4 text-slate-300"></i><input id="login-pass" type="password" placeholder="CONTRASEÑA" class="input-light pl-12 font-bold text-slate-600"></div>
                 <button onclick="window.iniciarSesion()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl hover:bg-indigo-700 transition-all active:scale-95">Iniciar Sesión</button>
             </div>
-            <p class="text-[10px] text-slate-300 mt-8 font-mono">v16.0 Enterprise</p>
+            <p class="text-[10px] text-slate-300 mt-8 font-mono">v16.5 Enterprise</p>
         </div>
     </div>
 
@@ -150,7 +150,7 @@
                     </div>
                     <div class="flex gap-2 mb-4">
                         <input type="text" id="buscador-activos" onkeyup="window.debounceFiltrarTarjetas('lista-activos-db', this.value)" placeholder="🔍 Buscar por nombre, marca, ID o categoría..." class="input-light text-sm p-3 shadow-sm border-slate-200 flex-1">
-                        <button onclick="window.iniciarScanner('buscador-activos')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-4 rounded-xl hover:bg-indigo-600 hover:text-white transition shadow-sm"><i class="fas fa-qrcode text-xl"></i></button>
+                        <button onclick="window.iniciarScanner('buscador-activos')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-4 rounded-xl hover:bg-indigo-600 hover:text-white transition shadow-sm" title="Escanear QR de Activo"><i class="fas fa-qrcode text-xl"></i></button>
                     </div>
                     <div id="lista-activos-db" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20"></div>
                 </section>
@@ -199,10 +199,13 @@
                 <section id="pag-usuarios" class="view hidden space-y-6 animate-fade-in"><div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm"><h3 class="font-black text-lg mb-6"><i class="fas fa-user-shield"></i> Gestión Accesos</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4"><div><input id="new-user" placeholder="Usuario" class="input-light"></div><div><input id="new-pass" type="text" placeholder="Pass" class="input-light"></div><div><input id="new-email" type="email" placeholder="Email" class="input-light"></div><div><select id="new-role" class="input-light"><option value="user">Aplicante</option><option value="supervisor">Supervisor</option><option value="manager">Gerente</option><option value="admin">Administrador</option></select></div><input type="hidden" id="edit-mode-id"></div><div id="user-grupos-checkboxes" class="flex flex-wrap gap-3 mb-4"></div><button onclick="window.guardarUsuario()" id="btn-guardar-usuario" class="bg-indigo-600 text-white py-2 px-6 rounded-xl font-bold">Guardar</button><button id="cancel-edit-msg" onclick="window.cancelarEdicionUsuario()" class="hidden py-2 px-6 bg-slate-100 rounded-xl font-bold">Cancelar</button></div><div id="lista-usuarios-db" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div></section>
                 
                 <section id="pag-config" class="view hidden space-y-6 animate-fade-in">
-                    <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm border-l-4 border-amber-500">
-                        <h3 class="font-black text-lg mb-2 text-amber-600"><i class="fas fa-magic"></i> Mantenimiento de Datos</h3>
-                        <p class="text-xs text-slate-500 mb-4">Rellena tiempos de atención y recepción vacíos en pedidos antiguos. Asignará un tiempo aleatorio entre 30 a 60 min para normalizar tu historial.</p>
-                        <button onclick="window.arreglarTiemposAntiguos()" class="bg-amber-100 text-amber-700 px-6 py-2 rounded-xl font-bold hover:bg-amber-200 transition">Ejecutar Corrección Histórica</button>
+                    <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm mb-6">
+                        <h3 class="font-black text-lg mb-2 text-indigo-900"><i class="fas fa-envelope"></i> Correo de Alerta (Administrador)</h3>
+                        <p class="text-xs text-slate-500 mb-4">A este correo llegarán las notificaciones cuando los usuarios hagan nuevas solicitudes.</p>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <input id="config-admin-email" type="email" class="input-light font-bold text-indigo-700 flex-1" placeholder="almacen@empresa.com">
+                            <button onclick="window.guardarEmailAdmin()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar Correo</button>
+                        </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm mb-6"><h3 class="font-black text-lg mb-4">Grupos</h3><div class="flex gap-4"><input id="new-grupo" class="input-light uppercase flex-1"><button onclick="window.guardarGrupo()" class="bg-indigo-600 text-white px-6 rounded-xl font-bold">Crear</button></div><div id="lista-grupos-db" class="flex flex-wrap gap-2 mt-4"></div></div><div class="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm"><h3 class="font-black text-lg mb-4">Sedes</h3><div class="flex gap-4"><input id="new-sede" class="input-light uppercase flex-1"><button onclick="window.guardarSede()" class="bg-emerald-600 text-white px-6 rounded-xl font-bold">Crear</button></div><div id="lista-sedes-db" class="grid grid-cols-3 gap-4 mt-4"></div></div>
@@ -425,9 +428,9 @@
         const db = getFirestore(app);
 
         // ================= CONFIGURACIÓN EMAILJS =================
-        const EMAILJS_PUBLIC_KEY = "2jVnfkJKKG0bpKN-U"; 
-        const EMAILJS_SERVICE_ID = "service_a7yozqh";
-        const EMAILJS_TEMPLATE_ID = "template_zglatmb";
+        const EMAILJS_PUBLIC_KEY = "TU_PUBLIC_KEY_AQUI"; 
+        const EMAILJS_SERVICE_ID = "TU_SERVICE_ID_AQUI";
+        const EMAILJS_TEMPLATE_ID = "TU_TEMPLATE_ID_AQUI";
         
         if(EMAILJS_PUBLIC_KEY !== "TU_PUBLIC_KEY_AQUI") {
             emailjs.init(EMAILJS_PUBLIC_KEY);
@@ -452,57 +455,10 @@
         // ==========================================================
 
         window.usuarioActual = null; window.carritoGlobal = {}; window.cachePedidos = []; window.todosLosGrupos = ["SERVICIOS GENERALES"]; window.grupoActivo = "SERVICIOS GENERALES";
-        window.miGraficoStock = null; window.miGraficoUbicacion = null; window.html5QrcodeScanner = null;
+        window.miGraficoStock = null; window.miGraficoUbicacion = null; window.html5QrcodeScanner = null; window.adminEmailGlobal = "";
+        
         const chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6', '#f97316', '#a855f7', '#ef4444'];
         let rawInventario = [], rawEntradas = [], rawFacturas = [], rawMantenimiento = [], rawActivos = []; window.pedidosRaw = []; let timeoutBusqueda;
-
-        // ================= FUNCION DE MIGRACION DE TIEMPOS ANTIGUOS =================
-        window.arreglarTiemposAntiguos = async () => {
-            if(!confirm("¿Seguro que deseas rellenar con tiempos aleatorios (30 a 60min) los pedidos antiguos que no tengan fecha de atención ni recepción?")) return;
-            
-            try {
-                const snap = await getDocs(collection(db, "pedidos"));
-                const batch = writeBatch(db);
-                let updatesCount = 0;
-                
-                snap.forEach(d => {
-                    const p = d.data();
-                    let changes = {};
-                    let hasChanges = false;
-                    
-                    // Función para generar un random entre 30 min (1800000 ms) y 60 min (3600000 ms)
-                    const getRandomOffset = () => Math.floor(Math.random() * (3600000 - 1800000 + 1)) + 1800000;
-                    
-                    if (['aprobado', 'recibido'].includes(p.estado) && !p.timestamp_aprobado) {
-                        changes.timestamp_aprobado = p.timestamp + getRandomOffset();
-                        changes.fecha_aprobado = new Date(changes.timestamp_aprobado).toLocaleString();
-                        hasChanges = true;
-                    }
-                    
-                    if (p.estado === 'recibido' && !p.timestamp_recibido) {
-                        const baseTime = changes.timestamp_aprobado || p.timestamp_aprobado || p.timestamp;
-                        changes.timestamp_recibido = baseTime + getRandomOffset();
-                        changes.fecha_recibido = new Date(changes.timestamp_recibido).toLocaleString();
-                        hasChanges = true;
-                    }
-                    
-                    if(hasChanges) {
-                        batch.update(doc(db, "pedidos", d.id), changes);
-                        updatesCount++;
-                    }
-                });
-                
-                if(updatesCount > 0) {
-                    await batch.commit();
-                    alert(`¡Éxito! Se normalizaron los tiempos de ${updatesCount} pedidos antiguos.`);
-                } else {
-                    alert("Tu historial está al día. No se encontraron pedidos antiguos que necesiten esta actualización.");
-                }
-            } catch(e) {
-                console.error("Error migrando tiempos:", e);
-                alert("Hubo un error al intentar migrar la base de datos.");
-            }
-        };
 
         // 1. UTILIDADES Y VISTAS
         window.solicitarPermisosNotificacion = () => { if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") { Notification.requestPermission().then(p => { if (p === "granted") console.log("Notificaciones habilitadas"); }); } };
@@ -627,6 +583,7 @@
         // 5. BASE DE DATOS REALTIME
         window.activarSincronizacion = () => {
             const uRol = window.usuarioActual.rol;
+            onSnapshot(doc(db, "configuracion", "notificaciones"), (docSnap) => { if (docSnap.exists()) { window.adminEmailGlobal = docSnap.data().emailAdmin || ""; const el = document.getElementById("config-admin-email"); if(el) el.value = window.adminEmailGlobal; } });
             onSnapshot(collection(db, "grupos"), snap => { window.todosLosGrupos = ["SERVICIOS GENERALES"]; let html = `<div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center"><span class="font-black text-indigo-700 text-xs uppercase"><i class="fas fa-lock mr-1"></i> SERVICIOS GENERALES</span><span class="text-[10px] bg-indigo-200 text-indigo-700 px-2 rounded-full">Base</span></div>`; snap.forEach(d => { const n = d.data().nombre.toUpperCase(); if(n !== "SERVICIOS GENERALES") { window.todosLosGrupos.push(n); html += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center"><span class="font-bold text-slate-700 text-xs uppercase">📂 ${n}</span><button onclick="window.eliminarDato('grupos','${d.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash-alt"></i></button></div>`; }}); if(uRol === 'admin') window.renderizarSelectorGrupos(window.todosLosGrupos); if(document.getElementById("lista-grupos-db")) document.getElementById("lista-grupos-db").innerHTML = html; window.actualizarCheckboxesGrupos(); });
             onSnapshot(collection(db, "sedes"), snap => { let opt = '<option value="" disabled selected>Seleccionar Sede...</option>', lst = ''; snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(s => { opt += `<option value="${s.nombre}">📍 ${s.nombre}</option>`; lst += `<div class="bg-white p-4 rounded-xl border flex justify-between"><span class="font-bold text-xs uppercase">📍 ${s.nombre}</span><button onclick="window.eliminarDato('sedes','${s.id}')" class="text-red-400"><i class="fas fa-trash-alt"></i></button></div>`; }); if(document.getElementById("sol-ubicacion")) document.getElementById("sol-ubicacion").innerHTML = opt; if(document.getElementById("lista-sedes-db")) document.getElementById("lista-sedes-db").innerHTML = lst; });
             onSnapshot(collection(db, "inventario"), snap => { rawInventario = []; snap.forEach(ds => { rawInventario.push({ id: ds.id, ...ds.data() }); }); window.procesarDatosInventario(); });
@@ -714,6 +671,9 @@
         window.cerrarBitacora = () => { document.getElementById("modal-bitacora").classList.add("hidden"); };
         window.guardarSede = async () => { const s = document.getElementById("new-sede").value.trim().toUpperCase(); if(!s) return alert("Ingrese sede."); try { await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() }); document.getElementById("new-sede").value = ""; alert("Sede guardada."); } catch(e) { alert("Error."); } };
         window.guardarGrupo = async () => { const g = document.getElementById("new-grupo").value.trim().toUpperCase(); if(!g) return alert("Ingrese grupo."); try { await addDoc(collection(db, "grupos"), { nombre: g, timestamp: Date.now() }); document.getElementById("new-grupo").value = ""; alert("Grupo creado."); } catch(e) { alert("Error."); } };
+        
+        window.guardarEmailAdmin = async () => { const email = document.getElementById("config-admin-email").value.trim(); if(!email) return alert("Ingrese un correo válido."); try { await setDoc(doc(db, "configuracion", "notificaciones"), { emailAdmin: email }, { merge: true }); alert("Correo de administrador guardado exitosamente."); } catch(e) { alert("Error al guardar el correo."); } };
+
         window.guardarUsuario = async () => { const id = document.getElementById("new-user").value.trim().toLowerCase(); const p = document.getElementById("new-pass").value.trim(); const e = document.getElementById("new-email").value.trim(); const r = document.getElementById("new-role").value; const checkboxes = document.querySelectorAll('.chk-grupo:checked'); let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value); if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"]; if(!id || !p) return alert("Faltan datos."); await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados }, { merge: true }); alert("Usuario guardado."); window.cancelarEdicionUsuario(); };
         window.prepararEdicionUsuario = async (userId) => { const snap = await getDoc(doc(db, "usuarios", userId)); if(!snap.exists()) return; const u = snap.data(); document.getElementById("edit-mode-id").value = userId; const inpU = document.getElementById("new-user"); inpU.value = userId; inpU.disabled = true; document.getElementById("new-pass").value = u.pass; document.getElementById("new-email").value = u.email || ""; document.getElementById("new-role").value = u.rol; const gruposUsuario = u.grupos || ["SERVICIOS GENERALES"]; document.querySelectorAll('.chk-grupo').forEach(chk => { chk.checked = gruposUsuario.includes(chk.value); }); document.getElementById("btn-guardar-usuario").innerText = "Actualizar"; document.getElementById("cancel-edit-msg").classList.remove("hidden"); };
         window.cancelarEdicionUsuario = () => { document.getElementById("edit-mode-id").value = ""; const inpU = document.getElementById("new-user"); inpU.value = ""; inpU.disabled = false; document.getElementById("new-pass").value = ""; document.getElementById("new-email").value = ""; document.getElementById("new-role").value = "user"; document.querySelectorAll('.chk-grupo').forEach(chk => chk.checked = false); document.getElementById("btn-guardar-usuario").innerText = "Guardar"; document.getElementById("cancel-edit-msg").classList.add("hidden"); };
@@ -723,14 +683,14 @@
         window.cerrarModalFactura = () => { document.getElementById("modal-factura").classList.add("hidden"); };
         window.guardarFactura = async () => { const pv = document.getElementById("fact-proveedor").value.trim(); const ga = parseFloat(document.getElementById("fact-gasto").value); const fe = document.getElementById("fact-fecha").value; const ar = document.getElementById("fact-archivo-url").value; if(!pv || isNaN(ga) || !fe) return alert("Campos requeridos."); try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, grupo: window.grupoActivo, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("Factura registrada."); window.cerrarModalFactura(); } catch(e) { alert("Error."); } };
         
-        // NUEVAS SOLICITUDES CON FECHA STRICTA (fecha_iso)
+        // MODIFICADO: Agregar envío de correo usando email de administrador
         window.procesarSolicitudMultiple = async () => { 
             const ubi = document.getElementById("sol-ubicacion").value; const prio = document.getElementById("sol-prioridad").value; 
             const notas = document.getElementById("sol-notas").value.trim(); const items = Object.entries(window.carritoGlobal).filter(([_, c]) => c > 0); 
             if(!ubi || items.length === 0) return alert("Seleccione sede y producto."); 
             const batchId = Date.now().toString(); const ts = Date.now(); 
             const fs = new Date().toLocaleString(); 
-            const fIso = new Date().toISOString().split('T')[0]; // Fecha limpia "YYYY-MM-DD"
+            const fIso = new Date().toISOString().split('T')[0];
             
             try { 
                 const batch = writeBatch(db); 
@@ -745,7 +705,7 @@
                 }); 
                 await batch.commit(); 
                 
-                const adminEmail = "almacen@tuempresa.com"; 
+                const adminEmail = window.adminEmailGlobal || "almacen@tuempresa.com"; 
                 const mensajeAlmacen = `El usuario ${window.usuarioActual.id.toUpperCase()} ha realizado un nuevo pedido de insumos.\n\nSede destino: ${ubi}\nPrioridad: ${prio.toUpperCase()}\n\nInsumos solicitados:\n${detalleInsumos}\nNotas: ${notas || 'Ninguna'}`;
                 window.enviarNotificacionEmail(adminEmail, `Nuevo Pedido de Insumos - ${window.usuarioActual.id.toUpperCase()}`, mensajeAlmacen);
 
@@ -801,6 +761,7 @@
             const equiposActivos = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo); 
             const activosData = equiposActivos.map(a => ({ "ID Único": a.id, "Nombre": a.nombre, "Clasificación": a.categoria, "Marca/Modelo": a.marca, "Estado": a.estado, "Ubicación": a.ubicacion, "Precio ($)": a.precio })); 
             
+            // Pestaña de Mantenimiento
             const mantActivos = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.timestamp >= tDesde && m.timestamp <= tHasta); 
             const mantData = mantActivos.map(m => ({ "Equipo": m.equipo, "Fecha Programada": m.fecha_programada, "Fecha Notificación": m.fecha_notificacion || 'No Aplica', "Responsable": m.responsable, "Estado": (m.estado || 'N/A').toUpperCase(), "Detalle Tarea": m.detalle || '' }));
 
