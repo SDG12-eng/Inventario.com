@@ -13,9 +13,43 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
 
-    <link rel="stylesheet" href="style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800;900&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #0f172a; -webkit-font-smoothing: antialiased; }
+        .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f8fafc; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f8fafc; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .input-light { width: 100%; padding: 0.85rem 1rem; background-color: #ffffff; border: 2px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 700; outline: none; transition: all 0.2s ease-in-out; color: #1e293b; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .input-light:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); }
+        .input-light::placeholder { color: #cbd5e1; font-weight: 600; }
+        .input-light:disabled { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed; }
+        .label-form { display: block; font-size: 0.65rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; margin-left: 0.25rem; }
+        .card-metrica { background-color: #ffffff; padding: 1.5rem; border-radius: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; display: flex; flex-direction: column; align-items: flex-start; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s; }
+        .card-metrica:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        .icon-box { width: 3rem; height: 3rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 1rem; }
+        .card-metrica span { font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; line-height: 1.2; }
+        .card-metrica h2 { font-size: 2.5rem; font-weight: 900; color: #0f172a; line-height: 1; letter-spacing: -0.025em; }
+        .th-header { padding: 1.25rem 1rem; font-size: 0.65rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; background-color: #f8fafc; }
+        .badge { padding: 0.35rem 0.6rem; border-radius: 0.5rem; font-size: 0.6rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; border-width: 1px; display: inline-flex; align-items: center; justify-content: center; }
+        .status-pendiente, .status-en_transito { background-color: #fffbeb; color: #b45309; border-color: #fde68a; }
+        .status-aprobado { background-color: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+        .status-rechazado { background-color: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+        .status-recibido { background-color: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+        .status-devuelto { background-color: #faf5ff; color: #7e22ce; border-color: #e9d5ff; }
+        .status-con_incidencia { background-color: #fff1f2; color: #be123c; border-color: #fecdd3; }
+        .status-en_proceso { background-color: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+        .status-completado { background-color: #f0fdfa; color: #0f766e; border-color: #99f6e4; }
+        .status-pri-normal { background-color: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px 8px; font-size: 10px; }
+        .status-pri-basica { background-color: #f1f5f9; color: #94a3b8; border: 1px solid #f1f5f9; border-radius: 6px; padding: 3px 8px; font-size: 10px; }
+        .status-pri-alta { background-color: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 6px; padding: 3px 8px; font-size: 10px; font-weight: 900; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .item-tarjeta { background-color: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); transition: all 0.2s ease-in-out; }
+        .item-tarjeta:hover { border-color: #a5b4fc; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1), 0 4px 6px -2px rgba(99, 102, 241, 0.05); transform: translateY(-2px); }
+    </style>
 </head>
-<body class="bg-slate-100 text-slate-900 font-sans selection:bg-indigo-200 selection:text-indigo-900">
+<body>
 
     <div id="pantalla-login" class="fixed inset-0 z-[1000] bg-white flex items-center justify-center p-6">
         <div class="w-full max-w-sm text-center">
@@ -54,7 +88,9 @@
                     <label class="text-[10px] font-black text-indigo-500 uppercase tracking-widest block mb-1">Entorno Activo</label>
                     <select id="selector-grupo-activo" onchange="window.cambiarGrupoActivo(this.value)" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-indigo-800 outline-none cursor-pointer hover:border-indigo-300 transition"></select>
                 </div>
-                <nav id="menu-dinamico" class="space-y-2 flex-1 overflow-y-auto custom-scroll pr-2"></nav>
+                
+                <nav id="menu-dinamico" class="flex-1 overflow-y-auto custom-scroll pr-2"></nav>
+                
                 <div class="mt-auto pt-6 border-t border-slate-200 space-y-3">
                     <div id="info-usuario" class="text-xs text-center p-4 bg-slate-50 rounded-xl border border-slate-200 text-slate-600 font-mono shadow-sm"></div>
                     <button onclick="window.cerrarSesion()" class="w-full flex items-center justify-center gap-2 p-3 text-red-600 font-bold bg-red-50 hover:bg-red-100 border border-red-100 rounded-xl transition text-sm"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
@@ -75,7 +111,6 @@
                             <button onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-700 transition shadow ml-2 flex items-center gap-2"><i class="fas fa-file-excel"></i> Exportar Datos</button>
                         </div>
                     </div>
-                    
                     <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                         <div class="card-metrica border-b-4 border-indigo-500"><div class="icon-box text-indigo-600 bg-indigo-100"><i class="fas fa-boxes"></i></div><span>Ref. Insumos</span><h2 id="metrica-total">0</h2></div>
                         <div class="card-metrica border-b-4 border-emerald-500"><div class="icon-box text-emerald-600 bg-emerald-100"><i class="fas fa-layer-group"></i></div><span>Stock Total</span><h2 id="metrica-stock">0</h2></div>
@@ -84,7 +119,6 @@
                         <div class="card-metrica border-b-4 border-red-500"><div class="icon-box text-red-600 bg-red-100"><i class="fas fa-exclamation-triangle"></i></div><span>Eq. Fallando</span><h2 id="metrica-activos-fallas">0</h2></div>
                         <div class="card-metrica border-b-4 border-purple-500"><div class="icon-box text-purple-600 bg-purple-100"><i class="fas fa-tools"></i></div><span>Mant. Pendientes</span><h2 id="metrica-mant-pend">0</h2></div>
                     </div>
-
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm"><h3 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest">Niveles de Inventario</h3><div class="h-80"><canvas id="stockChart"></canvas></div></div>
                         <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center"><h3 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest w-full text-left">Distribución Solicitudes (Sedes)</h3><div class="h-80 w-full max-w-md"><canvas id="locationChart"></canvas></div></div>
@@ -93,7 +127,7 @@
 
                 <section id="pag-compras" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center sticky top-0 bg-slate-100/95 backdrop-blur py-4 z-10 border-b border-slate-200 pb-2">
-                        <div><h2 class="text-2xl font-black text-slate-800">Compras y Recepción</h2><p class="text-slate-500 text-xs font-bold mt-1">Registra compras en tránsito o recíbelas en el inventario.</p></div>
+                        <div><h2 class="text-2xl font-black text-slate-800">Compras y Recepción</h2><p class="text-slate-500 text-xs font-bold mt-1">Registra compras en tránsito o recíbelas en el inventario general.</p></div>
                     </div>
                     <div class="flex flex-col lg:flex-row gap-6">
                         <div id="panel-registrar-compra" class="w-full lg:w-5/12 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-md hidden">
@@ -125,7 +159,7 @@
                 <section id="pag-stock" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center sticky top-0 bg-slate-100/95 backdrop-blur py-4 z-10 border-b border-slate-200 pb-2">
                         <div><h2 class="text-2xl font-black text-slate-800">Inventario (Consumibles)</h2><p class="text-slate-500 text-xs font-bold mt-1">Directorio actual de existencias.</p></div>
-                        </div>
+                    </div>
                     <div class="flex gap-3 mb-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
                         <input type="text" id="buscador-stock" onkeyup="window.debounceFiltrarTarjetas('lista-inventario', this.value)" placeholder="🔍 Buscar insumo por nombre..." class="input-light text-sm p-3 flex-1 !bg-white !border-slate-100">
                         <button onclick="window.iniciarScanner('buscador-stock')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-5 rounded-xl hover:bg-indigo-600 hover:text-white transition shadow-sm"><i class="fas fa-qrcode text-xl"></i></button>
@@ -135,7 +169,7 @@
 
                 <section id="pag-activos" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center sticky top-0 bg-slate-100/95 backdrop-blur py-4 z-10 border-b border-slate-200 pb-2">
-                        <div><h2 class="text-2xl font-black text-slate-800">Activos Fijos / Equipos</h2><p class="text-slate-500 text-xs font-bold mt-1">Registro y seguimiento de bienes</p></div>
+                        <div><h2 class="text-2xl font-black text-slate-800">Activos Fijos / Equipos</h2><p class="text-slate-500 text-xs font-bold mt-1">Registro y seguimiento de bienes patrimoniales.</p></div>
                         <button id="btn-admin-activos" onclick="window.abrirModalActivo()" class="hidden bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm"><i class="fas fa-plus"></i><span class="hidden sm:inline">Nuevo Activo</span></button>
                     </div>
                     <div class="flex gap-3 mb-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
@@ -147,7 +181,7 @@
 
                 <section id="pag-mantenimiento" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-4">
-                        <div><h2 class="text-2xl font-black text-slate-800">Mantenimiento Preventivo</h2><p class="text-slate-500 text-xs mt-1">Bitácora, control de tiempos y evidencias</p></div>
+                        <div><h2 class="text-2xl font-black text-slate-800">Mantenimiento Preventivo</h2><p class="text-slate-500 text-xs mt-1">Bitácora, control de tiempos y evidencias operativas.</p></div>
                         <button onclick="window.abrirModalMantenimiento()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm"><i class="fas fa-tools"></i> Programar Tarea</button>
                     </div>
                     <div class="bg-white rounded-[1.5rem] border border-slate-200 shadow-md overflow-hidden mt-6">
@@ -163,24 +197,17 @@
                 </section>
 
                 <section id="pag-solicitudes" class="view hidden space-y-6 animate-fade-in">
-                    <div class="border-b border-slate-200 pb-4"><h2 class="text-2xl font-black text-slate-800">Centro de Aprobaciones</h2><p class="text-slate-500 text-xs mt-1">Revisa y autoriza las solicitudes de stock.</p></div>
+                    <div class="border-b border-slate-200 pb-4"><h2 class="text-2xl font-black text-slate-800">Centro de Aprobaciones</h2><p class="text-slate-500 text-xs mt-1">Revisa y autoriza las solicitudes de stock de los aplicantes.</p></div>
                     <div id="lista-pendientes-admin" class="grid grid-cols-1 lg:grid-cols-2 gap-5"></div>
                 </section>
 
                 <section id="pag-facturas" class="view hidden space-y-6 animate-fade-in">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-4">
-                        <div><h2 class="text-2xl font-black text-slate-800">Control de Facturas</h2><p class="text-slate-500 text-xs mt-1">Registro de gastos menores directos</p></div>
+                        <div><h2 class="text-2xl font-black text-slate-800">Control de Facturas</h2><p class="text-slate-500 text-xs mt-1">Registro de gastos menores que no pasan por compras/inventario.</p></div>
                         <button onclick="window.abrirModalFactura()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm"><i class="fas fa-file-invoice-dollar"></i> Registrar Documento</button>
                     </div>
                     <div class="bg-white rounded-[1.5rem] border border-slate-200 shadow-md overflow-hidden mt-6">
-                        <div class="overflow-x-auto max-h-[600px] custom-scroll">
-                            <table class="w-full text-left min-w-[900px]">
-                                <thead class="bg-slate-100 border-b border-slate-200 sticky top-0 z-10">
-                                    <tr><th class="p-4 th-header text-slate-600">Fecha</th><th class="p-4 th-header text-slate-600">Proveedor</th><th class="p-4 th-header text-right text-slate-600">Gasto ($)</th><th class="p-4 th-header text-center text-slate-600">Registrado Por</th><th class="p-4 th-header text-center text-slate-600">Doc</th><th class="p-4 th-header text-center text-slate-600">Acciones</th></tr>
-                                </thead>
-                                <tbody id="tabla-facturas-db" class="divide-y divide-slate-100 text-xs font-medium"></tbody>
-                            </table>
-                        </div>
+                        <div class="overflow-x-auto max-h-[600px] custom-scroll"><table class="w-full text-left min-w-[900px]"><thead class="bg-slate-100 border-b border-slate-200 sticky top-0 z-10"><tr><th class="p-4 th-header text-slate-600">Fecha</th><th class="p-4 th-header text-slate-600">Proveedor</th><th class="p-4 th-header text-right text-slate-600">Gasto ($)</th><th class="p-4 th-header text-center text-slate-600">Registrado Por</th><th class="p-4 th-header text-center text-slate-600">Doc</th><th class="p-4 th-header text-center text-slate-600">Acciones</th></tr></thead><tbody id="tabla-facturas-db" class="divide-y divide-slate-100 text-xs font-medium"></tbody></table></div>
                     </div>
                 </section>
 
@@ -188,24 +215,15 @@
                     <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                         <div><h2 class="text-2xl font-black text-slate-800">Movimientos</h2></div>
                         <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-                            <span class="text-xs font-bold text-slate-500 ml-2 hidden sm:block">Desde:</span>
-                            <input type="date" id="rep-desde" class="input-light text-xs p-2 !w-auto">
-                            <span class="text-xs font-bold text-slate-500 hidden sm:block">Hasta:</span>
-                            <input type="date" id="rep-hasta" class="input-light text-xs p-2 !w-auto">
+                            <span class="text-xs font-bold text-slate-500 ml-2 hidden sm:block">Desde:</span><input type="date" id="rep-desde" class="input-light text-xs p-2 !w-auto">
+                            <span class="text-xs font-bold text-slate-500 hidden sm:block">Hasta:</span><input type="date" id="rep-hasta" class="input-light text-xs p-2 !w-auto">
                             <button onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-700 shadow ml-2"><i class="fas fa-file-excel"></i> Exportar Todo</button>
                             <button onclick="document.getElementById('rep-desde').value=''; document.getElementById('rep-hasta').value='';" class="bg-slate-200 text-slate-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-slate-300 shadow-sm"><i class="fas fa-eraser"></i></button>
                         </div>
                     </div>
                     <input type="text" onkeyup="window.debounceFiltrarTabla('tabla-movimientos-unificados', this.value)" placeholder="🔍 Filtrar historial en pantalla..." class="input-light text-sm p-4 shadow-sm border-slate-200">
                     <div class="bg-white rounded-[1.5rem] border border-slate-200 shadow-md overflow-hidden mt-4">
-                        <div class="overflow-x-auto max-h-[500px] custom-scroll">
-                            <table class="w-full text-left min-w-[800px]">
-                                <thead class="bg-slate-100 border-b border-slate-200 sticky top-0 z-10">
-                                    <tr><th class="p-4 th-header text-slate-600">Fecha</th><th class="p-4 th-header text-slate-600">Tipo</th><th class="p-4 th-header text-slate-600">Insumo</th><th class="p-4 th-header text-slate-600">Cant.</th><th class="p-4 th-header text-slate-600">Detalle</th><th class="p-4 th-header text-slate-600">Estado</th></tr>
-                                </thead>
-                                <tbody id="tabla-movimientos-unificados" class="divide-y divide-slate-100 text-xs font-medium"></tbody>
-                            </table>
-                        </div>
+                        <div class="overflow-x-auto max-h-[500px] custom-scroll"><table class="w-full text-left min-w-[800px]"><thead class="bg-slate-100 border-b border-slate-200 sticky top-0 z-10"><tr><th class="p-4 th-header text-slate-600">Fecha</th><th class="p-4 th-header text-slate-600">Tipo</th><th class="p-4 th-header text-slate-600">Insumo</th><th class="p-4 th-header text-slate-600">Cant.</th><th class="p-4 th-header text-slate-600">Detalle</th><th class="p-4 th-header text-slate-600">Estado</th></tr></thead><tbody id="tabla-movimientos-unificados" class="divide-y divide-slate-100 text-xs font-medium"></tbody></table></div>
                     </div>
                 </section>
 
@@ -218,16 +236,10 @@
                             <div><label class="label-form">Correo Electrónico</label><input id="new-email" type="email" placeholder="correo@empresa.com" class="input-light"></div>
                             <div>
                                 <label class="label-form">Rol Base</label>
-                                <select id="new-role" class="input-light">
-                                    <option value="user">Aplicante Base</option>
-                                    <option value="supervisor">Supervisor</option>
-                                    <option value="manager">Gerente</option>
-                                    <option value="admin">Administrador</option>
-                                </select>
+                                <select id="new-role" class="input-light"><option value="user">Aplicante Base</option><option value="supervisor">Supervisor</option><option value="manager">Gerente</option><option value="admin">Administrador</option></select>
                             </div>
                             <input type="hidden" id="edit-mode-id">
                         </div>
-                        
                         <div class="mb-6 bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-inner">
                             <p class="text-[11px] font-black text-indigo-600 uppercase mb-4 tracking-wider"><i class="fas fa-key mr-1"></i> Permisos Operativos Especiales</p>
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -237,10 +249,8 @@
                                 <label class="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition"><input type="checkbox" id="perm-activos" class="w-5 h-5 text-indigo-600 rounded border-slate-300 shadow-sm"><span class="text-sm font-bold text-slate-700">Gestionar Activos</span></label>
                             </div>
                         </div>
-
                         <p class="text-[11px] font-black text-indigo-600 uppercase mb-3 tracking-wider"><i class="fas fa-building mr-1"></i> Acceso a Entornos / Grupos</p>
                         <div id="user-grupos-checkboxes" class="flex flex-wrap gap-3 mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner"></div>
-                        
                         <div class="flex gap-3">
                             <button onclick="window.guardarUsuario()" id="btn-guardar-usuario" class="bg-indigo-600 text-white py-3 px-8 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar Usuario</button>
                             <button id="cancel-edit-msg" onclick="window.cancelarEdicionUsuario()" class="hidden py-3 px-8 bg-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-300 transition">Cancelar</button>
@@ -255,7 +265,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
                             <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200">
                                 <p class="text-sm font-black text-slate-800 mb-1"><i class="fas fa-inbox text-indigo-400"></i> Nuevas Solicitudes</p>
-                                <p class="text-xs text-slate-500 mb-4">Notifica al encargado cuando se piden insumos.</p>
+                                <p class="text-xs text-slate-500 mb-4">Notifica al encargado cuando piden insumos.</p>
                                 <input id="config-admin-email" type="email" class="input-light font-bold text-indigo-700" placeholder="almacen@empresa.com">
                             </div>
                             <div class="bg-red-50 p-5 rounded-2xl border border-red-100">
@@ -268,7 +278,6 @@
                             <button onclick="window.guardarConfigCorreos()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar Correos</button>
                         </div>
                     </div>
-                    
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-md">
                             <h3 class="font-black text-lg mb-4 text-slate-800"><i class="fas fa-folder text-slate-400"></i> Gestión de Grupos</h3>
@@ -300,7 +309,6 @@
                                     <div class="flex flex-col items-center justify-center py-10 text-slate-400">
                                         <i class="fas fa-shopping-basket text-4xl mb-3 opacity-50"></i>
                                         <p class="text-xs font-medium">Aún no has seleccionado insumos.</p>
-                                        <p class="text-[10px] mt-1">Usa la pestaña "Stock" para agregar.</p>
                                     </div>
                                 </div>
                             </div>
@@ -330,28 +338,21 @@
         <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl max-h-[95vh] overflow-y-auto custom-scroll border-t-8 border-indigo-500">
             <h3 class="text-xl font-black mb-6 text-center text-indigo-900">Editar Insumo</h3>
             <input type="hidden" id="edit-prod-id">
-            
             <div class="flex flex-col items-center p-5 border-2 border-dashed border-slate-200 bg-slate-50 rounded-2xl mb-6">
                 <img id="preview-img" class="h-32 hidden rounded-xl mb-3 object-cover shadow-sm bg-white p-1 border border-slate-200">
                 <button type="button" id="btn-upload-edit-prod" class="bg-indigo-100 text-indigo-700 px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-indigo-200 transition shadow-sm"><i class="fas fa-camera mr-1"></i> Cambiar Foto</button>
                 <input type="hidden" id="edit-prod-img">
             </div>
-            
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div><label class="label-form">Precio Ref. ($)</label><input id="edit-prod-precio" type="number" step="0.01" class="input-light font-bold text-emerald-600" placeholder="0.00 (Opcional)"></div>
                 <div><label class="label-form">Stock Mínimo</label><input id="edit-prod-min" type="number" class="input-light font-bold text-red-500" placeholder="0"></div>
             </div>
-            
             <div id="qr-insumo-container" class="mb-6 flex flex-col items-center justify-center p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
                 <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest"><i class="fas fa-qrcode"></i> Código QR del Insumo</p>
                 <img id="qr-insumo-img" src="" class="w-28 h-28 object-contain mb-3 p-1 border rounded bg-white">
                 <p id="qr-insumo-id-text" class="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-4 py-1.5 rounded-lg border border-slate-200"></p>
             </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="document.getElementById('modal-detalles').classList.add('hidden')" class="bg-slate-100 text-slate-600 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
-                <button onclick="window.guardarDetallesProducto()" class="bg-indigo-600 text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Actualizar</button>
-            </div>
+            <div class="grid grid-cols-2 gap-4"><button onclick="document.getElementById('modal-detalles').classList.add('hidden')" class="bg-slate-100 text-slate-600 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button><button onclick="window.guardarDetallesProducto()" class="bg-indigo-600 text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Actualizar</button></div>
         </div>
     </div>
 
@@ -360,35 +361,519 @@
             <h3 class="text-xl font-black mb-6 text-center text-indigo-900"><i class="fas fa-tools"></i> Programar Tarea</h3>
             <div class="space-y-4">
                 <div><label class="label-form">Equipo / Área *</label><input id="mant-equipo" type="text" placeholder="Ej. Impresora HP" class="input-light uppercase font-bold"></div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="label-form">Fecha Prog. *</label><input id="mant-fecha" type="date" class="input-light font-bold text-sm"></div>
-                    <div><label class="label-form">Fecha Alerta</label><input id="mant-fecha-notificacion" type="date" class="input-light font-bold text-indigo-600 text-sm" title="Fecha recordatorio"></div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="label-form">Responsable</label><input id="mant-responsable" type="text" placeholder="Técnico" class="input-light uppercase font-bold"></div>
-                    <div><label class="label-form">Notificar a</label><input id="mant-correo" type="email" placeholder="correo@emp.com" class="input-light font-bold text-sm"></div>
-                </div>
+                <div class="grid grid-cols-2 gap-4"><div><label class="label-form">Fecha Prog. *</label><input id="mant-fecha" type="date" class="input-light font-bold text-sm"></div><div><label class="label-form">Fecha Alerta</label><input id="mant-fecha-notificacion" type="date" class="input-light font-bold text-indigo-600 text-sm" title="Fecha recordatorio"></div></div>
+                <div class="grid grid-cols-2 gap-4"><div><label class="label-form">Responsable</label><input id="mant-responsable" type="text" placeholder="Técnico" class="input-light uppercase font-bold"></div><div><label class="label-form">Notificar a</label><input id="mant-correo" type="email" placeholder="correo@emp.com" class="input-light font-bold text-sm"></div></div>
                 <div><label class="label-form">Instrucciones</label><textarea id="mant-detalle" class="input-light h-20 resize-none p-3 text-sm" placeholder="Detalles de la tarea..."></textarea></div>
-                <div class="grid grid-cols-2 gap-4 pt-4 mt-2 border-t border-slate-100">
-                    <button onclick="document.getElementById('modal-mantenimiento').classList.add('hidden')" class="py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
-                    <button onclick="window.guardarMantenimiento()" class="py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar</button>
-                </div>
+                <div class="grid grid-cols-2 gap-4 pt-4 mt-2 border-t border-slate-100"><button onclick="document.getElementById('modal-mantenimiento').classList.add('hidden')" class="py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button><button onclick="window.guardarMantenimiento()" class="py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar</button></div>
             </div>
         </div>
     </div>
 
-    <div id="modal-bitacora" class="fixed inset-0 bg-slate-900/80 hidden z-[400] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm"><div class="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"><div class="bg-slate-800 p-5 text-white flex justify-between items-center"><div><h3 class="font-black text-lg"><i class="fas fa-clipboard-list text-indigo-400 mr-2"></i> Bitácora de Servicio</h3><p id="bitacora-equipo-titulo" class="text-xs text-slate-300 font-mono mt-1"></p></div><button onclick="window.cerrarBitacora()" class="text-slate-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button></div><div id="bitacora-timeline" class="flex-1 overflow-y-auto p-5 sm:p-6 bg-slate-50 custom-scroll space-y-5"></div><div class="p-5 bg-white border-t border-slate-200" id="bitacora-form-container"><input type="hidden" id="bitacora-mant-id"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">Añadir Observación</p><textarea id="bitacora-texto" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm resize-none h-20 outline-none focus:border-indigo-500 transition-colors shadow-inner" placeholder="Detalla el trabajo realizado..."></textarea><div class="flex items-center justify-between mt-3"><div class="flex items-center gap-3"><button id="btn-upload-bitacora" class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-100 transition border border-indigo-100 shadow-sm"><i class="fas fa-camera mr-1"></i> Foto/Video</button><span id="bitacora-media-badge" class="hidden text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-1 rounded truncate max-w-[120px]">Adjunto</span><input type="hidden" id="bitacora-media-url"></div><button onclick="window.guardarBitacora()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar Registro</button></div></div></div></div>
+    <div id="modal-bitacora" class="fixed inset-0 bg-slate-900/80 hidden z-[400] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm"><div class="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"><div class="bg-slate-800 p-5 text-white flex justify-between items-center"><div><h3 class="font-black text-lg"><i class="fas fa-clipboard-list text-indigo-400 mr-2"></i> Bitácora</h3><p id="bitacora-equipo-titulo" class="text-xs text-slate-300 font-mono mt-1"></p></div><button onclick="window.cerrarBitacora()" class="text-slate-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button></div><div id="bitacora-timeline" class="flex-1 overflow-y-auto p-5 sm:p-6 bg-slate-50 custom-scroll space-y-5"></div><div class="p-5 bg-white border-t border-slate-200" id="bitacora-form-container"><input type="hidden" id="bitacora-mant-id"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">Añadir Observación</p><textarea id="bitacora-texto" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm resize-none h-20 outline-none focus:border-indigo-500 transition-colors shadow-inner" placeholder="Detalla..."></textarea><div class="flex items-center justify-between mt-3"><div class="flex items-center gap-3"><button id="btn-upload-bitacora" class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-100 transition border border-indigo-100 shadow-sm"><i class="fas fa-camera mr-1"></i> Foto/Video</button><span id="bitacora-media-badge" class="hidden text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-1 rounded truncate max-w-[120px]">Adjunto</span><input type="hidden" id="bitacora-media-url"></div><button onclick="window.guardarBitacora()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar</button></div></div></div></div>
     
     <div id="modal-scanner" class="fixed inset-0 bg-black/95 hidden z-[500] flex flex-col items-center justify-center p-4"><div class="w-full max-w-md bg-white rounded-[2rem] overflow-hidden shadow-2xl"><div class="p-5 bg-indigo-600 text-white flex justify-between items-center"><h3 class="font-black text-lg"><i class="fas fa-qrcode mr-2"></i> Escanear QR</h3><button onclick="window.detenerScanner()" class="hover:text-indigo-200 transition"><i class="fas fa-times text-xl"></i></button></div><div id="reader" class="w-full min-h-[300px] bg-black"></div></div></div>
     
-    <div id="modal-grupo-admin" class="fixed inset-0 bg-slate-900/70 hidden z-[200] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-6 sm:p-8 rounded-[2.5rem] w-full max-w-2xl flex flex-col max-h-[85vh] shadow-2xl border-t-8 border-indigo-500"><div class="flex justify-between items-start mb-4 border-b border-slate-200 pb-4"><div><h3 class="text-2xl font-black text-slate-800">Solicitud de Insumos</h3><p id="modal-grupo-titulo" class="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded mt-2 inline-block"></p></div><button onclick="document.getElementById('modal-grupo-admin').classList.add('hidden')" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition text-slate-600 flex items-center justify-center"><i class="fas fa-times"></i></button></div><div id="modal-grupo-notas-container" class="mb-5 hidden bg-amber-50 p-4 rounded-xl border border-amber-100"><p class="text-[10px] font-black text-amber-600 uppercase mb-1"><i class="fas fa-comment-alt"></i> Notas del solicitante:</p><div id="modal-grupo-notas" class="text-sm font-medium text-amber-900 italic"></div></div><p class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Items Solicitados</p><div id="modal-grupo-contenido" class="flex-1 overflow-y-auto custom-scroll space-y-3 p-1"></div></div></div>
+    <div id="modal-grupo-admin" class="fixed inset-0 bg-slate-900/70 hidden z-[200] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-6 sm:p-8 rounded-[2.5rem] w-full max-w-2xl flex flex-col max-h-[85vh] shadow-2xl border-t-8 border-indigo-500"><div class="flex justify-between items-start mb-4 border-b border-slate-200 pb-4"><div><h3 class="text-2xl font-black text-slate-800">Solicitud</h3><p id="modal-grupo-titulo" class="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded mt-2 inline-block"></p></div><button onclick="document.getElementById('modal-grupo-admin').classList.add('hidden')" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition text-slate-600 flex items-center justify-center"><i class="fas fa-times"></i></button></div><div id="modal-grupo-notas-container" class="mb-5 hidden bg-amber-50 p-4 rounded-xl border border-amber-100"><p class="text-[10px] font-black text-amber-600 uppercase mb-1"><i class="fas fa-comment-alt"></i> Notas:</p><div id="modal-grupo-notas" class="text-sm font-medium text-amber-900 italic"></div></div><p class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Items Solicitados</p><div id="modal-grupo-contenido" class="flex-1 overflow-y-auto custom-scroll space-y-3 p-1"></div></div></div>
     
-    <div id="modal-incidencia" class="fixed inset-0 bg-slate-900/70 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm border-t-8 border-red-500 shadow-2xl"><h3 class="text-xl font-black mb-2 text-center text-red-900"><i class="fas fa-exclamation-triangle text-red-500"></i> Reportar Problema</h3><p class="text-xs text-center text-slate-500 mb-6">Describe el inconveniente con este pedido.</p><input type="hidden" id="incidencia-pid"><textarea id="incidencia-detalle" class="input-light mb-6 h-28 resize-none shadow-inner" placeholder="Ej. El producto llegó dañado..."></textarea><div class="space-y-3"><button onclick="window.confirmarIncidencia(true)" class="w-full py-3.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-bold border border-red-200 transition shadow-sm">Reportar y Devolver Stock</button><button onclick="window.confirmarIncidencia(false)" class="w-full py-3.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl font-bold border border-amber-200 transition shadow-sm">Solo Reportar (Mantener Stock)</button><button onclick="document.getElementById('modal-incidencia').classList.add('hidden')" class="w-full py-3 text-slate-500 font-bold hover:text-slate-700 transition">Cancelar</button></div></div></div>
+    <div id="modal-incidencia" class="fixed inset-0 bg-slate-900/70 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm border-t-8 border-red-500 shadow-2xl"><h3 class="text-xl font-black mb-2 text-center text-red-900"><i class="fas fa-exclamation-triangle text-red-500"></i> Reportar Problema</h3><p class="text-xs text-center text-slate-500 mb-6">Describe el inconveniente con este pedido.</p><input type="hidden" id="incidencia-pid"><textarea id="incidencia-detalle" class="input-light mb-6 h-28 resize-none shadow-inner" placeholder="Ej. Dañado..."></textarea><div class="space-y-3"><button onclick="window.confirmarIncidencia(true)" class="w-full py-3.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-bold border border-red-200 transition shadow-sm">Reportar y Devolver Stock</button><button onclick="window.confirmarIncidencia(false)" class="w-full py-3.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl font-bold border border-amber-200 transition shadow-sm">Solo Reportar (Mantener)</button><button onclick="document.getElementById('modal-incidencia').classList.add('hidden')" class="w-full py-3 text-slate-500 font-bold hover:text-slate-700 transition">Cancelar</button></div></div></div>
     
-    <div id="modal-editar-entrada" class="fixed inset-0 bg-slate-900/70 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm border-t-8 border-amber-500 shadow-2xl"><h3 class="text-xl font-black mb-6 text-center text-amber-700"><i class="fas fa-pen-square"></i> Corregir Entrada</h3><div class="space-y-5"><input type="hidden" id="edit-entrada-id"><input type="hidden" id="edit-entrada-insumo"><input type="hidden" id="edit-entrada-cant-original"><div><label class="label-form">Insumo</label><input id="edit-entrada-insumo-display" type="text" class="input-light uppercase font-bold text-slate-500 bg-slate-100" disabled></div><div><label class="label-form">Cantidad Real Correcta</label><input id="edit-entrada-cantidad" type="number" class="input-light font-black text-3xl text-amber-600 text-center border-amber-200 h-16"></div><div><label class="label-form">Motivo del Ajuste *</label><textarea id="edit-entrada-motivo" class="input-light h-20 resize-none p-3 text-sm shadow-inner" placeholder="Ej: Error de digitación original..."></textarea></div><div class="grid grid-cols-2 gap-3 pt-2"><button onclick="document.getElementById('modal-editar-entrada').classList.add('hidden')" class="py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button><button onclick="window.guardarEdicionEntrada()" class="py-3.5 bg-amber-500 text-white rounded-xl font-bold shadow-lg hover:bg-amber-600 transition">Actualizar</button></div></div></div></div>
+    <div id="modal-editar-entrada" class="fixed inset-0 bg-slate-900/70 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm border-t-8 border-amber-500 shadow-2xl"><h3 class="text-xl font-black mb-6 text-center text-amber-700"><i class="fas fa-pen-square"></i> Corregir Entrada</h3><div class="space-y-5"><input type="hidden" id="edit-entrada-id"><input type="hidden" id="edit-entrada-insumo"><input type="hidden" id="edit-entrada-cant-original"><div><label class="label-form">Insumo</label><input id="edit-entrada-insumo-display" type="text" class="input-light uppercase font-bold text-slate-500 bg-slate-100" disabled></div><div><label class="label-form">Cantidad Real</label><input id="edit-entrada-cantidad" type="number" class="input-light font-black text-3xl text-amber-600 text-center border-amber-200 h-16"></div><div><label class="label-form">Motivo *</label><textarea id="edit-entrada-motivo" class="input-light h-20 resize-none p-3 text-sm shadow-inner" placeholder="Ej: Error original..."></textarea></div><div class="grid grid-cols-2 gap-3 pt-2"><button onclick="document.getElementById('modal-editar-entrada').classList.add('hidden')" class="py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button><button onclick="window.guardarEdicionEntrada()" class="py-3.5 bg-amber-500 text-white rounded-xl font-bold shadow-lg hover:bg-amber-600 transition">Actualizar</button></div></div></div></div>
     
-    <div id="modal-factura" class="fixed inset-0 bg-slate-900/70 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl border-t-8 border-emerald-500"><h3 class="text-xl font-black mb-6 text-center text-emerald-900"><i class="fas fa-receipt"></i> Factura Directa</h3><div class="space-y-4"><div><label class="label-form">Proveedor *</label><input id="fact-proveedor" class="input-light uppercase font-bold" placeholder="Nombre Proveedor"></div><div><label class="label-form">Gasto Total ($) *</label><input id="fact-gasto" type="number" step="0.01" class="input-light text-emerald-600 text-2xl font-black text-center h-14" placeholder="0.00"></div><div><label class="label-form">Fecha Compra *</label><input id="fact-fecha" type="date" class="input-light font-bold text-sm"></div><div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200"><button id="btn-upload-factura" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-bold text-xs hover:bg-indigo-200 transition shadow-sm whitespace-nowrap"><i class="fas fa-paperclip"></i> Archivo</button><span id="factura-file-name" class="text-xs font-medium text-slate-500 truncate flex-1">Ninguno</span><input type="hidden" id="fact-archivo-url"></div><div class="grid grid-cols-2 gap-3 pt-4"><button onclick="window.cerrarModalFactura()" class="py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button><button onclick="window.guardarFactura()" class="py-3.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition">Registrar</button></div></div></div></div>
+    <div id="modal-factura" class="fixed inset-0 bg-slate-900/70 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl border-t-8 border-emerald-500"><h3 class="text-xl font-black mb-6 text-center text-emerald-900"><i class="fas fa-receipt"></i> Factura Directa</h3><div class="space-y-4"><div><label class="label-form">Proveedor *</label><input id="fact-proveedor" class="input-light uppercase font-bold" placeholder="Proveedor"></div><div><label class="label-form">Gasto ($) *</label><input id="fact-gasto" type="number" step="0.01" class="input-light text-emerald-600 text-2xl font-black text-center h-14" placeholder="0.00"></div><div><label class="label-form">Fecha *</label><input id="fact-fecha" type="date" class="input-light font-bold text-sm"></div><div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200"><button id="btn-upload-factura" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-bold text-xs hover:bg-indigo-200 transition shadow-sm whitespace-nowrap"><i class="fas fa-paperclip"></i> Archivo</button><span id="factura-file-name" class="text-xs font-medium text-slate-500 truncate flex-1">Ninguno</span><input type="hidden" id="fact-archivo-url"></div><div class="grid grid-cols-2 gap-3 pt-4"><button onclick="window.cerrarModalFactura()" class="py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button><button onclick="window.guardarFactura()" class="py-3.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition">Registrar</button></div></div></div></div>
 
-    <script type="module" src="script.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, addDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+        // ==========================================
+        // 1. CONFIGURACIÓN Y GLOBALES
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3cRmakg2dV2YRuNV1fY7LE87artsLmB8",
+            authDomain: "mi-web-db.firebaseapp.com",
+            projectId: "mi-web-db",
+            storageBucket: "mi-web-db.appspot.com"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const EMAILJS_PUBLIC_KEY = "TU_PUBLIC_KEY_AQUI"; 
+        const EMAILJS_SERVICE_ID = "TU_SERVICE_ID_AQUI";
+        const EMAILJS_TEMPLATE_ID = "TU_TEMPLATE_ID_AQUI";
+        if(EMAILJS_PUBLIC_KEY !== "TU_PUBLIC_KEY_AQUI") emailjs.init(EMAILJS_PUBLIC_KEY);
+
+        window.usuarioActual = null; window.carritoGlobal = {}; window.carritoCompras = {}; window.cachePedidos = []; window.todosLosGrupos = ["SERVICIOS GENERALES"]; window.grupoActivo = "SERVICIOS GENERALES"; window.miGraficoStock = null; window.miGraficoUbicacion = null; window.html5QrcodeScanner = null; window.adminEmailGlobal = ""; window.stockAlertEmailGlobal = "";
+        
+        const chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6', '#f97316', '#a855f7', '#ef4444'];
+        let rawInventario = [], rawEntradas = [], rawFacturas = [], rawMantenimiento = [], rawActivos = [], rawCompras = []; window.pedidosRaw = []; let timeoutBusqueda;
+
+        // ==========================================
+        // 2. UTILIDADES (Notificaciones, Debounce, Permisos)
+        // ==========================================
+        window.enviarNotificacionEmail = async (correoDestino, asunto, mensaje) => {
+            if(EMAILJS_PUBLIC_KEY === "TU_PUBLIC_KEY_AQUI") { console.warn("Email simulado a", correoDestino); return; }
+            try { await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email: correoDestino, subject: asunto, message: mensaje }); console.log("Email enviado a", correoDestino); } catch (error) { console.error("Error email:", error); }
+        };
+
+        window.solicitarPermisosNotificacion = () => { if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") { Notification.requestPermission().then(p => { if (p === "granted") console.log("Notificaciones ON"); }); } };
+        window.enviarNotificacionNavegador = (titulo, cuerpo) => { if ("Notification" in window && Notification.permission === "granted") { new Notification(titulo, { body: cuerpo, icon: "https://cdn-icons-png.flaticon.com/512/2921/2921222.png" }); } };
+
+        window.debounceFiltrarTarjetas = (idContenedor, texto) => { clearTimeout(timeoutBusqueda); timeoutBusqueda = setTimeout(() => { const term = texto.toLowerCase(); const container = document.getElementById(idContenedor); if(container) { container.querySelectorAll('.item-tarjeta').forEach(c => { c.style.display = c.innerText.toLowerCase().includes(term) ? '' : 'none'; }); } }, 150); };
+        window.debounceFiltrarTabla = (idTabla, texto) => { clearTimeout(timeoutBusqueda); timeoutBusqueda = setTimeout(() => { const term = texto.toLowerCase(); document.querySelectorAll(`#${idTabla} tr`).forEach(f => { f.style.display = f.innerText.toLowerCase().includes(term) ? '' : 'none'; }); }, 150); };
+
+        window.formatoTiempoDiferencia = (t1, t2) => { let diffMs = Math.abs(t2 - t1); let diffMins = Math.floor(diffMs / 60000); if (diffMins < 60) return diffMins + "m"; let diffHrs = Math.floor(diffMins / 60); let rem = diffMins % 60; if (diffHrs < 24) return diffHrs + "h " + rem + "m"; return Math.floor(diffHrs / 24) + "d " + (diffHrs % 24) + "h"; };
+
+        window.tienePermiso = (permiso) => { if (!window.usuarioActual) return false; if (window.usuarioActual.rol === 'admin') return true; return window.usuarioActual.permisos && window.usuarioActual.permisos[permiso] === true; };
+
+        // ==========================================
+        // 3. NAVEGACIÓN Y MENÚ (Categorizado)
+        // ==========================================
+        window.verPagina = (id) => { document.querySelectorAll(".view").forEach(v => { v.classList.add("hidden"); v.classList.remove("animate-fade-in"); }); const t = document.getElementById(`pag-${id}`); if(t) { t.classList.remove("hidden"); setTimeout(() => t.classList.add("animate-fade-in"), 10); } if(window.innerWidth < 768) window.toggleMenu(false); };
+        window.toggleMenu = (forceState) => { const sb = document.getElementById("sidebar"); const ov = document.getElementById("sidebar-overlay"); if(!sb || !ov) return; const isClosed = sb.classList.contains("-translate-x-full"); const shouldOpen = forceState !== undefined ? forceState : isClosed; if (shouldOpen) { sb.classList.remove("-translate-x-full"); ov.classList.remove("hidden"); sb.style.zIndex = "100"; ov.style.zIndex = "90"; } else { sb.classList.add("-translate-x-full"); ov.classList.add("hidden"); } };
+        window.switchTab = (tab) => { document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden')); document.getElementById(`tab-content-${tab}`)?.classList.remove('hidden'); const onC = "flex-1 py-3 rounded-xl text-sm font-black bg-white text-indigo-600 shadow-sm transition"; const offC = "flex-1 py-3 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 transition"; if(tab === 'activos') { document.getElementById('tab-btn-activos').className = onC; document.getElementById('tab-btn-historial').className = offC; } else { document.getElementById('tab-btn-historial').className = onC; document.getElementById('tab-btn-activos').className = offC; } };
+
+        // ==========================================
+        // 4. AUTENTICACIÓN Y SESIÓN
+        // ==========================================
+        window.iniciarSesion = async () => {
+            const user = document.getElementById("login-user").value.trim().toLowerCase(); const pass = document.getElementById("login-pass").value.trim();
+            if(!user || !pass) return alert("Ingrese usuario y contraseña.");
+            if (user === "admin" && pass === "1130") { window.cargarSesion({ id: "admin", rol: "admin", grupos: ["SERVICIOS GENERALES"] }); return; }
+            try { const snap = await getDoc(doc(db, "usuarios", user)); if (snap.exists() && snap.data().pass === pass) { window.cargarSesion({ id: user, ...snap.data() }); } else { alert("Credenciales incorrectas."); } } catch (e) { alert("Error de conexión."); }
+        };
+
+        window.cerrarSesion = () => { localStorage.removeItem("fcilog_session"); location.reload(); };
+
+        window.cargarSesion = (datos) => {
+            window.usuarioActual = datos; localStorage.setItem("fcilog_session", JSON.stringify(datos));
+            document.getElementById("pantalla-login")?.classList.add("hidden"); document.getElementById("interfaz-app")?.classList.remove("hidden");
+            window.solicitarPermisosNotificacion();
+            
+            const infoDiv = document.getElementById("info-usuario");
+            if(infoDiv) infoDiv.innerHTML = `<div class="flex flex-col items-center"><div class="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center text-indigo-600 mb-2 shadow-inner"><i class="fas fa-user text-xl"></i></div><span class="font-black text-slate-800 uppercase tracking-wide">${datos.id}</span><span class="text-[10px] uppercase font-black text-white bg-indigo-500 px-3 py-1 rounded-md mt-1 shadow-sm tracking-widest">${datos.rol}</span></div>`;
+
+            // Construir el menú categorizado dinámicamente
+            let menuHtml = "";
+            const addItem = (id, icon, name) => `<button onclick="window.verPagina('${id}')" class="w-full flex items-center gap-4 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-white border border-slate-200 group-hover:border-indigo-200 flex items-center justify-center transition-colors"><i class="fas fa-${icon} group-hover:text-indigo-500"></i></div>${name}</button>`;
+            const addHeader = (title) => `<p class="text-[10px] font-black text-indigo-400 uppercase mt-4 mb-2 ml-2 tracking-widest">${title}</p>`;
+
+            if(['admin','manager','supervisor'].includes(datos.rol)) {
+                menuHtml += addHeader("Analítica");
+                menuHtml += addItem('stats', 'chart-pie', 'Dashboard');
+            }
+            
+            menuHtml += addHeader("Operaciones & Logística");
+            menuHtml += addItem('stock', 'boxes', 'Inventario');
+            if(window.tienePermiso('comprar') || window.tienePermiso('recibir') || datos.rol === 'admin' || datos.rol === 'manager') {
+                menuHtml += addItem('compras', 'truck-loading', 'Compras');
+            }
+            menuHtml += addItem('solicitar', 'cart-plus', 'Pedir Insumo');
+            if(window.tienePermiso('aprobar') || datos.rol === 'admin' || datos.rol === 'manager' || datos.rol === 'supervisor') {
+                menuHtml += addItem('solicitudes', 'check-double', 'Aprobaciones');
+            }
+
+            if(window.tienePermiso('activos') || datos.rol === 'admin' || datos.rol === 'manager' || datos.rol === 'supervisor') {
+                menuHtml += addHeader("Equipos & Mtto");
+                menuHtml += addItem('activos', 'desktop', 'Activos Fijos');
+                menuHtml += addItem('mantenimiento', 'tools', 'Mantenimiento');
+            }
+
+            menuHtml += addHeader("Registros");
+            menuHtml += addItem('notificaciones', 'clipboard-list', 'Mis Pedidos');
+            if(['admin','manager','supervisor'].includes(datos.rol)) {
+                menuHtml += addItem('historial', 'history', 'Movimientos');
+            }
+            if(['admin','manager'].includes(datos.rol)) {
+                menuHtml += addItem('facturas', 'file-invoice-dollar', 'Facturas Directas');
+            }
+
+            if(datos.rol === 'admin') {
+                menuHtml += addHeader("Administración");
+                menuHtml += addItem('usuarios', 'users-cog', 'Accesos');
+                menuHtml += addItem('config', 'cogs', 'Configuración');
+            }
+
+            const menuDin = document.getElementById("menu-dinamico");
+            if(menuDin) menuDin.innerHTML = menuHtml;
+
+            let misGrupos = datos.grupos || ["SERVICIOS GENERALES"];
+            if(datos.rol === 'admin') misGrupos = window.todosLosGrupos;
+            window.grupoActivo = misGrupos[0];
+            window.renderizarSelectorGrupos(misGrupos);
+            window.verPagina(['admin','manager','supervisor'].includes(datos.rol) ? 'stats' : 'stock');
+            window.activarSincronizacion();
+        };
+
+        window.cambiarGrupoActivo = (nuevoGrupo) => {
+            window.grupoActivo = nuevoGrupo; document.getElementById("dash-grupo-label").innerText = window.grupoActivo; document.getElementById("lbl-grupo-solicitud").innerText = window.grupoActivo;
+            window.carritoGlobal = {}; window.procesarDatosInventario(); window.procesarDatosPedidos(); window.renderHistorialUnificado(); window.procesarDatosFacturas(); window.renderMantenimiento(); window.renderActivos(); window.renderCompras(); window.actualizarDashboard();
+        };
+
+        window.renderizarSelectorGrupos = (misGrupos) => {
+            const sel = document.getElementById("selector-grupo-activo"); if(sel) { sel.innerHTML = misGrupos.map(g => `<option value="${g}">${g}</option>`).join(''); sel.value = window.grupoActivo; }
+            const dashLbl = document.getElementById("dash-grupo-label"); if(dashLbl) dashLbl.innerText = window.grupoActivo;
+            const solLbl = document.getElementById("lbl-grupo-solicitud"); if(solLbl) solLbl.innerText = window.grupoActivo;
+        };
+
+        window.actualizarCheckboxesGrupos = () => {
+            const container = document.getElementById("user-grupos-checkboxes");
+            if(container) container.innerHTML = window.todosLosGrupos.map(g => `<label class="flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition"><input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo"><span class="text-xs font-bold text-slate-700 uppercase">${g}</span></label>`).join('');
+        };
+
+        // ==========================================
+        // 5. FIREBASE SINCRONIZACIÓN (onSnapshot)
+        // ==========================================
+        window.activarSincronizacion = () => {
+            const uRol = window.usuarioActual.rol;
+            onSnapshot(doc(db, "configuracion", "notificaciones"), (docSnap) => { if (docSnap.exists()) { window.adminEmailGlobal = docSnap.data().emailAdmin || ""; const elA = document.getElementById("config-admin-email"); if(elA) elA.value = window.adminEmailGlobal; } });
+            onSnapshot(doc(db, "configuracion", "alertas_stock"), (docSnap) => { window.stockAlertEmailGlobal = ""; if (docSnap.exists() && docSnap.data()[window.grupoActivo]) { window.stockAlertEmailGlobal = docSnap.data()[window.grupoActivo]; const elS = document.getElementById("config-stock-email"); if(elS) elS.value = window.stockAlertEmailGlobal; } else { const elS = document.getElementById("config-stock-email"); if(elS) elS.value = ""; } });
+            
+            onSnapshot(collection(db, "grupos"), snap => {
+                window.todosLosGrupos = ["SERVICIOS GENERALES"]; let html = `<div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center"><span class="font-black text-indigo-700 text-xs uppercase"><i class="fas fa-lock mr-1"></i> SERVICIOS GENERALES</span><span class="text-[10px] bg-indigo-200 text-indigo-700 px-2 rounded-full">Base</span></div>`;
+                snap.forEach(d => { const n = d.data().nombre.toUpperCase(); if(n !== "SERVICIOS GENERALES") { window.todosLosGrupos.push(n); html += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm"><span class="font-bold text-slate-700 text-xs uppercase"><i class="fas fa-folder text-slate-300 mr-1"></i> ${n}</span><button onclick="window.eliminarDato('grupos','${d.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash-alt"></i></button></div>`; } });
+                if(window.tienePermiso('comprar') || window.tienePermiso('aprobar') || uRol === 'admin') window.renderizarSelectorGrupos(window.todosLosGrupos);
+                if(document.getElementById("lista-grupos-db")) document.getElementById("lista-grupos-db").innerHTML = html;
+                window.actualizarCheckboxesGrupos();
+            });
+
+            onSnapshot(collection(db, "sedes"), snap => {
+                let opt = '<option value="" disabled selected>Seleccionar Sede...</option>', lst = '';
+                snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(s => { opt += `<option value="${s.nombre}">📍 ${s.nombre}</option>`; lst += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between shadow-sm"><span class="font-bold text-xs uppercase"><i class="fas fa-map-marker-alt text-slate-300 mr-1"></i> ${s.nombre}</span><button onclick="window.eliminarDato('sedes','${s.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash-alt"></i></button></div>`; });
+                if(document.getElementById("sol-ubicacion")) document.getElementById("sol-ubicacion").innerHTML = opt;
+                if(document.getElementById("lista-sedes-db")) document.getElementById("lista-sedes-db").innerHTML = lst;
+            });
+
+            onSnapshot(collection(db, "inventario"), snap => { rawInventario = []; snap.forEach(ds => { rawInventario.push({ id: ds.id, ...ds.data() }); }); window.procesarDatosInventario(); });
+            onSnapshot(collection(db, "compras"), snap => { rawCompras = []; snap.forEach(ds => { rawCompras.push({ id: ds.id, ...ds.data() }); }); window.renderCompras(); });
+
+            let isInitialPedidos = true;
+            onSnapshot(collection(db, "pedidos"), snap => {
+                if (!isInitialPedidos) {
+                    snap.docChanges().forEach(change => {
+                        const p = change.doc.data(); const miId = window.usuarioActual?.id;
+                        if (change.type === "added" && p.estado === 'pendiente' && window.tienePermiso('aprobar') && p.usuarioId !== miId) { window.enviarNotificacionNavegador("🚨 Nueva Solicitud", `${p.usuarioId.toUpperCase()} pide ${p.cantidad}x ${p.insumoNom}.\nSede: ${p.ubicacion}`); }
+                        if (change.type === "modified" && p.usuarioId === miId && ['aprobado', 'rechazado'].includes(p.estado)) { window.enviarNotificacionNavegador("Actualización de Pedido", `Tu pedido de ${p.insumoNom} fue ${p.estado.toUpperCase()}.`); }
+                    });
+                }
+                window.pedidosRaw = []; snap.forEach(ds => { window.pedidosRaw.push({ id: ds.id, ...ds.data() }); });
+                window.procesarDatosPedidos(); isInitialPedidos = false;
+            });
+
+            onSnapshot(collection(db, "entradas_stock"), snap => { rawEntradas = []; snap.forEach(x => { rawEntradas.push({id: x.id, ...x.data()}); }); window.renderHistorialUnificado(); });
+            onSnapshot(collection(db, "mantenimiento"), snap => { rawMantenimiento = []; snap.forEach(x => { rawMantenimiento.push({id: x.id, ...x.data()}); }); window.renderMantenimiento(); window.actualizarDashboard(); });
+            onSnapshot(collection(db, "activos"), snap => { rawActivos = []; snap.forEach(x => { rawActivos.push({id: x.id, ...x.data()}); }); window.renderActivos(); window.actualizarDashboard(); });
+            if(['admin','manager'].includes(uRol)) { onSnapshot(collection(db, "facturas"), snap => { rawFacturas = []; snap.forEach(d => rawFacturas.push({id: d.id, ...d.data()})); window.procesarDatosFacturas(); }); }
+
+            if(['admin'].includes(uRol)) {
+                onSnapshot(collection(db, "usuarios"), snap => {
+                    let html = "";
+                    snap.forEach(d => {
+                        const u = d.data(); const jsId = d.id.replace(/'/g, "\\'");
+                        html += `<div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm flex justify-between items-center"><div class="truncate w-full"><div class="flex items-center gap-2"><span class="font-black text-sm uppercase text-slate-800">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold border border-slate-200">${u.rol}</span></div><span class="text-[10px] text-indigo-500 font-bold block truncate mt-1.5"><i class="fas fa-folder-open text-indigo-300"></i> ${(u.grupos||[]).join(", ")}</span></div><div class="flex gap-2"><button onclick="window.prepararEdicionUsuario('${jsId}')" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 p-2 rounded-lg transition"><i class="fas fa-pen"></i></button><button onclick="window.eliminarDato('usuarios','${jsId}')" class="text-red-400 hover:text-red-600 bg-red-50 p-2 rounded-lg transition"><i class="fas fa-trash"></i></button></div></div>`;
+                    });
+                    if(document.getElementById("lista-usuarios-db")) document.getElementById("lista-usuarios-db").innerHTML = html;
+                });
+            }
+        };
+
+        // ==========================================
+        // 6. DASHBOARD
+        // ==========================================
+        window.actualizarDashboard = () => {
+            if(!window.cachePedidos) return;
+            const desdeInput = document.getElementById("dash-desde")?.value; const hastaInput = document.getElementById("dash-hasta")?.value;
+            let tDesde = 0; let tHasta = Infinity; if(desdeInput) tDesde = new Date(desdeInput + 'T00:00:00').getTime(); if(hastaInput) tHasta = new Date(hastaInput + 'T23:59:59').getTime();
+
+            let pedidosFiltrados = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
+            if(document.getElementById("metrica-pedidos")) document.getElementById("metrica-pedidos").innerText = pedidosFiltrados.filter(p => p.estado === 'pendiente').length;
+
+            let sedesCount = {}; pedidosFiltrados.forEach(p => { if(p.estado !== 'rechazado') sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad; });
+
+            const activosFiltrados = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo && a.timestamp >= tDesde && a.timestamp <= tHasta);
+            if(document.getElementById("metrica-activos")) document.getElementById("metrica-activos").innerText = activosFiltrados.length;
+            if(document.getElementById("metrica-activos-fallas")) document.getElementById("metrica-activos-fallas").innerText = activosFiltrados.filter(a => ['En Mantenimiento', 'Fuera de Servicio'].includes(a.estado)).length;
+
+            const mantFiltrados = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.estado !== 'completado' && m.timestamp >= tDesde && m.timestamp <= tHasta);
+            if(document.getElementById("metrica-mant-pend")) document.getElementById("metrica-mant-pend").innerText = mantFiltrados.length;
+
+            const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+            let lblS = [], datS = []; invActivo.forEach(p => { const n = p.id || 'N/A'; lblS.push(n.toUpperCase().substring(0,10)); datS.push(p.cantidad); });
+            window.renderChart('stockChart', lblS, datS, 'Stock', chartPalette, window.miGraficoStock, ch => window.miGraficoStock = ch);
+            window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Demandas', chartPalette, window.miGraficoUbicacion, ch => window.miGraficoUbicacion = ch);
+        };
+
+        // ==========================================
+        // 7. INVENTARIO Y ESCÁNER QR
+        // ==========================================
+        window.iniciarScanner = (inputIdTarget) => {
+            document.getElementById("modal-scanner").classList.remove("hidden");
+            window.html5QrcodeScanner = new Html5Qrcode("reader");
+            window.html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (txt) => {
+                window.detenerScanner();
+                const i = document.getElementById(inputIdTarget);
+                if(i) {
+                    i.value = txt;
+                    if(inputIdTarget === 'buscador-activos') window.debounceFiltrarTarjetas('lista-activos-db', txt);
+                    else window.debounceFiltrarTarjetas('lista-inventario', txt);
+                }
+            }, () => {}).catch(err => {
+                alert("Error de cámara al iniciar escáner.");
+                window.detenerScanner();
+            });
+        };
+        window.detenerScanner = () => { if(window.html5QrcodeScanner) window.html5QrcodeScanner.stop().catch(()=>{}); document.getElementById("modal-scanner").classList.add("hidden"); };
+
+        window.procesarDatosInventario = () => {
+            const grid = document.getElementById("lista-inventario"); const cartContainer = document.getElementById("contenedor-lista-pedidos"); const dataList = document.getElementById("lista-sugerencias"); const datalistCompras = document.getElementById("lista-sugerencias-compras");
+            if(!grid) return; let gridHTML = ""; let cartHTML = ""; let listHTML = ""; let tr = 0, ts = 0;
+            const invFiltrado = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+            const isAdmin = window.tienePermiso('recibir');
+            
+            invFiltrado.forEach(p => {
+                const nombre = (p.id || '').toUpperCase(); const safeId = (p.id || '').replace(/[^a-zA-Z0-9]/g, '_'); const jsId = (p.id || '').replace(/'/g, "\\'");
+                tr++; ts += (p.cantidad || 0); listHTML += `<option value="${nombre}">`;
+                let controls = isAdmin ? `<div class="flex gap-2"><button onclick="window.prepararEdicionProducto('${jsId}')" class="text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 p-1.5 rounded transition"><i class="fas fa-cog"></i></button><button onclick="window.eliminarDato('inventario','${jsId}')" class="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 p-1.5 rounded transition"><i class="fas fa-trash"></i></button></div>` : "";
+                const img = p.imagen ? `<img src="${p.imagen}" loading="lazy" class="w-14 h-14 object-cover rounded-xl border border-slate-200 shadow-sm mb-3">` : `<div class="w-14 h-14 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center text-slate-300 mb-3 shadow-inner"><i class="fas fa-image text-xl"></i></div>`;
+                const isLow = (p.stockMinimo && p.cantidad <= p.stockMinimo); const border = isLow ? "border-2 border-red-400 bg-red-50" : "border border-slate-200 bg-white";
+                gridHTML += `<div class="${border} p-5 rounded-[1.5rem] shadow-sm hover:shadow-md transition flex flex-col item-tarjeta h-full"><div class="flex justify-between items-start mb-2">${img}${controls}</div><h4 class="font-black text-slate-800 text-xs break-words whitespace-normal leading-tight flex-1" title="${nombre}">${nombre} ${isLow?'<i class="fas fa-exclamation-circle text-red-500 animate-pulse inline-block ml-1"></i>':''}</h4><div class="flex justify-between items-end mt-4 pt-4 border-t border-slate-100"><p class="text-3xl font-black text-indigo-900">${p.cantidad || 0}</p>${p.precio ? `<span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">$${p.precio}</span>` : ''}</div></div>`;
+
+                if(cartContainer && p.cantidad > 0) {
+                    const enCarro = window.carritoGlobal[p.id] || 0; const active = enCarro > 0 ? "border-indigo-500 bg-indigo-50" : "border-slate-200 bg-white";
+                    cartHTML += `<div id="row-${safeId}" class="flex items-center justify-between p-4 rounded-xl border ${active} transition-all shadow-sm item-tarjeta mb-3"><div class="flex items-center gap-4 flex-1 min-w-0 pr-3">${p.imagen?`<img src="${p.imagen}" loading="lazy" class="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200">`:''}<div class="flex-1 min-w-0"><p class="font-black text-xs uppercase text-slate-800 break-words whitespace-normal leading-tight">${nombre}</p><p class="text-[10px] text-indigo-500 font-bold mt-1">Disponible: ${p.cantidad}</p></div></div><div class="flex items-center gap-2 bg-white rounded-lg p-1.5 border border-slate-200 flex-shrink-0 z-10 shadow-sm"><button type="button" onclick="window.ajustarCantidad('${jsId}', -1)" class="w-8 h-8 rounded-md bg-slate-100 hover:bg-slate-200 font-black text-lg text-slate-600 transition flex items-center justify-center">-</button><span id="cant-${safeId}" class="w-8 text-center font-black text-indigo-700 text-sm">${enCarro}</span><button type="button" onclick="window.ajustarCantidad('${jsId}', 1)" class="w-8 h-8 rounded-md bg-indigo-100 hover:bg-indigo-200 font-black text-lg text-indigo-700 transition flex items-center justify-center" ${enCarro>=p.cantidad?'disabled':''}>+</button></div></div>`;
+                }
+            });
+            grid.innerHTML = gridHTML; if(cartContainer) cartContainer.innerHTML = cartHTML || `<div class="flex flex-col items-center justify-center py-10 text-slate-400"><i class="fas fa-shopping-basket text-4xl mb-3 opacity-50"></i><p class="text-xs font-medium">Aún no has seleccionado insumos.</p><p class="text-[10px] mt-1">Usa la pestaña "Stock" para agregar.</p></div>`;
+            if(dataList) dataList.innerHTML = listHTML; if(datalistCompras) datalistCompras.innerHTML = listHTML;
+            if(document.getElementById("metrica-total")) document.getElementById("metrica-total").innerText = tr; if(document.getElementById("metrica-stock")) document.getElementById("metrica-stock").innerText = ts;
+            window.actualizarDashboard();
+        };
+
+        window.ajustarCantidad = (idInsumo, delta) => { const safeId = idInsumo.replace(/[^a-zA-Z0-9]/g, '_'); const n = Math.max(0, (window.carritoGlobal[idInsumo] || 0) + delta); window.carritoGlobal[idInsumo] = n; const el = document.getElementById(`cant-${safeId}`); if(el) el.innerText = n; const row = document.getElementById(`row-${safeId}`); if(row) { if(n > 0){ row.classList.add("border-indigo-500", "bg-indigo-50"); row.classList.remove("border-slate-200", "bg-white"); } else { row.classList.remove("border-indigo-500", "bg-indigo-50"); row.classList.add("border-slate-200", "bg-white"); } } };
+
+        window.prepararEdicionProducto = async(id) => {
+            const s = await getDoc(doc(db,"inventario",id)); const d = s.data();
+            document.getElementById('edit-prod-id').value = id; document.getElementById('edit-prod-precio').value = d.precio || ''; document.getElementById('edit-prod-min').value = d.stockMinimo || '';
+            if (d.imagen) { document.getElementById('edit-prod-img').value = d.imagen; document.getElementById('preview-img').src = d.imagen; document.getElementById('preview-img').classList.remove('hidden'); } else { document.getElementById('edit-prod-img').value = ''; document.getElementById('preview-img').classList.add('hidden'); }
+            document.getElementById('qr-insumo-id-text').innerText = "ID: " + id.toUpperCase(); document.getElementById('qr-insumo-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=" + encodeURIComponent(id);
+            document.getElementById('modal-detalles').classList.remove('hidden');
+        };
+        window.guardarDetallesProducto = async () => { const imgUrl = document.getElementById('edit-prod-img').value; const precio = parseFloat(document.getElementById('edit-prod-precio').value) || 0; const minimo = parseInt(document.getElementById('edit-prod-min').value) || 0; await updateDoc(doc(db,"inventario",document.getElementById('edit-prod-id').value),{ precio: precio, stockMinimo: minimo, imagen: imgUrl }); document.getElementById('modal-detalles').classList.add('hidden'); };
+
+        // ==========================================
+        // 8. COMPRAS Y RECEPCIÓN
+        // ==========================================
+        window.renderCompras = () => {
+            const btnComprar = document.getElementById("panel-registrar-compra");
+            if(window.tienePermiso('comprar') && btnComprar) btnComprar.classList.remove("hidden");
+            const tb = document.getElementById("lista-compras-db"); if(!tb) return; let html = "";
+            const comprasGrupo = rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
+            comprasGrupo.forEach(c => {
+                let badge = c.estado === 'recibido' ? `<span class="badge status-recibido">Recibido</span>` : `<span class="badge status-pendiente animate-pulse">En Tránsito</span>`;
+                let itemsList = `<ul class="text-[11px] text-slate-600 font-medium mt-3 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200 h-24 overflow-y-auto custom-scroll shadow-inner">`;
+                let totalCosto = 0;
+                c.items.forEach(i => { let pStr = i.precio > 0 ? `($${i.precio.toFixed(2)})` : ''; itemsList += `<li><span class="font-black text-slate-800">${i.cantidad}x</span> ${i.insumo} <span class="text-emerald-600 font-bold ml-1">${pStr}</span></li>`; totalCosto += i.precio; });
+                itemsList += `</ul>`;
+                let btnRecibir = "";
+                if (c.estado !== 'recibido' && window.tienePermiso('recibir')) { btnRecibir = `<button onclick="window.confirmarRecepcionCompra('${c.id}')" class="bg-emerald-500 text-white px-4 py-3 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-600 mt-4 w-full transition flex items-center justify-center gap-2"><i class="fas fa-box-open text-lg"></i> Recibir Inventario Físico</button>`; }
+                let trashBtn = window.tienePermiso('comprar') ? `<button onclick="window.eliminarDato('compras','${c.id}')" class="text-red-300 hover:text-red-500 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash text-xs"></i></button>` : '';
+                html += `<div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-md flex flex-col justify-between hover:shadow-lg transition"><div class="flex justify-between items-start mb-2"><div>${badge}<h4 class="font-black text-slate-800 uppercase text-base mt-2">${c.proveedor}</h4></div>${trashBtn}</div><p class="text-[10px] font-mono text-slate-400 mt-1">Factura: <span class="font-bold">${c.factura || 'N/A'}</span> • ${c.fecha_compra}</p>${itemsList}<div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-100"><span class="text-[10px] uppercase text-indigo-500 font-black tracking-wide"><i class="fas fa-user mr-1 text-indigo-300"></i> ${c.registrado_por}</span><span class="text-emerald-600 font-black text-lg">$${totalCosto.toFixed(2)}</span></div>${btnRecibir}</div>`;
+            });
+            tb.innerHTML = html || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay compras registradas en este grupo.</p>`;
+        };
+
+        window.agregarItemCompra = () => {
+            const insumo = document.getElementById("compra-insumo").value.trim().toUpperCase(); const cant = parseInt(document.getElementById("compra-cant").value); const precio = parseFloat(document.getElementById("compra-precio").value) || 0;
+            if(!insumo || isNaN(cant) || cant <= 0) return alert("Completa Insumo y Cantidad válida.");
+            if(!window.carritoCompras) window.carritoCompras = {}; window.carritoCompras[insumo] = { cantidad: cant, precio: precio }; window.renderCarritoCompras();
+            document.getElementById("compra-insumo").value = ""; document.getElementById("compra-cant").value = ""; document.getElementById("compra-precio").value = ""; document.getElementById("compra-insumo").focus();
+        };
+
+        window.renderCarritoCompras = () => {
+            const container = document.getElementById("lista-items-compra"); let items = Object.entries(window.carritoCompras || {});
+            if(items.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 text-center italic py-2">Sin items añadidos</p>`; return; }
+            let html = ""; let total = 0;
+            items.forEach(([ins, data]) => { let pStr = data.precio > 0 ? `<span class="text-emerald-600 font-bold">$${data.precio.toFixed(2)}</span>` : ''; html += `<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 shadow-sm mb-2"><span>${data.cantidad}x ${ins}</span><div class="flex items-center gap-4">${pStr}<button onclick="delete window.carritoCompras['${ins}']; window.renderCarritoCompras()" class="text-red-400 hover:text-red-600 bg-red-50 p-1.5 rounded"><i class="fas fa-times"></i></button></div></div>`; total += data.precio; });
+            if(total > 0) html += `<div class="text-right text-sm font-black text-slate-800 mt-3 pr-2 border-t border-slate-200 pt-2">Total Estimado: <span class="text-emerald-600">$${total.toFixed(2)}</span></div>`;
+            container.innerHTML = html;
+        };
+
+        window.procesarCompra = async () => {
+            const prov = document.getElementById("compra-proveedor").value.trim().toUpperCase(); const fact = document.getElementById("compra-factura").value.trim().toUpperCase(); const items = Object.entries(window.carritoCompras || {});
+            if(!prov || items.length === 0) return alert("Proveedor y al menos 1 ítem son requeridos.");
+            const itemsArray = items.map(([ins, data]) => ({ insumo: ins, cantidad: data.cantidad, precio: data.precio }));
+            try { await addDoc(collection(db, "compras"), { proveedor: prov, factura: fact, items: itemsArray, estado: "en_transito", grupo: window.grupoActivo, registrado_por: window.usuarioActual.id, fecha_compra: new Date().toLocaleString(), timestamp: Date.now() }); window.carritoCompras = {}; window.renderCarritoCompras(); document.getElementById("compra-proveedor").value = ""; document.getElementById("compra-factura").value = ""; alert("Compra registrada exitosamente."); } catch(e) { alert("Error registrando compra."); }
+        };
+
+        window.confirmarRecepcionCompra = async (compraId) => {
+            if(!confirm("¿Confirmas recibir la compra en físico? Esto sumará el stock al inventario general.")) return;
+            const cRef = doc(db, "compras", compraId);
+            try {
+                const cSnap = await getDoc(cRef); if(!cSnap.exists()) return;
+                const cData = cSnap.data(); const batch = writeBatch(db);
+                for (const item of cData.items) {
+                    const iRef = doc(db, "inventario", item.insumo); const iSnap = await getDoc(iRef);
+                    if (iSnap.exists()) { batch.update(iRef, { cantidad: iSnap.data().cantidad + item.cantidad }); } else { batch.set(iRef, { cantidad: item.cantidad, precio: 0, stockMinimo: 0, grupo: window.grupoActivo }); }
+                    const hRef = doc(collection(db, "entradas_stock")); batch.set(hRef, { insumo: item.insumo, cantidad: item.cantidad, grupo: window.grupoActivo, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now(), motivo_edicion: `Recepción Compra: ${cData.factura || cData.proveedor}` });
+                }
+                batch.update(cRef, { estado: "recibido", recibido_por: window.usuarioActual.id, fecha_recepcion: new Date().toLocaleString(), timestamp_recepcion: Date.now() }); await batch.commit(); alert("✅ Inventario actualizado con los items de la compra.");
+            } catch(e) { console.error(e); alert("Error en la recepción."); }
+        };
+
+        // ==========================================
+        // 9. PEDIDOS Y APROBACIONES
+        // ==========================================
+        window.procesarDatosPedidos = () => {
+            window.cachePedidos = window.pedidosRaw.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+            let grupos = {}; let htmlAdmin = "", htmlActive = "", htmlHistory = "";
+            window.cachePedidos.forEach(p => { const bKey = p.batchId || p.timestamp; if(!grupos[bKey]) grupos[bKey] = { items:[], user:p.usuarioId, sede:p.ubicacion, date:p.fecha, ts:p.timestamp, notas: p.notas || '' }; grupos[bKey].items.push(p); });
+            const misPedidos = window.cachePedidos.filter(p => p.usuarioId === window.usuarioActual?.id).sort((a,b) => b.timestamp - a.timestamp);
+            
+            misPedidos.forEach(p => {
+                let btns = "";
+                if(p.estado === 'aprobado') { btns = `<div class="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3"><button onclick="window.confirmarRecibido('${p.id}')" class="bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow hover:bg-emerald-600 transition flex items-center gap-1"><i class="fas fa-check-circle"></i> Recibir</button><button onclick="window.abrirIncidencia('${p.id}')" class="bg-white border border-red-200 text-red-500 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-50 transition flex items-center gap-1"><i class="fas fa-exclamation-triangle"></i> Reportar</button></div>`; } else if(['recibido', 'devuelto'].includes(p.estado)) { btns = `<div class="mt-4 pt-3 border-t border-slate-100 flex justify-end"><button onclick="window.abrirIncidencia('${p.id}')" class="text-amber-600 text-xs font-bold hover:underline bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-undo mr-1"></i> Devolver / Reportar</button></div>`; }
+                const prio = p.prioridad || 'normal'; const notesHtml = p.notas ? `<div class="mt-3 bg-amber-50 p-2.5 rounded-xl border border-amber-100"><p class="text-[9px] font-black text-amber-600 uppercase mb-1">Tu Nota:</p><p class="text-[11px] text-amber-900 italic font-medium">"${p.notas}"</p></div>` : '';
+                let tiemposHtml = `<div class="mt-3 space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-[10px] font-mono text-slate-600 shadow-inner"><div class="flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="fas fa-clock text-slate-400"></i> Pedido:</span> <span class="font-bold">${new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>`;
+                if (p.timestamp_aprobado) tiemposHtml += `<div class="flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="fas fa-user-check text-indigo-500"></i> Atendido:</span> <span class="font-bold">${new Date(p.timestamp_aprobado).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} <span class="text-[9px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded ml-1 font-black">+${window.formatoTiempoDiferencia(p.timestamp, p.timestamp_aprobado)}</span></span></div>`;
+                if (p.timestamp_recibido) tiemposHtml += `<div class="flex justify-between items-center text-emerald-700"><span class="flex items-center gap-1.5"><i class="fas fa-box-open"></i> Recibido:</span> <span class="font-bold">${new Date(p.timestamp_recibido).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} <span class="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded ml-1 font-black">+${window.formatoTiempoDiferencia(p.timestamp_aprobado || p.timestamp, p.timestamp_recibido)}</span></span></div>`;
+                if (p.entregado_por) tiemposHtml += `<div class="flex justify-between items-center text-slate-700 mt-2 border-t border-slate-200 pt-2"><span class="flex items-center gap-1.5"><i class="fas fa-handshake text-slate-400"></i> Entregado por:</span> <span class="font-black uppercase">${p.entregado_por}</span></div>`;
+                tiemposHtml += `</div>`;
+                const cardHtml = `<div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm item-tarjeta"><div class="flex justify-between items-start mb-2"><div><span class="badge status-${p.estado}">${p.estado}</span><h4 class="font-black text-slate-800 uppercase text-sm mt-2 break-words whitespace-normal leading-tight">${p.insumoNom} <span class="badge status-pri-${prio} inline-block ml-1 shadow-sm">${prio}</span></h4><p class="text-xs text-indigo-600 font-black mt-1">x${p.cantidad} <span class="text-slate-400 font-medium ml-1">• ${p.ubicacion}</span></p><p class="text-[10px] text-slate-400 mt-1">${(p.fecha||'').split(',')[0]}</p></div></div>${notesHtml}${tiemposHtml}${btns}</div>`;
+                if(['pendiente', 'aprobado'].includes(p.estado)) htmlActive += cardHtml; else htmlHistory += cardHtml;
+            });
+
+            if(window.tienePermiso('aprobar')) {
+                Object.values(grupos).sort((a,b) => b.ts - a.ts).forEach(g => {
+                    const pendingItems = g.items.filter(i => i.estado === 'pendiente');
+                    if(pendingItems.length > 0) {
+                        let itemsStr = ""; const hasAlta = pendingItems.some(i => (i.prioridad || 'normal') === 'alta'); const badgeUrgente = hasAlta ? `<span class="bg-red-500 text-white px-2 py-1 rounded text-[9px] uppercase font-black animate-pulse ml-2 shadow-sm">Urgente</span>` : ''; const blockNota = g.notas ? `<div class="mb-4 text-[11px] text-indigo-800 bg-indigo-50 p-3 rounded-xl italic border border-indigo-100 shadow-inner">"${g.notas}"</div>` : '';
+                        pendingItems.forEach(i => { itemsStr += `<span class="bg-white px-3 py-1.5 rounded-lg text-[10px] border border-slate-200 uppercase font-black text-slate-700 break-words whitespace-normal text-left shadow-sm">${i.insumoNom} (x${i.cantidad})</span>`; });
+                        const timeStr = new Date(g.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        htmlAdmin += `<div class="bg-white p-6 rounded-[2rem] border-l-8 ${hasAlta?'border-l-red-500':'border-l-amber-400'} border-y border-r border-slate-200 shadow-md cursor-pointer group hover:shadow-lg transition" onclick="window.abrirModalGrupo('${g.items[0].batchId || g.ts}')"><div class="flex justify-between items-start mb-4"><div><h4 class="font-black text-slate-900 text-base uppercase flex items-center"><i class="fas fa-user-circle text-slate-300 mr-2 text-xl"></i> ${g.user} ${badgeUrgente}</h4><span class="text-xs text-slate-500 font-bold mt-1 block"><i class="fas fa-map-marker-alt text-slate-300 w-4"></i> ${g.sede} <br><i class="fas fa-calendar-alt text-slate-300 w-4 mt-1"></i> ${(g.date||'').split(',')[0]} a las ${timeStr}</span></div><span class="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm"><i class="fas fa-chevron-right text-sm"></i></span></div>${blockNota}<div class="flex flex-wrap gap-2">${itemsStr}</div></div>`;
+                    }
+                });
+            }
+            if(document.getElementById("lista-pendientes-admin")) document.getElementById("lista-pendientes-admin").innerHTML = htmlAdmin || `<p class="col-span-full text-slate-400 text-sm">No hay solicitudes pendientes.</p>`;
+            if(document.getElementById("tab-content-activos")) document.getElementById("tab-content-activos").innerHTML = htmlActive || `<p class="col-span-full text-center text-slate-400 py-10 text-sm">No tienes solicitudes en curso.</p>`;
+            if(document.getElementById("tab-content-historial")) document.getElementById("tab-content-historial").innerHTML = htmlHistory || `<p class="col-span-full text-center text-slate-400 py-10 text-sm">No hay historial.</p>`;
+        };
+
+        window.procesarSolicitudMultiple = async () => { 
+            const ubi = document.getElementById("sol-ubicacion").value; const prio = document.getElementById("sol-prioridad").value; const notas = document.getElementById("sol-notas").value.trim(); const items = Object.entries(window.carritoGlobal).filter(([_, c]) => c > 0); 
+            if(!ubi || items.length === 0) return alert("Seleccione sede y producto."); 
+            const batchId = Date.now().toString(); const ts = Date.now(); const fs = new Date().toLocaleString(); const fIso = new Date().toISOString().split('T')[0];
+            try { 
+                const batch = writeBatch(db); let detalleInsumos = "";
+                items.forEach(([ins, cant]) => { 
+                    detalleInsumos += `- ${cant}x ${ins}\n`;
+                    batch.set(doc(collection(db, "pedidos")), { usuarioId: window.usuarioActual.id, insumoNom: ins, cantidad: cant, ubicacion: ubi, prioridad: prio, notas: notas, grupo: window.grupoActivo, estado: "pendiente", fecha: fs, fecha_iso: fIso, timestamp: ts, batchId: batchId }); 
+                }); 
+                await batch.commit(); 
+                const adminEmail = window.adminEmailGlobal || ""; 
+                if(adminEmail) {
+                    const mensajeAlmacen = `El usuario ${window.usuarioActual.id.toUpperCase()} ha realizado un nuevo pedido de insumos.\n\nSede destino: ${ubi}\nPrioridad: ${prio.toUpperCase()}\n\nInsumos solicitados:\n${detalleInsumos}\nNotas: ${notas || 'Ninguna'}`;
+                    window.enviarNotificacionEmail(adminEmail, `Nuevo Pedido de Insumos - ${window.usuarioActual.id.toUpperCase()}`, mensajeAlmacen);
+                }
+                window.carritoGlobal = {}; document.getElementById("sol-ubicacion").value=""; document.getElementById("sol-notas").value=""; window.procesarDatosInventario(); window.verPagina('notificaciones'); 
+            } catch (error) { alert("Error procesando solicitud."); } 
+        };
+
+        window.gestionarPedido = async (pid, accion, ins) => { 
+            const pRef = doc(db, "pedidos", pid); const pData = (await getDoc(pRef)).data(); 
+            if(accion === 'aprobar') { 
+                const val = parseInt(document.getElementById(`qty-${pid}`).value); const iRef = doc(db, "inventario", ins); const iSnap = await getDoc(iRef); 
+                if(iSnap.exists() && iSnap.data().cantidad >= val) { 
+                    const nuevoStock = iSnap.data().cantidad - val; const stockMinimo = iSnap.data().stockMinimo || 0;
+                    await updateDoc(iRef, { cantidad: nuevoStock }); 
+                    await updateDoc(pRef, { estado: "aprobado", cantidad: val, entregado_por: window.usuarioActual.id, timestamp_aprobado: Date.now(), fecha_aprobado: new Date().toLocaleString() }); 
+                    if(nuevoStock <= stockMinimo && stockMinimo > 0 && window.stockAlertEmailGlobal) {
+                        const msg = `Alerta de Stock Crítico en InsuManager.\n\nEl insumo: ${ins.toUpperCase()}\nSe ha reducido a ${nuevoStock} unidades (El mínimo es ${stockMinimo}).\n\nPor favor proceda con la reposición.`;
+                        window.enviarNotificacionEmail(window.stockAlertEmailGlobal, `🔴 STOCK BAJO: ${ins.toUpperCase()}`, msg);
+                    }
+                    const pend = window.cachePedidos.filter(p => p.batchId === pData.batchId && p.estado === 'pendiente' && p.id !== pid); 
+                    if(pend.length === 0) document.getElementById("modal-grupo-admin").classList.add("hidden"); else window.abrirModalGrupo(pData.batchId); 
+                } else alert("Error: Stock insuficiente."); 
+            } else { await updateDoc(pRef, { estado: "rechazado", timestamp_aprobado: Date.now(), fecha_aprobado: new Date().toLocaleString() }); window.abrirModalGrupo(pData.batchId); } 
+        };
+        window.abrirModalGrupo = (bKey) => { const items = window.cachePedidos.filter(p => p.batchId === bKey || p.timestamp.toString() === bKey); if(items.length===0) return; document.getElementById("modal-grupo-titulo").innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion}`; if(items[0].notas) { document.getElementById("modal-grupo-notas").innerHTML = `"${items[0].notas}"`; document.getElementById("modal-grupo-notas-container").classList.remove('hidden'); } else document.getElementById("modal-grupo-notas-container").classList.add('hidden'); let h = ""; items.forEach(p => { let act = `<span class="badge status-${p.estado}">${p.estado}</span>`; if(p.estado === 'pendiente' && window.tienePermiso('aprobar')) act = `<div class="flex gap-2"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border rounded text-center font-bold text-xs"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom.replace(/'/g,"\\'")}')" class="text-white bg-emerald-500 px-2 rounded"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-red-400 bg-red-50 px-2 rounded"><i class="fas fa-times"></i></button></div>`; h += `<div class="flex justify-between items-center p-3 border-b"><div class="text-xs"><b>${p.insumoNom}</b> <span class="badge status-pri-${p.prioridad}">${p.prioridad}</span><br>Cant: ${p.cantidad}</div>${act}</div>`; }); document.getElementById("modal-grupo-contenido").innerHTML = h; document.getElementById("modal-grupo-admin").classList.remove("hidden"); };
+        window.confirmarRecibido = async (pid) => { if(confirm("¿Recibido?")) await updateDoc(doc(db, "pedidos", pid), { estado: "recibido", timestamp_recibido: Date.now(), fecha_recibido: new Date().toLocaleString() }); };
+        window.abrirIncidencia = (pid) => { document.getElementById('incidencia-pid').value = pid; document.getElementById('modal-incidencia').classList.remove('hidden'); };
+        window.confirmarIncidencia = async (dev) => { const pid = document.getElementById('incidencia-pid').value; const pRef = doc(db, "pedidos", pid); const pData = (await getDoc(pRef)).data(); if(dev){ const iRef = doc(db, "inventario", pData.insumoNom); const iSnap = await getDoc(iRef); if(iSnap.exists()) await updateDoc(iRef, { cantidad: iSnap.data().cantidad + pData.cantidad }); } await updateDoc(pRef, { estado: dev ? "devuelto" : "con_incidencia", detalleIncidencia: document.getElementById('incidencia-detalle').value, timestamp_incidencia: Date.now() }); document.getElementById('modal-incidencia').classList.add('hidden'); };
+
+        // ==========================================
+        // 10. ACTIVOS FIJOS Y MANTENIMIENTO
+        // ==========================================
+        window.abrirModalMantenimiento = () => { document.getElementById("mant-equipo").value=""; document.getElementById("mant-fecha").value=""; document.getElementById("mant-fecha-notificacion").value=""; document.getElementById("mant-correo").value=""; document.getElementById("mant-responsable").value=""; document.getElementById("mant-detalle").value=""; document.getElementById("modal-mantenimiento").classList.remove("hidden"); };
+        window.guardarMantenimiento = async () => { const eq = document.getElementById("mant-equipo").value.trim(); const fe = document.getElementById("mant-fecha").value; const fnot = document.getElementById("mant-fecha-notificacion").value; const correoNot = document.getElementById("mant-correo").value.trim(); const re = document.getElementById("mant-responsable").value.trim(); const de = document.getElementById("mant-detalle").value.trim(); if(!eq || !fe) return alert("Equipo y fecha programada son obligatorios."); try { await addDoc(collection(db, "mantenimiento"), { equipo: eq, fecha_programada: fe, fecha_notificacion: fnot, correo_notificacion: correoNot, responsable: re, detalle: de, estado: 'pendiente', grupo: window.grupoActivo, creado_por: window.usuarioActual.id, timestamp: Date.now(), bitacora: [] }); if(correoNot) { const mensaje = `Hola. Se ha programado un mantenimiento en el sistema InsuManager.\n\nEquipo/Área: ${eq.toUpperCase()}\nFecha Programada: ${fe}\nResponsable: ${re.toUpperCase()}\nDetalle: ${de}\n\nPor favor, ten en cuenta esta fecha.`; window.enviarNotificacionEmail(correoNot, `Mantenimiento Programado: ${eq.toUpperCase()}`, mensaje); } document.getElementById("modal-mantenimiento").classList.add("hidden"); alert("Mantenimiento programado correctamente."); } catch(e) { alert("Error guardando mantenimiento."); } };
+        window.iniciarMantenimiento = async (id) => { if(confirm("¿Cambiar estado a EN PROCESO?")) await updateDoc(doc(db, "mantenimiento", id), { estado: 'en_proceso', timestamp_inicio: Date.now() }); };
+        window.completarMantenimiento = async (id) => { if(confirm("¿Finalizar tarea?")) await updateDoc(doc(db, "mantenimiento", id), { estado: 'completado', timestamp_completado: Date.now(), fecha_completado: new Date().toLocaleString() }); };
+        window.abrirBitacora = async (id) => { document.getElementById("bitacora-mant-id").value = id; document.getElementById("bitacora-texto").value = ""; document.getElementById("bitacora-media-url").value = ""; document.getElementById("bitacora-media-badge").classList.add("hidden"); const m = rawMantenimiento.find(x => x.id === id); if(!m) return; document.getElementById("bitacora-equipo-titulo").innerText = m.equipo.toUpperCase(); const tl = document.getElementById("bitacora-timeline"); let html = ""; html += `<div class="relative pl-6 border-l-2 border-indigo-200 pb-4"><div class="absolute w-3 h-3 bg-indigo-500 rounded-full -left-[7px] top-1"></div><p class="text-[10px] text-slate-400 font-bold mb-1">TAREA ORIGINAL • ${new Date(m.timestamp).toLocaleString()}</p><p class="text-sm font-medium text-slate-700">${m.detalle || 'Sin descripción inicial.'}</p></div>`; if(m.bitacora && m.bitacora.length > 0) { m.bitacora.forEach(b => { let mediaHtml = ""; if(b.mediaUrl) { if(b.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) mediaHtml = `<video src="${b.mediaUrl}" controls class="max-h-40 rounded-lg mt-2 border border-slate-200"></video>`; else mediaHtml = `<a href="${b.mediaUrl}" target="_blank"><img src="${b.mediaUrl}" loading="lazy" class="max-h-32 object-contain rounded-lg mt-2 border border-slate-200 hover:opacity-80 transition"></a>`; } html += `<div class="relative pl-6 border-l-2 border-slate-200 pb-4"><div class="absolute w-3 h-3 bg-slate-400 rounded-full -left-[7px] top-1"></div><div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p class="text-[10px] text-slate-400 font-bold mb-1 flex justify-between"><span>${b.usuario.toUpperCase()}</span><span>${b.fecha}</span></p><p class="text-sm text-slate-700 whitespace-pre-wrap">${b.observacion}</p>${mediaHtml}</div></div>`; }); } else html += `<p class="text-xs text-slate-400 italic mt-4">No hay observaciones registradas aún.</p>`; tl.innerHTML = html; document.getElementById("modal-bitacora").classList.remove("hidden"); };
+        window.guardarBitacora = async () => { const id = document.getElementById("bitacora-mant-id").value; const txt = document.getElementById("bitacora-texto").value.trim(); const url = document.getElementById("bitacora-media-url").value; if(!txt && !url) return alert("Escribe o adjunta algo."); const mRef = doc(db, "mantenimiento", id); const mSnap = await getDoc(mRef); if(mSnap.exists()) { const bitacoraAnterior = mSnap.data().bitacora || []; await updateDoc(mRef, { bitacora: [...bitacoraAnterior, { observacion: txt, mediaUrl: url, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() }] }); window.abrirBitacora(id); } };
+        window.cerrarBitacora = () => { document.getElementById("modal-bitacora").classList.add("hidden"); };
+
+        // ==========================================
+        // 11. FACTURAS Y REPORTES EXCEL
+        // ==========================================
+        window.abrirModalFactura = () => { document.getElementById("fact-proveedor").value = ""; document.getElementById("fact-gasto").value = ""; document.getElementById("fact-fecha").value = ""; document.getElementById("fact-archivo-url").value = ""; document.getElementById("factura-file-name").innerText = "Ninguno"; document.getElementById("modal-factura").classList.remove("hidden"); };
+        window.cerrarModalFactura = () => { document.getElementById("modal-factura").classList.add("hidden"); };
+        window.guardarFactura = async () => { const pv = document.getElementById("fact-proveedor").value.trim(); const ga = parseFloat(document.getElementById("fact-gasto").value); const fe = document.getElementById("fact-fecha").value; const ar = document.getElementById("fact-archivo-url").value; if(!pv || isNaN(ga) || !fe) return alert("Campos requeridos."); try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, grupo: window.grupoActivo, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("Factura registrada."); window.cerrarModalFactura(); } catch(e) { alert("Error."); } };
+        window.eliminarDato = async (col, id) => { if(confirm("¿Seguro que deseas eliminar este dato?")) await deleteDoc(doc(db, col, id)); };
+
+        window.descargarReporte = async () => { 
+            if(typeof XLSX === 'undefined') return alert("Cargando Excel..."); 
+            const inputDesde = document.getElementById("dash-desde")?.value || document.getElementById("rep-desde")?.value; const inputHasta = document.getElementById("dash-hasta")?.value || document.getElementById("rep-hasta")?.value; 
+            let tDesde = 0; let tHasta = Infinity; if(inputDesde) tDesde = new Date(inputDesde + 'T00:00:00').getTime(); if(inputHasta) tHasta = new Date(inputHasta + 'T23:59:59').getTime(); 
+            if(!confirm(`¿Generar reporte general (Exportar Datos) del grupo ${window.grupoActivo}?`)) return; 
+            const uSnap = await getDocs(collection(db, "usuarios")); const usersMap = {}; uSnap.forEach(u => { usersMap[u.id] = u.data(); }); const obtenerMesAno = (timestamp) => { if(!timestamp) return 'N/A'; const d = new Date(timestamp); return `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]} ${d.getFullYear()}`; }; 
+            const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo); const stockData = invActivo.map(p => ({ "Insumo": (p.id||'').toUpperCase(), "Cantidad Disponible": p.cantidad || 0, "Stock Mínimo": p.stockMinimo || 0, "Precio Unit. ($)": p.precio || 0 })); 
+            const entActivas = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo && e.timestamp >= tDesde && e.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp); const entradasData = entActivas.map(mov => ({ "Mes y Año": obtenerMesAno(mov.timestamp), "Fecha de Entrada": mov.fecha || 'N/A', "Insumo": (mov.insumo || '').toUpperCase(), "Cantidad Ingresada": mov.cantidad || 0, "Usuario Responsable": (mov.usuario || '').toUpperCase() })); 
+            const salActivas = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp); const salidasData = salActivas.map(mov => { const uId = mov.usuarioId || ''; const userObj = usersMap[uId] || {}; return { "Mes y Año": obtenerMesAno(mov.timestamp), "ID Pedido": mov.batchId || 'N/A', "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A', "Hora Solicitud": mov.timestamp ? new Date(mov.timestamp).toLocaleTimeString() : 'N/A', "Tiempo en Atender": mov.timestamp_aprobado ? window.formatoTiempoDiferencia(mov.timestamp, mov.timestamp_aprobado) : 'Pendiente', "Tiempo en Recibir": mov.timestamp_recibido ? window.formatoTiempoDiferencia(mov.timestamp_aprobado || mov.timestamp, mov.timestamp_recibido) : (mov.estado === 'recibido' ? 'N/A' : 'Pendiente/No recibido'), "Prioridad": (mov.prioridad || 'NORMAL').toUpperCase(), "Insumo": (mov.insumoNom || '').toUpperCase(), "Cant.": mov.cantidad || 0, "Sede Destino": (mov.ubicacion || '').toUpperCase(), "Usuario Solicitante": uId.toUpperCase(), "Estado Actual": (mov.estado || '').toUpperCase(), "Entregado Por": (mov.entregado_por || 'N/A').toUpperCase() }; }); 
+            const equiposActivos = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo); const activosData = equiposActivos.map(a => ({ "ID Único": a.id, "Nombre": a.nombre, "Clasificación": a.categoria, "Marca/Modelo": a.marca, "Estado": a.estado, "Ubicación": a.ubicacion, "Precio ($)": a.precio })); 
+            const mantActivos = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.timestamp >= tDesde && m.timestamp <= tHasta); const mantData = mantActivos.map(m => ({ "Equipo": m.equipo, "Fecha Programada": m.fecha_programada, "Fecha Notificación": m.fecha_notificacion || 'No Aplica', "Responsable": m.responsable, "Estado": (m.estado || 'N/A').toUpperCase(), "Detalle Tarea": m.detalle || '' }));
+            const compActivas = rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo && c.timestamp >= tDesde && c.timestamp <= tHasta); const compData = compActivas.map(c => ({ "Proveedor": c.proveedor, "Factura": c.factura, "Fecha Compra": c.fecha_compra, "Estado": c.estado, "Registrado Por": c.registrado_por, "Total Items": c.items.length }));
+            const wb = XLSX.utils.book_new(); if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Inventario"); if(activosData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(activosData), "Activos Fijos"); if(compData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compData), "Compras Generales"); if(entradasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entradasData), "Entradas de Stock"); if(salidasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salidasData), "Salidas (Pedidos)"); if(mantData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mantData), "Mantenimientos"); 
+            XLSX.writeFile(wb, `ReporteCompleto_FCILog_${window.grupoActivo}_${new Date().toISOString().slice(0, 10)}.xlsx`); 
+        };
+
+        // ==========================================
+        // 12. CONFIGURACIÓN Y USUARIOS
+        // ==========================================
+        window.guardarSede = async () => { const s = document.getElementById("new-sede").value.trim().toUpperCase(); if(!s) return alert("Ingrese sede."); try { await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() }); document.getElementById("new-sede").value = ""; alert("Sede guardada."); } catch(e) { alert("Error."); } };
+        window.guardarGrupo = async () => { const g = document.getElementById("new-grupo").value.trim().toUpperCase(); if(!g) return alert("Ingrese grupo."); try { await addDoc(collection(db, "grupos"), { nombre: g, timestamp: Date.now() }); document.getElementById("new-grupo").value = ""; alert("Grupo creado."); } catch(e) { alert("Error."); } };
+        
+        window.guardarUsuario = async () => { 
+            const id = document.getElementById("new-user").value.trim().toLowerCase(); const p = document.getElementById("new-pass").value.trim(); const e = document.getElementById("new-email").value.trim(); const r = document.getElementById("new-role").value; 
+            const checkboxes = document.querySelectorAll('.chk-grupo:checked'); let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value); if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"]; 
+            const perms = { comprar: document.getElementById("perm-comprar").checked, recibir: document.getElementById("perm-recibir").checked, aprobar: document.getElementById("perm-aprobar").checked, activos: document.getElementById("perm-activos").checked }; 
+            if(!id || !p) return alert("Faltan datos."); await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados, permisos: perms }, { merge: true }); alert("Usuario guardado."); window.cancelarEdicionUsuario(); 
+        };
+        window.prepararEdicionUsuario = async (userId) => { 
+            const snap = await getDoc(doc(db, "usuarios", userId)); if(!snap.exists()) return; const u = snap.data(); 
+            document.getElementById("edit-mode-id").value = userId; document.getElementById("new-user").value = userId; document.getElementById("new-user").disabled = true; document.getElementById("new-pass").value = u.pass; document.getElementById("new-email").value = u.email || ""; document.getElementById("new-role").value = u.rol; 
+            const p = u.permisos || {}; document.getElementById("perm-comprar").checked = !!p.comprar; document.getElementById("perm-recibir").checked = !!p.recibir; document.getElementById("perm-aprobar").checked = !!p.aprobar; document.getElementById("perm-activos").checked = !!p.activos; 
+            const gruposUsuario = u.grupos || ["SERVICIOS GENERALES"]; document.querySelectorAll('.chk-grupo').forEach(chk => { chk.checked = gruposUsuario.includes(chk.value); }); 
+            document.getElementById("btn-guardar-usuario").innerText = "Actualizar"; document.getElementById("cancel-edit-msg").classList.remove("hidden"); 
+        };
+        window.cancelarEdicionUsuario = () => { 
+            document.getElementById("edit-mode-id").value = ""; document.getElementById("new-user").value = ""; document.getElementById("new-user").disabled = false; document.getElementById("new-pass").value = ""; document.getElementById("new-email").value = ""; document.getElementById("new-role").value = "user"; 
+            document.getElementById("perm-comprar").checked = false; document.getElementById("perm-recibir").checked = false; document.getElementById("perm-aprobar").checked = false; document.getElementById("perm-activos").checked = false; 
+            document.querySelectorAll('.chk-grupo').forEach(chk => chk.checked = false); document.getElementById("btn-guardar-usuario").innerText = "Guardar"; document.getElementById("cancel-edit-msg").classList.add("hidden"); 
+        };
+
+        // ==========================================
+        // 13. CLOUDINARY Y ARRANQUE
+        // ==========================================
+        const inicializarApp = () => {
+            const sesion = localStorage.getItem("fcilog_session"); if(sesion) window.cargarSesion(JSON.parse(sesion));
+            if (typeof cloudinary !== "undefined") {
+                window.cloudinaryEditProdWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } }); document.getElementById("btn-upload-edit-prod")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryEditProdWidget.open(); }, false);
+                window.cloudinaryActivosWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_activos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('activo-img-url').value = result.info.secure_url; const p = document.getElementById('activo-preview-img'); p.src = result.info.secure_url; p.classList.remove('hidden'); } }); document.getElementById("btn-upload-activo")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryActivosWidget.open(); }, false);
+                window.cloudinaryBitacoraWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, folder: 'fcilog_bitacora', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('bitacora-media-url').value = result.info.secure_url; const b = document.getElementById('bitacora-media-badge'); const formatoArchivo = (result.info && result.info.format) ? result.info.format.toUpperCase() : "ADJUNTO"; b.innerText = formatoArchivo; b.classList.remove('hidden'); } }); document.getElementById("btn-upload-bitacora")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryBitacoraWidget.open(); }, false);
+                window.cloudinaryActivosBitacoraWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, folder: 'fcilog_activos_bitacora', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('activo-bitacora-url').value = result.info.secure_url; const b = document.getElementById('activo-bitacora-badge'); b.innerText = (result.info.format || 'DOC').toUpperCase(); b.classList.remove('hidden'); } }); document.getElementById("btn-upload-activo-bitacora")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryActivosBitacoraWidget.open(); }, false);
+                window.cloudinaryFacturasWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local'], multiple: false, folder: 'fcilog_facturas', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('fact-archivo-url').value = result.info.secure_url; document.getElementById('factura-file-name').innerText = result.info.original_filename || "Documento"; } }); document.getElementById("btn-upload-factura")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryFacturasWidget.open(); }, false);
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', inicializarApp);
+    </script>
 </body>
 </html>
