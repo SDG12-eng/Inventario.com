@@ -47,7 +47,7 @@ window.pedidosRaw = [];
 let timeoutBusqueda;
 
 // ==========================================
-// 3. UTILIDADES GENERALES
+// 3. UTILIDADES GENERALES Y CORREOS
 // ==========================================
 window.enviarNotificacionEmail = async (correoDestino, asunto, mensaje) => {
     if(EMAILJS_PUBLIC_KEY === "TU_PUBLIC_KEY_AQUI") {
@@ -60,7 +60,7 @@ window.enviarNotificacionEmail = async (correoDestino, asunto, mensaje) => {
             subject: asunto,
             message: mensaje
         });
-        console.log("Email a", correoDestino);
+        console.log("Email enviado a", correoDestino);
     } catch (error) {
         console.error("Error email:", error);
     }
@@ -120,7 +120,7 @@ window.tienePermiso = (permiso) => {
 };
 
 // ==========================================
-// 4. CONTROL DE NAVEGACIÓN (TABS Y MENÚS)
+// 4. CONTROL DE NAVEGACIÓN Y MENÚS
 // ==========================================
 window.verPagina = (id) => {
     document.querySelectorAll(".view").forEach(v => {
@@ -167,7 +167,7 @@ window.switchTab = (tab) => {
 };
 
 // ==========================================
-// 5. AUTENTICACIÓN Y GRUPOS
+// 5. AUTENTICACIÓN Y SESIÓN
 // ==========================================
 window.iniciarSesion = async () => {
     const user = document.getElementById("login-user").value.trim().toLowerCase();
@@ -210,36 +210,52 @@ window.cargarSesion = (datos) => {
         infoDiv.innerHTML = `<div class="flex flex-col items-center"><div class="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center text-indigo-600 mb-2 shadow-inner"><i class="fas fa-user text-xl"></i></div><span class="font-black text-slate-800 uppercase tracking-wide">${datos.id}</span><span class="text-[10px] uppercase font-black text-white bg-indigo-500 px-3 py-1 rounded-md mt-1 shadow-sm tracking-widest">${datos.rol}</span></div>`;
     }
 
-    const rutas = {
-        st:{id:'stats',n:'Dashboard',i:'chart-pie'},
-        sk:{id:'stock',n:'Stock',i:'boxes'},
-        cm:{id:'compras',n:'Compras y Recepción',i:'truck-loading'},
-        ac:{id:'activos',n:'Activos / Equipos',i:'desktop'},
-        pd:{id:'solicitar',n:'Pedir',i:'cart-plus'},
-        pe:{id:'solicitudes',n:'Aprobaciones',i:'check-double'},
-        mt:{id:'mantenimiento',n:'Mantenimiento',i:'tools'},
-        hs:{id:'historial',n:'Movimientos',i:'history'},
-        fc:{id:'facturas',n:'Facturas',i:'file-invoice-dollar'},
-        cf:{id:'config',n:'Configuración',i:'cogs'},
-        us:{id:'usuarios',n:'Accesos',i:'users-cog'},
-        mp:{id:'notificaciones',n:'Mis Pedidos',i:'truck'}
-    };
+    let menuHtml = "";
+    const addItem = (id, icon, name) => `<button onclick="window.verPagina('${id}')" class="w-full flex items-center gap-4 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-white border border-slate-200 group-hover:border-indigo-200 flex items-center justify-center transition-colors"><i class="fas fa-${icon} group-hover:text-indigo-500"></i></div>${name}</button>`;
+    const addHeader = (title) => `<p class="text-[10px] font-black text-indigo-400 uppercase mt-4 mb-2 ml-2 tracking-widest">${title}</p>`;
 
-    let menuActivo = [];
-    if(datos.rol === 'admin') {
-        menuActivo = [rutas.st, rutas.sk, rutas.cm, rutas.ac, rutas.pd, rutas.pe, rutas.mt, rutas.hs, rutas.fc, rutas.cf, rutas.us, rutas.mp];
-    } else if(datos.rol === 'manager') {
-        menuActivo = [rutas.st, rutas.sk, rutas.cm, rutas.ac, rutas.pd, rutas.pe, rutas.mt, rutas.hs, rutas.fc, rutas.mp];
-    } else if(datos.rol === 'supervisor') {
-        menuActivo = [rutas.st, rutas.sk, rutas.ac, rutas.pd, rutas.pe, rutas.mt, rutas.hs, rutas.mp];
-    } else {
-        menuActivo = [rutas.sk, rutas.pd, rutas.mp];
+    if(['admin','manager','supervisor'].includes(datos.rol)) {
+        menuHtml += addHeader("Analítica");
+        menuHtml += addItem('stats', 'chart-pie', 'Dashboard');
     }
     
-    const menuDin = document.getElementById("menu-dinamico");
-    if(menuDin) {
-        menuDin.innerHTML = menuActivo.map(x => `<button onclick="window.verPagina('${x.id}')" class="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-white border border-slate-100 flex items-center justify-center transition-colors"><i class="fas fa-${x.i}"></i></div>${x.n}</button>`).join('');
+    menuHtml += addHeader("Operaciones & Logística");
+    menuHtml += addItem('stock', 'boxes', 'Inventario');
+    
+    if(window.tienePermiso('comprar') || window.tienePermiso('recibir') || datos.rol === 'admin' || datos.rol === 'manager') {
+        menuHtml += addItem('compras', 'truck-loading', 'Compras');
     }
+    
+    menuHtml += addItem('solicitar', 'cart-plus', 'Pedir Insumo');
+    
+    if(window.tienePermiso('aprobar') || datos.rol === 'admin' || datos.rol === 'manager' || datos.rol === 'supervisor') {
+        menuHtml += addItem('solicitudes', 'check-double', 'Aprobaciones');
+    }
+
+    if(window.tienePermiso('activos') || datos.rol === 'admin' || datos.rol === 'manager' || datos.rol === 'supervisor') {
+        menuHtml += addHeader("Equipos & Mtto");
+        menuHtml += addItem('activos', 'desktop', 'Activos Fijos');
+        menuHtml += addItem('mantenimiento', 'tools', 'Mantenimiento');
+    }
+
+    menuHtml += addHeader("Registros");
+    menuHtml += addItem('notificaciones', 'clipboard-list', 'Mis Pedidos');
+    
+    if(['admin','manager','supervisor'].includes(datos.rol)) {
+        menuHtml += addItem('historial', 'history', 'Movimientos');
+    }
+    if(['admin','manager'].includes(datos.rol)) {
+        menuHtml += addItem('facturas', 'file-invoice-dollar', 'Facturas Directas');
+    }
+
+    if(datos.rol === 'admin') {
+        menuHtml += addHeader("Administración");
+        menuHtml += addItem('usuarios', 'users-cog', 'Accesos');
+        menuHtml += addItem('config', 'cogs', 'Configuración');
+    }
+
+    const menuDin = document.getElementById("menu-dinamico");
+    if(menuDin) menuDin.innerHTML = menuHtml;
 
     let misGrupos = datos.grupos || ["SERVICIOS GENERALES"];
     if(datos.rol === 'admin') misGrupos = window.todosLosGrupos;
@@ -487,7 +503,7 @@ window.renderHistorialUnificado = () => {
 };
 
 // ==========================================
-// 8. ESCANER QR
+// 8. ESCÁNER QR
 // ==========================================
 window.iniciarScanner = (inputIdTarget) => {
     document.getElementById("modal-scanner").classList.remove("hidden");
@@ -852,10 +868,7 @@ window.abrirModalFactura = () => { document.getElementById("fact-proveedor").val
 window.cerrarModalFactura = () => { document.getElementById("modal-factura").classList.add("hidden"); };
 window.guardarFactura = async () => { const pv = document.getElementById("fact-proveedor").value.trim(); const ga = parseFloat(document.getElementById("fact-gasto").value); const fe = document.getElementById("fact-fecha").value; const ar = document.getElementById("fact-archivo-url").value; if(!pv || isNaN(ga) || !fe) return alert("Campos requeridos."); try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, grupo: window.grupoActivo, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("Factura registrada."); window.cerrarModalFactura(); } catch(e) { alert("Error."); } };
 
-
-// ==========================================
-// 10. PEDIDOS Y APROBACIONES
-// ==========================================
+// --- PEDIDOS (APROBACIONES) ---
 window.procesarDatosPedidos = () => {
     window.cachePedidos = window.pedidosRaw.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
     let grupos = {}; let htmlAdmin = "", htmlActive = "", htmlHistory = "";
@@ -904,175 +917,222 @@ window.procesarDatosPedidos = () => {
     if(document.getElementById("tab-content-historial")) document.getElementById("tab-content-historial").innerHTML = htmlHistory || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay historial de solicitudes.</p>`;
 };
 
-        window.procesarSolicitudMultiple = async () => {
-            const ubi = document.getElementById("sol-ubicacion").value; const prio = document.getElementById("sol-prioridad").value; const notas = document.getElementById("sol-notas").value.trim();
-            const items = Object.entries(window.carritoGlobal).filter(([_, c]) => c > 0);
-            if(!ubi || items.length === 0) return alert("Seleccione sede y al menos un producto.");
-            const batchId = Date.now().toString(); const ts = Date.now(); const fs = new Date().toLocaleString(); const fIso = new Date().toISOString().split('T')[0];
-            try {
-                const batch = writeBatch(db); let detalleInsumos = "";
-                items.forEach(([ins, cant]) => {
-                    detalleInsumos += `- ${cant}x ${ins}\n`;
-                    batch.set(doc(collection(db, "pedidos")), { usuarioId: window.usuarioActual.id, insumoNom: ins, cantidad: cant, ubicacion: ubi, prioridad: prio, notas: notas, grupo: window.grupoActivo, estado: "pendiente", fecha: fs, fecha_iso: fIso, timestamp: ts, batchId: batchId });
-                });
-                await batch.commit();
-                
-                const adminEmail = window.adminEmailGlobal || "";
-                if(adminEmail) {
-                    const mensajeAlmacen = `El usuario ${window.usuarioActual.id.toUpperCase()} ha realizado un nuevo pedido de insumos.\n\nSede destino: ${ubi}\nPrioridad: ${prio.toUpperCase()}\n\nInsumos solicitados:\n${detalleInsumos}\nNotas: ${notas || 'Ninguna'}`;
-                    window.enviarNotificacionEmail(adminEmail, `Nuevo Pedido de Insumos - ${window.usuarioActual.id.toUpperCase()}`, mensajeAlmacen);
-                }
+window.procesarSolicitudMultiple = async () => {
+    const ubi = document.getElementById("sol-ubicacion").value;
+    const prio = document.getElementById("sol-prioridad").value;
+    const notas = document.getElementById("sol-notas").value.trim();
+    const items = Object.entries(window.carritoGlobal).filter(([_, c]) => c > 0);
+    if(!ubi || items.length === 0) return alert("Seleccione sede y al menos un producto.");
+    const batchId = Date.now().toString();
+    const ts = Date.now();
+    const fs = new Date().toLocaleString();
+    const fIso = new Date().toISOString().split('T')[0];
+    try {
+        const batch = writeBatch(db);
+        let detalleInsumos = "";
+        items.forEach(([ins, cant]) => {
+            detalleInsumos += `- ${cant}x ${ins}\n`;
+            batch.set(doc(collection(db, "pedidos")), {
+                usuarioId: window.usuarioActual.id, insumoNom: ins, cantidad: cant,
+                ubicacion: ubi, prioridad: prio, notas: notas, grupo: window.grupoActivo,
+                estado: "pendiente", fecha: fs, fecha_iso: fIso, timestamp: ts, batchId: batchId
+            });
+        });
+        await batch.commit();
+        
+        const adminEmail = window.adminEmailGlobal || "";
+        if(adminEmail) {
+            const mensajeAlmacen = `El usuario ${window.usuarioActual.id.toUpperCase()} ha realizado un nuevo pedido de insumos.\n\nSede destino: ${ubi}\nPrioridad: ${prio.toUpperCase()}\n\nInsumos solicitados:\n${detalleInsumos}\nNotas: ${notas || 'Ninguna'}`;
+            window.enviarNotificacionEmail(adminEmail, `Nuevo Pedido de Insumos - ${window.usuarioActual.id.toUpperCase()}`, mensajeAlmacen);
+        }
 
-                window.carritoGlobal = {}; document.getElementById("sol-ubicacion").value=""; document.getElementById("sol-notas").value="";
-                window.procesarDatosInventario(); window.verPagina('notificaciones');
-            } catch (error) { alert("Error procesando solicitud."); }
-        };
+        window.carritoGlobal = {};
+        document.getElementById("sol-ubicacion").value="";
+        document.getElementById("sol-notas").value="";
+        window.procesarDatosInventario();
+        window.verPagina('notificaciones');
+    } catch (error) { alert("Error procesando solicitud."); }
+};
 
-        window.gestionarPedido = async (pid, accion, ins) => {
-            const pRef = doc(db, "pedidos", pid); const pData = (await getDoc(pRef)).data();
-            if(accion === 'aprobar') {
-                const val = parseInt(document.getElementById(`qty-${pid}`).value);
-                const iRef = doc(db, "inventario", ins); const iSnap = await getDoc(iRef);
-                if(iSnap.exists() && iSnap.data().cantidad >= val) {
-                    const nuevoStock = iSnap.data().cantidad - val; const stockMinimo = iSnap.data().stockMinimo || 0;
-                    await updateDoc(iRef, { cantidad: nuevoStock });
-                    await updateDoc(pRef, { estado: "aprobado", cantidad: val, entregado_por: window.usuarioActual.id, timestamp_aprobado: Date.now(), fecha_aprobado: new Date().toLocaleString() });
-                    
-                    if(nuevoStock <= stockMinimo && stockMinimo > 0 && window.stockAlertEmailGlobal) {
-                        const msg = `Alerta de Stock Crítico en InsuManager.\n\nEl insumo: ${ins.toUpperCase()}\nSe ha reducido a ${nuevoStock} unidades (El mínimo es ${stockMinimo}).\n\nPor favor proceda con la reposición.`;
-                        window.enviarNotificacionEmail(window.stockAlertEmailGlobal, `🔴 STOCK BAJO: ${ins.toUpperCase()}`, msg);
-                    }
-                    const pend = window.cachePedidos.filter(p => p.batchId === pData.batchId && p.estado === 'pendiente' && p.id !== pid);
-                    if(pend.length === 0) document.getElementById("modal-grupo-admin").classList.add("hidden"); else window.abrirModalGrupo(pData.batchId);
-                } else alert("Error: Stock insuficiente.");
+window.gestionarPedido = async (pid, accion, ins) => {
+    const pRef = doc(db, "pedidos", pid);
+    const pData = (await getDoc(pRef)).data();
+    if(accion === 'aprobar') {
+        const val = parseInt(document.getElementById(`qty-${pid}`).value);
+        const iRef = doc(db, "inventario", ins);
+        const iSnap = await getDoc(iRef);
+        if(iSnap.exists() && iSnap.data().cantidad >= val) {
+            const nuevoStock = iSnap.data().cantidad - val;
+            const stockMinimo = iSnap.data().stockMinimo || 0;
+            await updateDoc(iRef, { cantidad: nuevoStock });
+            await updateDoc(pRef, {
+                estado: "aprobado", cantidad: val, entregado_por: window.usuarioActual.id,
+                timestamp_aprobado: Date.now(), fecha_aprobado: new Date().toLocaleString()
+            });
+            if(nuevoStock <= stockMinimo && stockMinimo > 0 && window.stockAlertEmailGlobal) {
+                const msg = `Alerta de Stock Crítico en InsuManager.\n\nEl insumo: ${ins.toUpperCase()}\nSe ha reducido a ${nuevoStock} unidades (El mínimo es ${stockMinimo}).\n\nPor favor proceda con la reposición.`;
+                window.enviarNotificacionEmail(window.stockAlertEmailGlobal, `🔴 STOCK BAJO: ${ins.toUpperCase()}`, msg);
+            }
+            const pend = window.cachePedidos.filter(p => p.batchId === pData.batchId && p.estado === 'pendiente' && p.id !== pid);
+            if(pend.length === 0) {
+                document.getElementById("modal-grupo-admin").classList.add("hidden");
             } else {
-                await updateDoc(pRef, { estado: "rechazado", timestamp_aprobado: Date.now(), fecha_aprobado: new Date().toLocaleString() });
                 window.abrirModalGrupo(pData.batchId);
             }
+        } else {
+            alert("Error: Stock insuficiente.");
+        }
+    } else {
+        await updateDoc(pRef, { estado: "rechazado", timestamp_aprobado: Date.now(), fecha_aprobado: new Date().toLocaleString() });
+        window.abrirModalGrupo(pData.batchId);
+    }
+};
+
+window.abrirModalGrupo = (bKey) => {
+    const items = window.cachePedidos.filter(p => p.batchId === bKey || p.timestamp.toString() === bKey);
+    if(items.length===0) return;
+    document.getElementById("modal-grupo-titulo").innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion}`;
+    if(items[0].notas) {
+        document.getElementById("modal-grupo-notas").innerHTML = `"${items[0].notas}"`;
+        document.getElementById("modal-grupo-notas-container").classList.remove('hidden');
+    } else {
+        document.getElementById("modal-grupo-notas-container").classList.add('hidden');
+    }
+    let h = "";
+    items.forEach(p => {
+        let act = `<span class="badge status-${p.estado}">${p.estado}</span>`;
+        if(p.estado === 'pendiente' && window.tienePermiso('aprobar')) {
+            act = `<div class="flex gap-2"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border rounded text-center font-bold text-xs"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom.replace(/'/g,"\\'")}')" class="text-white bg-emerald-500 px-2 rounded"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-red-400 bg-red-50 px-2 rounded"><i class="fas fa-times"></i></button></div>`;
+        }
+        h += `<div class="flex justify-between items-center p-3 border-b"><div class="text-xs"><b>${p.insumoNom}</b> <span class="badge status-pri-${p.prioridad}">${p.prioridad}</span><br>Cant: ${p.cantidad}</div>${act}</div>`;
+    });
+    document.getElementById("modal-grupo-contenido").innerHTML = h;
+    document.getElementById("modal-grupo-admin").classList.remove("hidden");
+};
+
+window.confirmarRecibido = async (pid) => {
+    if(confirm("¿Recibido?")) await updateDoc(doc(db, "pedidos", pid), { estado: "recibido", timestamp_recibido: Date.now(), fecha_recibido: new Date().toLocaleString() });
+};
+
+window.abrirIncidencia = (pid) => {
+    document.getElementById('incidencia-pid').value = pid;
+    document.getElementById('modal-incidencia').classList.remove('hidden');
+};
+
+window.confirmarIncidencia = async (dev) => {
+    const pid = document.getElementById('incidencia-pid').value;
+    const pRef = doc(db, "pedidos", pid);
+    const pData = (await getDoc(pRef)).data();
+    if(dev){
+        const iRef = doc(db, "inventario", pData.insumoNom);
+        const iSnap = await getDoc(iRef);
+        if(iSnap.exists()) await updateDoc(iRef, { cantidad: iSnap.data().cantidad + pData.cantidad });
+    }
+    await updateDoc(pRef, {
+        estado: dev ? "devuelto" : "con_incidencia",
+        detalleIncidencia: document.getElementById('incidencia-detalle').value,
+        timestamp_incidencia: Date.now()
+    });
+    document.getElementById('modal-incidencia').classList.add('hidden');
+};
+
+window.eliminarDato = async (col, id) => {
+    if(confirm("¿Seguro que deseas eliminar este dato?")) await deleteDoc(doc(db, col, id));
+};
+
+// ==========================================
+// 10. EXPORTAR A EXCEL (XLSX)
+// ==========================================
+window.descargarReporte = async () => {
+    if(typeof XLSX === 'undefined') return alert("Cargando Excel...");
+    const inputDesde = document.getElementById("dash-desde")?.value || document.getElementById("rep-desde")?.value;
+    const inputHasta = document.getElementById("dash-hasta")?.value || document.getElementById("rep-hasta")?.value;
+    let tDesde = 0; let tHasta = Infinity;
+    if(inputDesde) tDesde = new Date(inputDesde + 'T00:00:00').getTime();
+    if(inputHasta) tHasta = new Date(inputHasta + 'T23:59:59').getTime();
+    
+    if(!confirm(`¿Generar reporte general (Exportar Datos) del grupo ${window.grupoActivo}?`)) return;
+    
+    const uSnap = await getDocs(collection(db, "usuarios"));
+    const usersMap = {};
+    uSnap.forEach(u => { usersMap[u.id] = u.data(); });
+    
+    const obtenerMesAno = (timestamp) => {
+        if(!timestamp) return 'N/A';
+        const d = new Date(timestamp);
+        return `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]} ${d.getFullYear()}`;
+    };
+    
+    const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+    const stockData = invActivo.map(p => ({ "Insumo": (p.id||'').toUpperCase(), "Cantidad Disponible": p.cantidad || 0, "Stock Mínimo": p.stockMinimo || 0, "Precio Unit. ($)": p.precio || 0 }));
+    
+    const entActivas = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo && e.timestamp >= tDesde && e.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
+    const entradasData = entActivas.map(mov => ({ "Mes y Año": obtenerMesAno(mov.timestamp), "Fecha de Entrada": mov.fecha || 'N/A', "Insumo": (mov.insumo || '').toUpperCase(), "Cantidad Ingresada": mov.cantidad || 0, "Usuario Responsable": (mov.usuario || '').toUpperCase() }));
+    
+    const salActivas = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
+    const salidasData = salActivas.map(mov => {
+        const uId = mov.usuarioId || '';
+        const userObj = usersMap[uId] || {};
+        return {
+            "Mes y Año": obtenerMesAno(mov.timestamp),
+            "ID Pedido": mov.batchId || 'N/A',
+            "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A',
+            "Hora Solicitud": mov.timestamp ? new Date(mov.timestamp).toLocaleTimeString() : 'N/A',
+            "Tiempo en Atender": mov.timestamp_aprobado ? window.formatoTiempoDiferencia(mov.timestamp, mov.timestamp_aprobado) : 'Pendiente',
+            "Tiempo en Recibir": mov.timestamp_recibido ? window.formatoTiempoDiferencia(mov.timestamp_aprobado || mov.timestamp, mov.timestamp_recibido) : (mov.estado === 'recibido' ? 'N/A' : 'Pendiente/No recibido'),
+            "Prioridad": (mov.prioridad || 'NORMAL').toUpperCase(),
+            "Insumo": (mov.insumoNom || '').toUpperCase(),
+            "Cant.": mov.cantidad || 0,
+            "Sede Destino": (mov.ubicacion || '').toUpperCase(),
+            "Usuario Solicitante": uId.toUpperCase(),
+            "Estado Actual": (mov.estado || '').toUpperCase(),
+            "Entregado Por": (mov.entregado_por || 'N/A').toUpperCase()
         };
+    });
+    
+    const equiposActivos = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+    const activosData = equiposActivos.map(a => ({ "ID Único": a.id, "Nombre": a.nombre, "Clasificación": a.categoria, "Marca/Modelo": a.marca, "Estado": a.estado, "Ubicación": a.ubicacion, "Precio ($)": a.precio }));
+    
+    const mantActivos = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.timestamp >= tDesde && m.timestamp <= tHasta);
+    const mantData = mantActivos.map(m => ({ "Equipo": m.equipo, "Fecha Programada": m.fecha_programada, "Fecha Notificación": m.fecha_notificacion || 'No Aplica', "Responsable": m.responsable, "Estado": (m.estado || 'N/A').toUpperCase(), "Detalle Tarea": m.detalle || '' }));
 
-        window.abrirModalGrupo = (bKey) => {
-            const items = window.cachePedidos.filter(p => p.batchId === bKey || p.timestamp.toString() === bKey); if(items.length===0) return;
-            document.getElementById("modal-grupo-titulo").innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion}`;
-            if(items[0].notas) { document.getElementById("modal-grupo-notas").innerHTML = `"${items[0].notas}"`; document.getElementById("modal-grupo-notas-container").classList.remove('hidden'); } else document.getElementById("modal-grupo-notas-container").classList.add('hidden');
-            let h = "";
-            items.forEach(p => {
-                let act = `<span class="badge status-${p.estado}">${p.estado}</span>`;
-                if(p.estado === 'pendiente' && window.tienePermiso('aprobar')) {
-                    act = `<div class="flex gap-2"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border rounded text-center font-bold text-xs"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom.replace(/'/g,"\\'")}')" class="text-white bg-emerald-500 px-2 rounded"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-red-400 bg-red-50 px-2 rounded"><i class="fas fa-times"></i></button></div>`;
-                }
-                h += `<div class="flex justify-between items-center p-3 border-b"><div class="text-xs"><b>${p.insumoNom}</b> <span class="badge status-pri-${p.prioridad}">${p.prioridad}</span><br>Cant: ${p.cantidad}</div>${act}</div>`;
-            });
-            document.getElementById("modal-grupo-contenido").innerHTML = h; document.getElementById("modal-grupo-admin").classList.remove("hidden");
-        };
+    const compActivas = rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo && c.timestamp >= tDesde && c.timestamp <= tHasta);
+    const compData = compActivas.map(c => ({ "Proveedor": c.proveedor, "Factura": c.factura, "Fecha Compra": c.fecha_compra, "Estado": c.estado, "Registrado Por": c.registrado_por, "Total Items": c.items.length }));
 
-        window.confirmarRecibido = async (pid) => { if(confirm("¿Recibido?")) await updateDoc(doc(db, "pedidos", pid), { estado: "recibido", timestamp_recibido: Date.now(), fecha_recibido: new Date().toLocaleString() }); };
-        window.abrirIncidencia = (pid) => { document.getElementById('incidencia-pid').value = pid; document.getElementById('modal-incidencia').classList.remove('hidden'); };
-        window.confirmarIncidencia = async (dev) => { const pid = document.getElementById('incidencia-pid').value; const pRef = doc(db, "pedidos", pid); const pData = (await getDoc(pRef)).data(); if(dev){ const iRef = doc(db, "inventario", pData.insumoNom); const iSnap = await getDoc(iRef); if(iSnap.exists()) await updateDoc(iRef, { cantidad: iSnap.data().cantidad + pData.cantidad }); } await updateDoc(pRef, { estado: dev ? "devuelto" : "con_incidencia", detalleIncidencia: document.getElementById('incidencia-detalle').value, timestamp_incidencia: Date.now() }); document.getElementById('modal-incidencia').classList.add('hidden'); };
+    const wb = XLSX.utils.book_new();
+    if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Inventario");
+    if(activosData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(activosData), "Activos Fijos");
+    if(compData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compData), "Compras Generales");
+    if(entradasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entradasData), "Entradas de Stock");
+    if(salidasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salidasData), "Salidas (Pedidos)");
+    if(mantData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mantData), "Mantenimientos");
+    
+    XLSX.writeFile(wb, `ReporteCompleto_FCILog_${window.grupoActivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
 
-        // ==========================================
-        // 11. MANTENIMIENTO
-        // ==========================================
-        window.abrirModalMantenimiento = () => { document.getElementById("mant-equipo").value=""; document.getElementById("mant-fecha").value=""; document.getElementById("mant-fecha-notificacion").value=""; document.getElementById("mant-correo").value=""; document.getElementById("mant-responsable").value=""; document.getElementById("mant-detalle").value=""; document.getElementById("modal-mantenimiento").classList.remove("hidden"); };
-        window.guardarMantenimiento = async () => { const eq = document.getElementById("mant-equipo").value.trim(); const fe = document.getElementById("mant-fecha").value; const fnot = document.getElementById("mant-fecha-notificacion").value; const correoNot = document.getElementById("mant-correo").value.trim(); const re = document.getElementById("mant-responsable").value.trim(); const de = document.getElementById("mant-detalle").value.trim(); if(!eq || !fe) return alert("Equipo y fecha programada son obligatorios."); try { await addDoc(collection(db, "mantenimiento"), { equipo: eq, fecha_programada: fe, fecha_notificacion: fnot, correo_notificacion: correoNot, responsable: re, detalle: de, estado: 'pendiente', grupo: window.grupoActivo, creado_por: window.usuarioActual.id, timestamp: Date.now(), bitacora: [] }); if(correoNot) { const mensaje = `Hola. Se ha programado un mantenimiento en el sistema InsuManager.\n\nEquipo/Área: ${eq.toUpperCase()}\nFecha Programada: ${fe}\nResponsable: ${re.toUpperCase()}\nDetalle: ${de}\n\nPor favor, ten en cuenta esta fecha.`; window.enviarNotificacionEmail(correoNot, `Mantenimiento Programado: ${eq.toUpperCase()}`, mensaje); } document.getElementById("modal-mantenimiento").classList.add("hidden"); alert("Mantenimiento programado correctamente."); } catch(e) { alert("Error guardando mantenimiento."); } };
-        window.iniciarMantenimiento = async (id) => { if(confirm("¿Cambiar estado a EN PROCESO?")) await updateDoc(doc(db, "mantenimiento", id), { estado: 'en_proceso', timestamp_inicio: Date.now() }); };
-        window.completarMantenimiento = async (id) => { if(confirm("¿Finalizar tarea?")) await updateDoc(doc(db, "mantenimiento", id), { estado: 'completado', timestamp_completado: Date.now(), fecha_completado: new Date().toLocaleString() }); };
+// ==========================================
+// 11. INICIALIZACIÓN FINAL Y CLOUDINARY
+// ==========================================
+const inicializarApp = () => {
+    const sesion = localStorage.getItem("fcilog_session");
+    if(sesion) window.cargarSesion(JSON.parse(sesion));
+    
+    if (typeof cloudinary !== "undefined") {
+        window.cloudinaryEditProdWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } });
+        document.getElementById("btn-upload-edit-prod")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryEditProdWidget.open(); }, false);
         
-        window.abrirBitacora = async (id) => { document.getElementById("bitacora-mant-id").value = id; document.getElementById("bitacora-texto").value = ""; document.getElementById("bitacora-media-url").value = ""; document.getElementById("bitacora-media-badge").classList.add("hidden"); const m = rawMantenimiento.find(x => x.id === id); if(!m) return; document.getElementById("bitacora-equipo-titulo").innerText = m.equipo.toUpperCase(); const tl = document.getElementById("bitacora-timeline"); let html = ""; html += `<div class="relative pl-6 border-l-2 border-indigo-200 pb-4"><div class="absolute w-3 h-3 bg-indigo-500 rounded-full -left-[7px] top-1"></div><p class="text-[10px] text-slate-400 font-bold mb-1">TAREA ORIGINAL • ${new Date(m.timestamp).toLocaleString()}</p><p class="text-sm font-medium text-slate-700">${m.detalle || 'Sin descripción inicial.'}</p></div>`; if(m.bitacora && m.bitacora.length > 0) { m.bitacora.forEach(b => { let mediaHtml = ""; if(b.mediaUrl) { if(b.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) mediaHtml = `<video src="${b.mediaUrl}" controls class="max-h-40 rounded-lg mt-2 border border-slate-200"></video>`; else mediaHtml = `<a href="${b.mediaUrl}" target="_blank"><img src="${b.mediaUrl}" loading="lazy" class="max-h-32 object-contain rounded-lg mt-2 border border-slate-200 hover:opacity-80 transition"></a>`; } html += `<div class="relative pl-6 border-l-2 border-slate-200 pb-4"><div class="absolute w-3 h-3 bg-slate-400 rounded-full -left-[7px] top-1"></div><div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p class="text-[10px] text-slate-400 font-bold mb-1 flex justify-between"><span>${b.usuario.toUpperCase()}</span><span>${b.fecha}</span></p><p class="text-sm text-slate-700 whitespace-pre-wrap">${b.observacion}</p>${mediaHtml}</div></div>`; }); } else html += `<p class="text-xs text-slate-400 italic mt-4">No hay observaciones registradas aún.</p>`; tl.innerHTML = html; document.getElementById("modal-bitacora").classList.remove("hidden"); };
-        window.guardarBitacora = async () => { const id = document.getElementById("bitacora-mant-id").value; const txt = document.getElementById("bitacora-texto").value.trim(); const url = document.getElementById("bitacora-media-url").value; if(!txt && !url) return alert("Escribe o adjunta algo."); const mRef = doc(db, "mantenimiento", id); const mSnap = await getDoc(mRef); if(mSnap.exists()) { const bitacoraAnterior = mSnap.data().bitacora || []; await updateDoc(mRef, { bitacora: [...bitacoraAnterior, { observacion: txt, mediaUrl: url, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() }] }); window.abrirBitacora(id); } };
-        window.cerrarBitacora = () => { document.getElementById("modal-bitacora").classList.add("hidden"); };
+        window.cloudinaryActivosWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_activos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('activo-img-url').value = result.info.secure_url; const p = document.getElementById('activo-preview-img'); p.src = result.info.secure_url; p.classList.remove('hidden'); } });
+        document.getElementById("btn-upload-activo")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryActivosWidget.open(); }, false);
+        
+        window.cloudinaryBitacoraWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, folder: 'fcilog_bitacora', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('bitacora-media-url').value = result.info.secure_url; const b = document.getElementById('bitacora-media-badge'); const formatoArchivo = (result.info && result.info.format) ? result.info.format.toUpperCase() : "ADJUNTO"; b.innerText = formatoArchivo; b.classList.remove('hidden'); } });
+        document.getElementById("btn-upload-bitacora")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryBitacoraWidget.open(); }, false);
+        
+        window.cloudinaryActivosBitacoraWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, folder: 'fcilog_activos_bitacora', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('activo-bitacora-url').value = result.info.secure_url; const b = document.getElementById('activo-bitacora-badge'); b.innerText = (result.info.format || 'DOC').toUpperCase(); b.classList.remove('hidden'); } });
+        document.getElementById("btn-upload-activo-bitacora")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryActivosBitacoraWidget.open(); }, false);
+        
+        window.cloudinaryFacturasWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local'], multiple: false, folder: 'fcilog_facturas', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('fact-archivo-url').value = result.info.secure_url; document.getElementById('factura-file-name').innerText = result.info.original_filename || "Documento"; } });
+        document.getElementById("btn-upload-factura")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryFacturasWidget.open(); }, false);
+    }
+};
 
-        // ==========================================
-        // 12. CONFIGURACIÓN Y USUARIOS
-        // ==========================================
-        window.guardarSede = async () => { const s = document.getElementById("new-sede").value.trim().toUpperCase(); if(!s) return alert("Ingrese sede."); try { await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() }); document.getElementById("new-sede").value = ""; alert("Sede guardada."); } catch(e) { alert("Error."); } };
-        window.guardarGrupo = async () => { const g = document.getElementById("new-grupo").value.trim().toUpperCase(); if(!g) return alert("Ingrese grupo."); try { await addDoc(collection(db, "grupos"), { nombre: g, timestamp: Date.now() }); document.getElementById("new-grupo").value = ""; alert("Grupo creado."); } catch(e) { alert("Error."); } };
-        window.guardarConfigCorreos = async () => { const emailA = document.getElementById("config-admin-email").value.trim(); const emailS = document.getElementById("config-stock-email").value.trim(); try { if(emailA) await setDoc(doc(db, "configuracion", "notificaciones"), { emailAdmin: emailA }, { merge: true }); if(emailS) await setDoc(doc(db, "configuracion", "alertas_stock"), { [window.grupoActivo]: emailS }, { merge: true }); alert("Correos actualizados exitosamente."); } catch(e) { alert("Error al guardar correos."); } };
-
-        window.guardarUsuario = async () => { const id = document.getElementById("new-user").value.trim().toLowerCase(); const p = document.getElementById("new-pass").value.trim(); const e = document.getElementById("new-email").value.trim(); const r = document.getElementById("new-role").value; const checkboxes = document.querySelectorAll('.chk-grupo:checked'); let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value); if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"]; const perms = { comprar: document.getElementById("perm-comprar").checked, recibir: document.getElementById("perm-recibir").checked, aprobar: document.getElementById("perm-aprobar").checked, activos: document.getElementById("perm-activos").checked }; if(!id || !p) return alert("Faltan datos."); await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados, permisos: perms }, { merge: true }); alert("Usuario guardado."); window.cancelarEdicionUsuario(); };
-        window.prepararEdicionUsuario = async (userId) => { const snap = await getDoc(doc(db, "usuarios", userId)); if(!snap.exists()) return; const u = snap.data(); document.getElementById("edit-mode-id").value = userId; const inpU = document.getElementById("new-user"); inpU.value = userId; inpU.disabled = true; document.getElementById("new-pass").value = u.pass; document.getElementById("new-email").value = u.email || ""; document.getElementById("new-role").value = u.rol; const p = u.permisos || {}; document.getElementById("perm-comprar").checked = !!p.comprar; document.getElementById("perm-recibir").checked = !!p.recibir; document.getElementById("perm-aprobar").checked = !!p.aprobar; document.getElementById("perm-activos").checked = !!p.activos; const gruposUsuario = u.grupos || ["SERVICIOS GENERALES"]; document.querySelectorAll('.chk-grupo').forEach(chk => { chk.checked = gruposUsuario.includes(chk.value); }); document.getElementById("btn-guardar-usuario").innerText = "Actualizar"; document.getElementById("cancel-edit-msg").classList.remove("hidden"); };
-        window.cancelarEdicionUsuario = () => { document.getElementById("edit-mode-id").value = ""; const inpU = document.getElementById("new-user"); inpU.value = ""; inpU.disabled = false; document.getElementById("new-pass").value = ""; document.getElementById("new-email").value = ""; document.getElementById("new-role").value = "user"; document.getElementById("perm-comprar").checked = false; document.getElementById("perm-recibir").checked = false; document.getElementById("perm-aprobar").checked = false; document.getElementById("perm-activos").checked = false; document.querySelectorAll('.chk-grupo').forEach(chk => chk.checked = false); document.getElementById("btn-guardar-usuario").innerText = "Guardar"; document.getElementById("cancel-edit-msg").classList.add("hidden"); };
-
-        window.eliminarDato = async (col, id) => { if(confirm("¿Seguro que deseas eliminar este dato?")) await deleteDoc(doc(db, col, id)); };
-
-        // ==========================================
-        // 13. EXCEL EXPORT
-        // ==========================================
-        window.descargarReporte = async () => {
-            if(typeof XLSX === 'undefined') return alert("Cargando Excel...");
-            const inputDesde = document.getElementById("dash-desde")?.value || document.getElementById("rep-desde")?.value;
-            const inputHasta = document.getElementById("dash-hasta")?.value || document.getElementById("rep-hasta")?.value;
-            let tDesde = 0; let tHasta = Infinity;
-            if(inputDesde) tDesde = new Date(inputDesde + 'T00:00:00').getTime();
-            if(inputHasta) tHasta = new Date(inputHasta + 'T23:59:59').getTime();
-            
-            if(!confirm(`¿Generar reporte general (Exportar Datos) del grupo ${window.grupoActivo}?`)) return;
-            
-            const uSnap = await getDocs(collection(db, "usuarios")); const usersMap = {}; uSnap.forEach(u => { usersMap[u.id] = u.data(); });
-            const obtenerMesAno = (timestamp) => { if(!timestamp) return 'N/A'; const d = new Date(timestamp); return `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]} ${d.getFullYear()}`; };
-            
-            const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
-            const stockData = invActivo.map(p => ({ "Insumo": (p.id||'').toUpperCase(), "Cantidad Disponible": p.cantidad || 0, "Stock Mínimo": p.stockMinimo || 0, "Precio Unit. ($)": p.precio || 0 }));
-            
-            const entActivas = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo && e.timestamp >= tDesde && e.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
-            const entradasData = entActivas.map(mov => ({ "Mes y Año": obtenerMesAno(mov.timestamp), "Fecha de Entrada": mov.fecha || 'N/A', "Insumo": (mov.insumo || '').toUpperCase(), "Cantidad Ingresada": mov.cantidad || 0, "Usuario Responsable": (mov.usuario || '').toUpperCase() }));
-            
-            const salActivas = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp);
-            const salidasData = salActivas.map(mov => {
-                const uId = mov.usuarioId || ''; const userObj = usersMap[uId] || {};
-                return {
-                    "Mes y Año": obtenerMesAno(mov.timestamp), "ID Pedido": mov.batchId || 'N/A', "Fecha Solicitud": mov.fecha_solicitud || mov.fecha || 'N/A',
-                    "Hora Solicitud": mov.timestamp ? new Date(mov.timestamp).toLocaleTimeString() : 'N/A',
-                    "Tiempo en Atender": mov.timestamp_aprobado ? window.formatoTiempoDiferencia(mov.timestamp, mov.timestamp_aprobado) : 'Pendiente',
-                    "Tiempo en Recibir": mov.timestamp_recibido ? window.formatoTiempoDiferencia(mov.timestamp_aprobado || mov.timestamp, mov.timestamp_recibido) : (mov.estado === 'recibido' ? 'N/A' : 'Pendiente/No recibido'),
-                    "Prioridad": (mov.prioridad || 'NORMAL').toUpperCase(), "Insumo": (mov.insumoNom || '').toUpperCase(), "Cant.": mov.cantidad || 0,
-                    "Sede Destino": (mov.ubicacion || '').toUpperCase(), "Usuario Solicitante": uId.toUpperCase(), "Estado Actual": (mov.estado || '').toUpperCase(), "Entregado Por": (mov.entregado_por || 'N/A').toUpperCase()
-                };
-            });
-            
-            const equiposActivos = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
-            const activosData = equiposActivos.map(a => ({ "ID Único": a.id, "Nombre": a.nombre, "Clasificación": a.categoria, "Marca/Modelo": a.marca, "Estado": a.estado, "Ubicación": a.ubicacion, "Precio ($)": a.precio }));
-            
-            const mantActivos = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.timestamp >= tDesde && m.timestamp <= tHasta);
-            const mantData = mantActivos.map(m => ({ "Equipo": m.equipo, "Fecha Programada": m.fecha_programada, "Fecha Notificación": m.fecha_notificacion || 'No Aplica', "Responsable": m.responsable, "Estado": (m.estado || 'N/A').toUpperCase(), "Detalle Tarea": m.detalle || '' }));
-
-            const compActivas = rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo && c.timestamp >= tDesde && c.timestamp <= tHasta);
-            const compData = compActivas.map(c => ({ "Proveedor": c.proveedor, "Factura": c.factura, "Fecha Compra": c.fecha_compra, "Estado": c.estado, "Registrado Por": c.registrado_por, "Total Items": c.items.length }));
-
-            const wb = XLSX.utils.book_new();
-            if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Inventario");
-            if(activosData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(activosData), "Activos Fijos");
-            if(compData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compData), "Compras Generales");
-            if(entradasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entradasData), "Entradas de Stock");
-            if(salidasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salidasData), "Salidas (Pedidos)");
-            if(mantData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mantData), "Mantenimientos");
-            
-            XLSX.writeFile(wb, `ReporteCompleto_FCILog_${window.grupoActivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-        };
-
-        // ==========================================
-        // 14. INICIALIZACIÓN DE CLOUDINARY Y CARGA
-        // ==========================================
-        const inicializarApp = () => {
-            const sesion = localStorage.getItem("fcilog_session");
-            if(sesion) window.cargarSesion(JSON.parse(sesion));
-            
-            if (typeof cloudinary !== "undefined") {
-                window.cloudinaryEditProdWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } });
-                document.getElementById("btn-upload-edit-prod")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryEditProdWidget.open(); }, false);
-                
-                window.cloudinaryActivosWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_activos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('activo-img-url').value = result.info.secure_url; const p = document.getElementById('activo-preview-img'); p.src = result.info.secure_url; p.classList.remove('hidden'); } });
-                document.getElementById("btn-upload-activo")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryActivosWidget.open(); }, false);
-                
-                window.cloudinaryBitacoraWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, folder: 'fcilog_bitacora', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('bitacora-media-url').value = result.info.secure_url; const b = document.getElementById('bitacora-media-badge'); const formatoArchivo = (result.info && result.info.format) ? result.info.format.toUpperCase() : "ADJUNTO"; b.innerText = formatoArchivo; b.classList.remove('hidden'); } });
-                document.getElementById("btn-upload-bitacora")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryBitacoraWidget.open(); }, false);
-                
-                window.cloudinaryActivosBitacoraWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, folder: 'fcilog_activos_bitacora', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('activo-bitacora-url').value = result.info.secure_url; const b = document.getElementById('activo-bitacora-badge'); b.innerText = (result.info.format || 'DOC').toUpperCase(); b.classList.remove('hidden'); } });
-                document.getElementById("btn-upload-activo-bitacora")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryActivosBitacoraWidget.open(); }, false);
-            }
-        };
-
-        window.addEventListener('DOMContentLoaded', inicializarApp);
-    </script>
-</body>
-</html>
+window.addEventListener('DOMContentLoaded', inicializarApp);
