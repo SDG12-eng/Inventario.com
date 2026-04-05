@@ -337,9 +337,69 @@
         </div>
     </div>
 
-    <div id="modal-mantenimiento" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl border-t-8 border-indigo-500"><h3 class="text-xl font-black mb-6 text-center text-indigo-900"><i class="fas fa-tools"></i> Programar Tarea</h3><div class="space-y-4"><div><label class="label-form">Equipo / Área *</label><input id="mant-equipo" type="text" placeholder="Ej. Impresora HP" class="input-light uppercase font-bold"></div><div class="grid grid-cols-2 gap-4"><div><label class="label-form">Fecha Prog. *</label><input id="mant-fecha" type="date" class="input-light font-bold text-sm"></div><div><label class="label-form">Fecha Alerta</label><input id="mant-fecha-notificacion" type="date" class="input-light font-bold text-indigo-600 text-sm" title="Fecha recordatorio"></div></div><div class="grid grid-cols-2 gap-4"><div><label class="label-form">Responsable</label><input id="mant-responsable" type="text" placeholder="Técnico" class="input-light uppercase font-bold"></div><div><label class="label-form">Notificar a</label><input id="mant-correo" type="email" placeholder="correo@emp.com" class="input-light font-bold text-sm"></div></div><div><label class="label-form">Instrucciones</label><textarea id="mant-detalle" class="input-light h-20 resize-none p-3 text-sm" placeholder="Detalles de la tarea..."></textarea></div><div class="grid grid-cols-2 gap-4 pt-4 mt-2 border-t border-slate-100"><button onclick="document.getElementById('modal-mantenimiento').classList.add('hidden')" class="py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button><button onclick="window.guardarMantenimiento()" class="py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar</button></div></div></div></div>
-    
-    <div id="modal-bitacora" class="fixed inset-0 bg-slate-900/80 hidden z-[400] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm"><div class="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"><div class="bg-slate-800 p-5 text-white flex justify-between items-center"><div><h3 class="font-black text-lg"><i class="fas fa-clipboard-list text-indigo-400 mr-2"></i> Bitácora de Servicio</h3><p id="bitacora-equipo-titulo" class="text-xs text-slate-300 font-mono mt-1"></p></div><button onclick="window.cerrarBitacora()" class="text-slate-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button></div><div id="bitacora-timeline" class="flex-1 overflow-y-auto p-5 sm:p-6 bg-slate-50 custom-scroll space-y-5"></div><div class="p-5 bg-white border-t border-slate-200" id="bitacora-form-container"><input type="hidden" id="bitacora-mant-id"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">Añadir Observación</p><textarea id="bitacora-texto" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm resize-none h-20 outline-none focus:border-indigo-500 transition-colors shadow-inner" placeholder="Detalla el trabajo realizado..."></textarea><div class="flex items-center justify-between mt-3"><div class="flex items-center gap-3"><button id="btn-upload-bitacora" class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-100 transition border border-indigo-100 shadow-sm"><i class="fas fa-camera mr-1"></i> Foto/Video</button><span id="bitacora-media-badge" class="hidden text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-1 rounded truncate max-w-[120px]">Adjunto</span><input type="hidden" id="bitacora-media-url"></div><button onclick="window.guardarBitacora()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar Registro</button></div></div></div></div>
+    <div id="modal-mantenimiento" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl border-t-8 border-indigo-500">
+            <h3 class="text-xl font-black mb-6 text-center text-indigo-900"><i class="fas fa-tools"></i> Programar Tarea</h3>
+            <div class="space-y-4">
+                <div><label class="label-form">Equipo / Área *</label><input id="mant-equipo" type="text" placeholder="Ej. Impresora HP" class="input-light uppercase font-bold"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="label-form">Fecha Prog. *</label><input id="mant-fecha" type="date" class="input-light font-bold text-sm"></div>
+                    <div><label class="label-form">Fecha Alerta (Opcional)</label><input id="mant-fecha-notificacion" type="date" class="input-light font-bold text-indigo-600 text-sm" title="Fecha recordatorio"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="label-form">Responsable</label><input id="mant-responsable" type="text" placeholder="Técnico" class="input-light uppercase font-bold"></div>
+                    <div><label class="label-form">Notificar a (Email)</label><input id="mant-correo" type="email" placeholder="correo@emp.com" class="input-light font-bold text-sm"></div>
+                </div>
+                <div><label class="label-form">Instrucciones</label><textarea id="mant-detalle" class="input-light h-20 resize-none p-3 text-sm" placeholder="Detalles de la tarea..."></textarea></div>
+                <div class="grid grid-cols-2 gap-4 pt-4 mt-2 border-t border-slate-100">
+                    <button onclick="document.getElementById('modal-mantenimiento').classList.add('hidden')" class="py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
+                    <button onclick="window.guardarMantenimiento()" class="py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-activo" class="fixed inset-0 bg-slate-900/80 hidden z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-6 sm:p-8 rounded-[2rem] w-full max-w-2xl shadow-2xl flex flex-col max-h-[95vh] border-t-8 border-indigo-500">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+                <h3 class="text-xl font-black text-indigo-900"><i class="fas fa-desktop"></i> Ficha de Activo</h3>
+                <button onclick="document.getElementById('modal-activo').classList.add('hidden')" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scroll pr-2 space-y-4">
+                <input type="hidden" id="activo-id">
+                <div class="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                    <img id="activo-preview-img" class="h-24 w-24 object-contain rounded-lg mb-3 hidden bg-white border border-slate-100 p-1">
+                    <button type="button" id="btn-upload-activo" class="bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-indigo-200"><i class="fas fa-camera"></i> Foto del Activo</button>
+                    <input type="hidden" id="activo-img-url">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="label-form">Nombre / Item *</label><input id="activo-nombre" class="input-light font-bold text-slate-700 uppercase" placeholder="Ej: Laptop Dell"></div>
+                    <div><label class="label-form">Clasificación *</label><input id="activo-categoria" class="input-light uppercase text-slate-600" placeholder="Ej: Computo"></div>
+                    <div><label class="label-form">Marca / Modelo</label><input id="activo-marca" class="input-light uppercase text-slate-600" placeholder="Ej: XPS 15"></div>
+                    <div><label class="label-form">Proveedor</label><input id="activo-proveedor" class="input-light uppercase text-slate-600" placeholder="Ej: Multimax"></div>
+                    <div><label class="label-form">Ubicación / Asignado</label><input id="activo-ubicacion" class="input-light uppercase text-slate-600" placeholder="Ej: Oficina Gerencia"></div>
+                    <div><label class="label-form">Precio Compra ($)</label><input id="activo-precio" type="number" step="0.01" class="input-light font-bold text-emerald-600" placeholder="0.00"></div>
+                    <div>
+                        <label class="label-form">Estado Operativo</label>
+                        <select id="activo-estado" class="input-light font-bold">
+                            <option value="Operativo">🟢 Operativo / Activo</option>
+                            <option value="En Mantenimiento">🟡 En Mantenimiento</option>
+                            <option value="Fuera de Servicio">🔴 Fuera de Servicio</option>
+                            <option value="Almacenado">⚪ Almacenado</option>
+                        </select>
+                    </div>
+                </div>
+                <div><label class="label-form">Especificaciones</label><textarea id="activo-descripcion" class="input-light h-20 resize-none p-3 text-sm"></textarea></div>
+                <div><label class="label-form">Observaciones Adicionales</label><textarea id="activo-observacion" class="input-light h-16 resize-none p-3 text-sm"></textarea></div>
+            </div>
+            <div class="pt-4 border-t border-slate-100 mt-2 flex justify-end gap-3">
+                <button onclick="document.getElementById('modal-activo').classList.add('hidden')" class="px-6 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold">Cancelar</button>
+                <button onclick="window.guardarActivo()" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700">Guardar Activo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-bitacora" class="fixed inset-0 bg-slate-900/80 hidden z-[400] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm"><div class="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"><div class="bg-slate-800 p-5 text-white flex justify-between items-center"><div><h3 class="font-black text-lg"><i class="fas fa-clipboard-list text-indigo-400 mr-2"></i> Bitácora</h3><p id="bitacora-equipo-titulo" class="text-xs text-slate-300 font-mono mt-1"></p></div><button onclick="window.cerrarBitacora()" class="text-slate-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button></div><div id="bitacora-timeline" class="flex-1 overflow-y-auto p-5 sm:p-6 bg-slate-50 custom-scroll space-y-5"></div><div class="p-5 bg-white border-t border-slate-200" id="bitacora-form-container"><input type="hidden" id="bitacora-mant-id"><p class="text-[10px] font-black text-indigo-600 uppercase mb-2">Añadir Observación</p><textarea id="bitacora-texto" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm resize-none h-20 outline-none focus:border-indigo-500 transition-colors shadow-inner" placeholder="Detalla..."></textarea><div class="flex items-center justify-between mt-3"><div class="flex items-center gap-3"><button id="btn-upload-bitacora" class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-100 transition border border-indigo-100 shadow-sm"><i class="fas fa-camera mr-1"></i> Foto/Video</button><span id="bitacora-media-badge" class="hidden text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-1 rounded truncate max-w-[120px]">Adjunto</span><input type="hidden" id="bitacora-media-url"></div><button onclick="window.guardarBitacora()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">Guardar</button></div></div></div></div>
     
     <div id="modal-scanner" class="fixed inset-0 bg-black/95 hidden z-[500] flex flex-col items-center justify-center p-4"><div class="w-full max-w-md bg-white rounded-[2rem] overflow-hidden shadow-2xl"><div class="p-5 bg-indigo-600 text-white flex justify-between items-center"><h3 class="font-black text-lg"><i class="fas fa-qrcode mr-2"></i> Escanear QR</h3><button onclick="window.detenerScanner()" class="hover:text-indigo-200 transition"><i class="fas fa-times text-xl"></i></button></div><div id="reader" class="w-full min-h-[300px] bg-black"></div></div></div>
     
