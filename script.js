@@ -71,14 +71,20 @@ window.formatoTiempoDiferencia = function(t1, t2) {
 };
 
 window.enviarNotificacionEmail = async function(correoDestino, asunto, mensaje) {
-    if(EMAILJS_PUBLIC_KEY === "TU_PUBLIC_KEY_AQUI") return;
+    if(EMAILJS_PUBLIC_KEY === "TU_PUBLIC_KEY_AQUI") {
+        console.warn("Email simulado a", correoDestino);
+        return;
+    }
     try {
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
             to_email: correoDestino,
             subject: asunto,
             message: mensaje
         });
-    } catch (error) { console.error("Error email:", error); }
+        console.log("Email a", correoDestino);
+    } catch (error) {
+        console.error("Error email:", error);
+    }
 };
 
 window.solicitarPermisosNotificacion = function() {
@@ -209,7 +215,7 @@ window.cargarSesion = function(datos) {
         infoDiv.innerHTML = `<div class="flex flex-col items-center"><div class="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center text-indigo-600 mb-2 shadow-inner"><i class="fas fa-user text-xl"></i></div><span class="font-black text-slate-800 uppercase tracking-wide">${datos.id}</span><span class="text-[10px] uppercase font-black text-white bg-indigo-500 px-3 py-1 rounded-md mt-1 shadow-sm tracking-widest">${datos.rol}</span></div>`;
     }
 
-    // CONSTRUCCIÓN DEL MENÚ DINÁMICO
+    // CONSTRUCCIÓN DEL MENÚ DINÁMICO BASADO EN PERMISOS
     let menuHtml = "";
     const addHeader = (title) => `<p class="text-[10px] font-black text-indigo-400 uppercase mt-4 mb-2 ml-2 tracking-widest">${title}</p>`;
     const addItem = (id, icon, name) => `<button onclick="window.verPagina('${id}')" class="w-full flex items-center gap-4 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-white border border-slate-200 group-hover:border-indigo-200 flex items-center justify-center transition-colors"><i class="fas fa-${icon} group-hover:text-indigo-500"></i></div>${name}</button>`;
@@ -260,7 +266,7 @@ window.cargarSesion = function(datos) {
         }
     }
 
-    // INYECTAR MATRIZ DE PERMISOS
+    // INYECTAR MATRIZ DE PERMISOS EN LA VISTA DE USUARIOS
     const matrizBody = document.getElementById("matriz-permisos");
     if(matrizBody) {
         let matrixHtml = "";
@@ -296,6 +302,26 @@ window.cambiarGrupoActivo = function(nuevoGrupo) {
     document.getElementById("dash-grupo-label").innerText = window.grupoActivo;
     document.getElementById("lbl-grupo-solicitud").innerText = window.grupoActivo;
     window.carritoGlobal = {};
+    
+    // Al cambiar de grupo, debemos actualizar las variables de correo global según la configuración cargada
+    if(window.configCorreosData && window.configCorreosData[window.grupoActivo]) {
+        window.adminEmailGlobal = window.configCorreosData[window.grupoActivo];
+    } else {
+        window.adminEmailGlobal = "";
+    }
+    
+    if(window.configStockData && window.configStockData[window.grupoActivo]) {
+        window.stockAlertEmailGlobal = window.configStockData[window.grupoActivo];
+    } else {
+        window.stockAlertEmailGlobal = "";
+    }
+
+    const elA = document.getElementById("config-admin-email");
+    if(elA) elA.value = window.adminEmailGlobal;
+    
+    const elS = document.getElementById("config-stock-email");
+    if(elS) elS.value = window.stockAlertEmailGlobal;
+
     window.procesarDatosInventario();
     window.procesarDatosPedidos();
     window.renderHistorialUnificado();
@@ -333,22 +359,26 @@ window.activarSincronizacion = function() {
     if(window.tienePermiso('configuracion', 'ver')) {
         onSnapshot(doc(db, "configuracion", "notificaciones"), (docSnap) => {
             if (docSnap.exists()) {
-                window.adminEmailGlobal = docSnap.data().emailAdmin || "";
-                const elA = document.getElementById("config-admin-email");
-                if(elA) elA.value = window.adminEmailGlobal;
+                window.configCorreosData = docSnap.data();
+                window.adminEmailGlobal = window.configCorreosData[window.grupoActivo] || "";
+            } else {
+                window.configCorreosData = {};
+                window.adminEmailGlobal = "";
             }
+            const elA = document.getElementById("config-admin-email");
+            if(elA) elA.value = window.adminEmailGlobal;
         });
 
         onSnapshot(doc(db, "configuracion", "alertas_stock"), (docSnap) => {
-            window.stockAlertEmailGlobal = "";
-            if (docSnap.exists() && docSnap.data()[window.grupoActivo]) {
-                window.stockAlertEmailGlobal = docSnap.data()[window.grupoActivo];
-                const elS = document.getElementById("config-stock-email");
-                if(elS) elS.value = window.stockAlertEmailGlobal;
+            if (docSnap.exists()) {
+                window.configStockData = docSnap.data();
+                window.stockAlertEmailGlobal = window.configStockData[window.grupoActivo] || "";
             } else {
-                const elS = document.getElementById("config-stock-email");
-                if(elS) elS.value = "";
+                window.configStockData = {};
+                window.stockAlertEmailGlobal = "";
             }
+            const elS = document.getElementById("config-stock-email");
+            if(elS) elS.value = window.stockAlertEmailGlobal;
         });
     }
 
