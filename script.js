@@ -49,10 +49,15 @@ let timeoutBusqueda;
 // ==========================================
 // 3. UTILIDADES GENERALES
 // ==========================================
-window.tienePermiso = function(permiso) {
+window.tienePermiso = function(modulo, accion = 'ver') {
     if (!window.usuarioActual) return false;
-    if (window.usuarioActual.rol === 'admin') return true;
-    return window.usuarioActual.permisos && window.usuarioActual.permisos[permiso] === true;
+    if (window.usuarioActual.id === 'admin') return true; 
+    if (!window.usuarioActual.permisos || !window.usuarioActual.permisos[modulo]) return false;
+    
+    if (accion === 'ver') {
+        return window.usuarioActual.permisos[modulo].ver === true || window.usuarioActual.permisos[modulo].gestionar === true;
+    }
+    return window.usuarioActual.permisos[modulo].gestionar === true;
 };
 
 window.formatoTiempoDiferencia = function(t1, t2) {
@@ -66,27 +71,19 @@ window.formatoTiempoDiferencia = function(t1, t2) {
 };
 
 window.enviarNotificacionEmail = async function(correoDestino, asunto, mensaje) {
-    if(EMAILJS_PUBLIC_KEY === "TU_PUBLIC_KEY_AQUI") {
-        console.warn("Email simulado a", correoDestino);
-        return;
-    }
+    if(EMAILJS_PUBLIC_KEY === "TU_PUBLIC_KEY_AQUI") return;
     try {
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
             to_email: correoDestino,
             subject: asunto,
             message: mensaje
         });
-        console.log("Email enviado a", correoDestino);
-    } catch (error) {
-        console.error("Error email:", error);
-    }
+    } catch (error) { console.error("Error email:", error); }
 };
 
 window.solicitarPermisosNotificacion = function() {
     if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-        Notification.requestPermission().then(p => {
-            if (p === "granted") console.log("Notificaciones ON");
-        });
+        Notification.requestPermission();
     }
 };
 
@@ -173,10 +170,12 @@ window.iniciarSesion = async function() {
     const user = document.getElementById("login-user").value.trim().toLowerCase();
     const pass = document.getElementById("login-pass").value.trim();
     if(!user || !pass) return alert("Ingrese usuario y contraseña.");
+    
     if (user === "admin" && pass === "1130") {
-        window.cargarSesion({ id: "admin", rol: "admin", grupos: ["SERVICIOS GENERALES"] });
+        window.cargarSesion({ id: "admin", rol: "Administrador Supremo", grupos: ["SERVICIOS GENERALES"] });
         return;
     }
+    
     try {
         const snap = await getDoc(doc(db, "usuarios", user));
         if (snap.exists() && snap.data().pass === pass) {
@@ -210,60 +209,86 @@ window.cargarSesion = function(datos) {
         infoDiv.innerHTML = `<div class="flex flex-col items-center"><div class="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center text-indigo-600 mb-2 shadow-inner"><i class="fas fa-user text-xl"></i></div><span class="font-black text-slate-800 uppercase tracking-wide">${datos.id}</span><span class="text-[10px] uppercase font-black text-white bg-indigo-500 px-3 py-1 rounded-md mt-1 shadow-sm tracking-widest">${datos.rol}</span></div>`;
     }
 
+    // CONSTRUCCIÓN DEL MENÚ DINÁMICO BASADO EN PERMISOS
     let menuHtml = "";
-    const addItem = (id, icon, name) => `<button onclick="window.verPagina('${id}')" class="w-full flex items-center gap-4 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-white border border-slate-200 group-hover:border-indigo-200 flex items-center justify-center transition-colors"><i class="fas fa-${icon} group-hover:text-indigo-500"></i></div>${name}</button>`;
     const addHeader = (title) => `<p class="text-[10px] font-black text-indigo-400 uppercase mt-4 mb-2 ml-2 tracking-widest">${title}</p>`;
+    const addItem = (id, icon, name) => `<button onclick="window.verPagina('${id}')" class="w-full flex items-center gap-4 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-white border border-slate-200 group-hover:border-indigo-200 flex items-center justify-center transition-colors"><i class="fas fa-${icon} group-hover:text-indigo-500"></i></div>${name}</button>`;
 
-    if(['admin','manager','supervisor'].includes(datos.rol)) {
+    if(window.tienePermiso('dashboard', 'ver')) {
         menuHtml += addHeader("Analítica");
         menuHtml += addItem('stats', 'chart-pie', 'Dashboard');
     }
     
     menuHtml += addHeader("Operaciones & Logística");
-    menuHtml += addItem('stock', 'boxes', 'Inventario');
-    
-    if(window.tienePermiso('comprar') || window.tienePermiso('recibir') || datos.rol === 'admin' || datos.rol === 'manager') {
-        menuHtml += addItem('compras', 'truck-loading', 'Compras');
-    }
-    
-    menuHtml += addItem('solicitar', 'cart-plus', 'Pedir Insumo');
-    
-    if(window.tienePermiso('aprobar') || datos.rol === 'admin' || datos.rol === 'manager' || datos.rol === 'supervisor') {
-        menuHtml += addItem('solicitudes', 'check-double', 'Aprobaciones');
-    }
+    if(window.tienePermiso('stock', 'ver')) menuHtml += addItem('stock', 'boxes', 'Inventario');
+    if(window.tienePermiso('compras', 'ver')) menuHtml += addItem('compras', 'truck-loading', 'Compras');
+    if(window.tienePermiso('pedir', 'ver')) menuHtml += addItem('solicitar', 'cart-plus', 'Pedir Insumo');
+    if(window.tienePermiso('aprobaciones', 'ver')) menuHtml += addItem('solicitudes', 'check-double', 'Aprobaciones');
 
-    if(window.tienePermiso('activos') || datos.rol === 'admin' || datos.rol === 'manager' || datos.rol === 'supervisor') {
+    if(window.tienePermiso('activos', 'ver') || window.tienePermiso('mantenimiento', 'ver')) {
         menuHtml += addHeader("Equipos & Mtto");
-        menuHtml += addItem('activos', 'desktop', 'Activos Fijos');
-        menuHtml += addItem('mantenimiento', 'tools', 'Mantenimiento');
+        if(window.tienePermiso('activos', 'ver')) menuHtml += addItem('activos', 'desktop', 'Activos Fijos');
+        if(window.tienePermiso('mantenimiento', 'ver')) menuHtml += addItem('mantenimiento', 'tools', 'Mantenimiento');
     }
 
     menuHtml += addHeader("Registros");
-    menuHtml += addItem('notificaciones', 'clipboard-list', 'Mis Pedidos');
-    
-    if(['admin','manager','supervisor'].includes(datos.rol)) {
-        menuHtml += addItem('historial', 'history', 'Movimientos');
-    }
-    if(['admin','manager'].includes(datos.rol)) {
-        menuHtml += addItem('facturas', 'file-invoice-dollar', 'Facturas Directas');
-    }
+    if(window.tienePermiso('mis_pedidos', 'ver')) menuHtml += addItem('notificaciones', 'clipboard-list', 'Mis Pedidos');
+    if(window.tienePermiso('historial', 'ver')) menuHtml += addItem('historial', 'history', 'Movimientos');
+    if(window.tienePermiso('facturas', 'ver')) menuHtml += addItem('facturas', 'file-invoice-dollar', 'Facturas Directas');
 
-    if(datos.rol === 'admin') {
+    if(window.tienePermiso('usuarios', 'ver') || window.tienePermiso('configuracion', 'ver')) {
         menuHtml += addHeader("Administración");
-        menuHtml += addItem('usuarios', 'users-cog', 'Accesos');
-        menuHtml += addItem('config', 'cogs', 'Configuración');
+        if(window.tienePermiso('usuarios', 'ver')) menuHtml += addItem('usuarios', 'users-cog', 'Accesos');
+        if(window.tienePermiso('configuracion', 'ver')) menuHtml += addItem('config', 'cogs', 'Configuración');
     }
 
     const menuDin = document.getElementById("menu-dinamico");
     if(menuDin) menuDin.innerHTML = menuHtml;
 
+    // DEFINIR PÁGINA INICIAL
+    let pageToLoad = 'stock';
+    const mapPages = {
+        'stats':'dashboard', 'stock':'stock', 'compras':'compras', 'solicitar':'pedir', 
+        'solicitudes':'aprobaciones', 'activos':'activos', 'mantenimiento':'mantenimiento', 
+        'notificaciones':'mis_pedidos', 'historial':'historial', 'facturas':'facturas', 
+        'usuarios':'usuarios', 'config':'configuracion'
+    };
+    for(let p in mapPages) {
+        if(window.tienePermiso(mapPages[p], 'ver')) {
+            pageToLoad = p;
+            break;
+        }
+    }
+
+    // INYECTAR MATRIZ DE PERMISOS EN LA VISTA DE USUARIOS
+    const matrizBody = document.getElementById("matriz-permisos");
+    if(matrizBody) {
+        let matrixHtml = "";
+        const modules = [
+            { id: 'dashboard', name: 'Dashboard' }, { id: 'stock', name: 'Inventario' }, 
+            { id: 'compras', name: 'Compras' }, { id: 'pedir', name: 'Pedir Insumos' }, 
+            { id: 'aprobaciones', name: 'Aprobaciones' }, { id: 'mis_pedidos', name: 'Mis Pedidos' }, 
+            { id: 'activos', name: 'Activos Fijos' }, { id: 'mantenimiento', name: 'Mantenimiento' }, 
+            { id: 'historial', name: 'Movimientos' }, { id: 'facturas', name: 'Facturas' }, 
+            { id: 'usuarios', name: 'Usuarios' }, { id: 'configuracion', name: 'Configuración' }
+        ];
+        modules.forEach(m => {
+            matrixHtml += `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="py-3 px-4 font-bold text-slate-700 text-xs uppercase">${m.name}</td>
+                <td class="py-3 px-4 text-center"><input type="checkbox" class="chk-permiso w-5 h-5 text-indigo-600 rounded border-slate-300 cursor-pointer shadow-sm" data-modulo="${m.id}" data-accion="ver"></td>
+                <td class="py-3 px-4 text-center"><input type="checkbox" class="chk-permiso w-5 h-5 text-indigo-600 rounded border-slate-300 cursor-pointer shadow-sm" data-modulo="${m.id}" data-accion="gestionar" onchange="if(this.checked) this.closest('tr').querySelector('[data-accion=\\'ver\\']').checked = true;"></td>
+            </tr>`;
+        });
+        matrizBody.innerHTML = matrixHtml;
+    }
+
     let misGrupos = datos.grupos || ["SERVICIOS GENERALES"];
-    if(datos.rol === 'admin') misGrupos = window.todosLosGrupos;
+    if(datos.id === 'admin') misGrupos = window.todosLosGrupos;
     window.grupoActivo = misGrupos[0];
     window.renderizarSelectorGrupos(misGrupos);
-    window.verPagina(['admin','manager','supervisor'].includes(datos.rol) ? 'stats' : 'stock');
-    
-    window.activarSincronizacion(); // Llamamos a Firebase solo despues de crear la UI
+    window.verPagina(pageToLoad);
+    window.activarSincronizacion();
 };
 
 window.cambiarGrupoActivo = function(nuevoGrupo) {
@@ -296,7 +321,7 @@ window.renderizarSelectorGrupos = function(misGrupos) {
 window.actualizarCheckboxesGrupos = function() {
     const container = document.getElementById("user-grupos-checkboxes");
     if(container) {
-        container.innerHTML = window.todosLosGrupos.map(g => `<label class="flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition"><input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo"><span class="text-xs font-bold text-slate-700 uppercase">${g}</span></label>`).join('');
+        container.innerHTML = window.todosLosGrupos.map(g => `<label class="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-indigo-50 transition shadow-sm"><input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo"><span class="text-xs font-bold text-slate-700 uppercase">${g}</span></label>`).join('');
     }
 };
 
@@ -304,28 +329,31 @@ window.actualizarCheckboxesGrupos = function() {
 // 6. FIREBASE SINCRONIZACIÓN
 // ==========================================
 window.activarSincronizacion = function() {
-    const uRol = window.usuarioActual.rol;
+    
+    // Configuraciones Generales
+    if(window.tienePermiso('configuracion', 'ver')) {
+        onSnapshot(doc(db, "configuracion", "notificaciones"), (docSnap) => {
+            if (docSnap.exists()) {
+                window.adminEmailGlobal = docSnap.data().emailAdmin || "";
+                const elA = document.getElementById("config-admin-email");
+                if(elA) elA.value = window.adminEmailGlobal;
+            }
+        });
 
-    onSnapshot(doc(db, "configuracion", "notificaciones"), (docSnap) => {
-        if (docSnap.exists()) {
-            window.adminEmailGlobal = docSnap.data().emailAdmin || "";
-            const elA = document.getElementById("config-admin-email");
-            if(elA) elA.value = window.adminEmailGlobal;
-        }
-    });
+        onSnapshot(doc(db, "configuracion", "alertas_stock"), (docSnap) => {
+            window.stockAlertEmailGlobal = "";
+            if (docSnap.exists() && docSnap.data()[window.grupoActivo]) {
+                window.stockAlertEmailGlobal = docSnap.data()[window.grupoActivo];
+                const elS = document.getElementById("config-stock-email");
+                if(elS) elS.value = window.stockAlertEmailGlobal;
+            } else {
+                const elS = document.getElementById("config-stock-email");
+                if(elS) elS.value = "";
+            }
+        });
+    }
 
-    onSnapshot(doc(db, "configuracion", "alertas_stock"), (docSnap) => {
-        window.stockAlertEmailGlobal = "";
-        if (docSnap.exists() && docSnap.data()[window.grupoActivo]) {
-            window.stockAlertEmailGlobal = docSnap.data()[window.grupoActivo];
-            const elS = document.getElementById("config-stock-email");
-            if(elS) elS.value = window.stockAlertEmailGlobal;
-        } else {
-            const elS = document.getElementById("config-stock-email");
-            if(elS) elS.value = "";
-        }
-    });
-
+    // Grupos y Sedes
     onSnapshot(collection(db, "grupos"), snap => {
         window.todosLosGrupos = ["SERVICIOS GENERALES"];
         let html = `<div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center"><span class="font-black text-indigo-700 text-xs uppercase"><i class="fas fa-lock mr-1"></i> SERVICIOS GENERALES</span><span class="text-[10px] bg-indigo-200 text-indigo-700 px-2 rounded-full">Base</span></div>`;
@@ -333,10 +361,11 @@ window.activarSincronizacion = function() {
             const n = d.data().nombre.toUpperCase();
             if(n !== "SERVICIOS GENERALES") {
                 window.todosLosGrupos.push(n);
-                html += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm"><span class="font-bold text-slate-700 text-xs uppercase"><i class="fas fa-folder text-slate-300 mr-1"></i> ${n}</span><button onclick="window.eliminarDato('grupos','${d.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash-alt"></i></button></div>`;
+                let btn = window.tienePermiso('configuracion', 'gestionar') ? `<button onclick="window.eliminarDato('grupos','${d.id}')" class="text-red-400 hover:text-red-600 p-2"><i class="fas fa-trash-alt"></i></button>` : '';
+                html += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm"><span class="font-bold text-slate-700 text-xs uppercase"><i class="fas fa-folder text-slate-300 mr-1"></i> ${n}</span>${btn}</div>`;
             }
         });
-        if(window.tienePermiso('comprar') || window.tienePermiso('aprobar') || uRol === 'admin') window.renderizarSelectorGrupos(window.todosLosGrupos);
+        window.renderizarSelectorGrupos(window.usuarioActual.id === 'admin' ? window.todosLosGrupos : window.usuarioActual.grupos);
         if(document.getElementById("lista-grupos-db")) document.getElementById("lista-grupos-db").innerHTML = html;
         window.actualizarCheckboxesGrupos();
     });
@@ -345,31 +374,38 @@ window.activarSincronizacion = function() {
         let opt = '<option value="" disabled selected>Seleccionar Sede...</option>', lst = '';
         snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(s => {
             opt += `<option value="${s.nombre}">📍 ${s.nombre}</option>`;
-            lst += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between shadow-sm"><span class="font-bold text-xs uppercase"><i class="fas fa-map-marker-alt text-slate-300 mr-1"></i> ${s.nombre}</span><button onclick="window.eliminarDato('sedes','${s.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash-alt"></i></button></div>`;
+            let btn = window.tienePermiso('configuracion', 'gestionar') ? `<button onclick="window.eliminarDato('sedes','${s.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash-alt"></i></button>` : '';
+            lst += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between shadow-sm items-center"><span class="font-bold text-xs uppercase"><i class="fas fa-map-marker-alt text-slate-300 mr-1"></i> ${s.nombre}</span>${btn}</div>`;
         });
         if(document.getElementById("sol-ubicacion")) document.getElementById("sol-ubicacion").innerHTML = opt;
         if(document.getElementById("lista-sedes-db")) document.getElementById("lista-sedes-db").innerHTML = lst;
     });
 
-    onSnapshot(collection(db, "inventario"), snap => {
-        rawInventario = [];
-        snap.forEach(ds => { rawInventario.push({ id: ds.id, ...ds.data() }); });
-        window.procesarDatosInventario();
-    });
+    // Inventario y Compras
+    if(window.tienePermiso('stock', 'ver') || window.tienePermiso('pedir', 'ver')) {
+        onSnapshot(collection(db, "inventario"), snap => {
+            rawInventario = [];
+            snap.forEach(ds => { rawInventario.push({ id: ds.id, ...ds.data() }); });
+            window.procesarDatosInventario();
+        });
+    }
 
-    onSnapshot(collection(db, "compras"), snap => {
-        rawCompras = [];
-        snap.forEach(ds => { rawCompras.push({ id: ds.id, ...ds.data() }); });
-        window.renderCompras();
-    });
+    if(window.tienePermiso('compras', 'ver')) {
+        onSnapshot(collection(db, "compras"), snap => {
+            rawCompras = [];
+            snap.forEach(ds => { rawCompras.push({ id: ds.id, ...ds.data() }); });
+            window.renderCompras();
+        });
+    }
 
+    // Pedidos (Notificaciones y Alertas)
     let isInitialPedidos = true;
     onSnapshot(collection(db, "pedidos"), snap => {
         if (!isInitialPedidos) {
             snap.docChanges().forEach(change => {
                 const p = change.doc.data();
                 const miId = window.usuarioActual?.id;
-                if (change.type === "added" && p.estado === 'pendiente' && window.tienePermiso('aprobar') && p.usuarioId !== miId) {
+                if (change.type === "added" && p.estado === 'pendiente' && window.tienePermiso('aprobaciones', 'gestionar') && p.usuarioId !== miId) {
                     window.enviarNotificacionNavegador("🚨 Nueva Solicitud", `${p.usuarioId.toUpperCase()} pide ${p.cantidad}x ${p.insumoNom}.\nSede: ${p.ubicacion}`);
                 }
                 if (change.type === "modified" && p.usuarioId === miId && ['aprobado', 'rechazado'].includes(p.estado)) {
@@ -383,27 +419,36 @@ window.activarSincronizacion = function() {
         isInitialPedidos = false;
     });
 
-    onSnapshot(collection(db, "entradas_stock"), snap => {
-        rawEntradas = [];
-        snap.forEach(x => { rawEntradas.push({id: x.id, ...x.data()}); });
-        window.renderHistorialUnificado();
-    });
+    // Historial
+    if(window.tienePermiso('historial', 'ver')) {
+        onSnapshot(collection(db, "entradas_stock"), snap => {
+            rawEntradas = [];
+            snap.forEach(x => { rawEntradas.push({id: x.id, ...x.data()}); });
+            window.renderHistorialUnificado();
+        });
+    }
 
-    onSnapshot(collection(db, "mantenimiento"), snap => {
-        rawMantenimiento = [];
-        snap.forEach(x => { rawMantenimiento.push({id: x.id, ...x.data()}); });
-        window.renderMantenimiento();
-        window.actualizarDashboard();
-    });
+    // Mantenimiento y Activos
+    if(window.tienePermiso('mantenimiento', 'ver') || window.tienePermiso('dashboard', 'ver')) {
+        onSnapshot(collection(db, "mantenimiento"), snap => {
+            rawMantenimiento = [];
+            snap.forEach(x => { rawMantenimiento.push({id: x.id, ...x.data()}); });
+            window.renderMantenimiento();
+            window.actualizarDashboard();
+        });
+    }
 
-    onSnapshot(collection(db, "activos"), snap => {
-        rawActivos = [];
-        snap.forEach(x => { rawActivos.push({id: x.id, ...x.data()}); });
-        window.renderActivos();
-        window.actualizarDashboard();
-    });
+    if(window.tienePermiso('activos', 'ver') || window.tienePermiso('dashboard', 'ver')) {
+        onSnapshot(collection(db, "activos"), snap => {
+            rawActivos = [];
+            snap.forEach(x => { rawActivos.push({id: x.id, ...x.data()}); });
+            window.renderActivos();
+            window.actualizarDashboard();
+        });
+    }
 
-    if(['admin','manager'].includes(uRol)) {
+    // Facturas
+    if(window.tienePermiso('facturas', 'ver')) {
         onSnapshot(collection(db, "facturas"), snap => {
             rawFacturas = [];
             snap.forEach(d => rawFacturas.push({id: d.id, ...d.data()}));
@@ -411,13 +456,16 @@ window.activarSincronizacion = function() {
         });
     }
 
-    if(['admin'].includes(uRol)) {
+    // Usuarios
+    if(window.tienePermiso('usuarios', 'ver')) {
         onSnapshot(collection(db, "usuarios"), snap => {
             let html = "";
+            const isManager = window.tienePermiso('usuarios', 'gestionar');
             snap.forEach(d => {
                 const u = d.data();
                 const jsId = d.id.replace(/'/g, "\\'");
-                html += `<div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm flex justify-between items-center"><div class="truncate w-full"><div class="flex items-center gap-2"><span class="font-black text-sm uppercase text-slate-800">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold border border-slate-200">${u.rol}</span></div><span class="text-[10px] text-indigo-500 font-bold block truncate mt-1.5"><i class="fas fa-folder-open text-indigo-300"></i> ${(u.grupos||[]).join(", ")}</span></div><div class="flex gap-2"><button onclick="window.prepararEdicionUsuario('${jsId}')" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 p-2 rounded-lg transition"><i class="fas fa-pen"></i></button><button onclick="window.eliminarDato('usuarios','${jsId}')" class="text-red-400 hover:text-red-600 bg-red-50 p-2 rounded-lg transition"><i class="fas fa-trash"></i></button></div></div>`;
+                let btns = isManager ? `<div class="flex gap-2"><button onclick="window.prepararEdicionUsuario('${jsId}')" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 p-2 rounded-lg transition"><i class="fas fa-pen"></i></button><button onclick="window.eliminarDato('usuarios','${jsId}')" class="text-red-400 hover:text-red-600 bg-red-50 p-2 rounded-lg transition"><i class="fas fa-trash"></i></button></div>` : '';
+                html += `<div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm flex justify-between items-center"><div class="truncate w-full"><div class="flex items-center gap-2"><span class="font-black text-sm uppercase text-slate-800">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold border border-slate-200">${u.rol}</span></div><span class="text-[10px] text-indigo-500 font-bold block truncate mt-1.5"><i class="fas fa-folder-open text-indigo-300"></i> ${(u.grupos||[]).join(", ")}</span></div>${btns}</div>`;
             });
             if(document.getElementById("lista-usuarios-db")) document.getElementById("lista-usuarios-db").innerHTML = html;
         });
@@ -425,7 +473,7 @@ window.activarSincronizacion = function() {
 };
 
 // ==========================================
-// 7. RENDERIZADO DE TABLAS Y TARJETAS
+// 7. RENDERIZADOS Y MÓDULOS DE PÁGINAS
 // ==========================================
 window.renderChart = function(id, labels, data, title, palette, chartInstance, setInstance) {
     const ctx = document.getElementById(id);
@@ -442,11 +490,23 @@ window.renderChart = function(id, labels, data, title, palette, chartInstance, s
 
 window.actualizarDashboard = function() {
     if(!window.cachePedidos) return;
+    if(!window.tienePermiso('dashboard', 'ver')) return;
+
     const desdeInput = document.getElementById("dash-desde")?.value;
     const hastaInput = document.getElementById("dash-hasta")?.value;
     let tDesde = 0; let tHasta = Infinity;
     if(desdeInput) tDesde = new Date(desdeInput + 'T00:00:00').getTime();
     if(hastaInput) tHasta = new Date(hastaInput + 'T23:59:59').getTime();
+
+    // Inyectar botón de Excel si tiene permiso
+    const panelFiltros = document.getElementById("panel-filtros-dashboard");
+    if(panelFiltros && window.tienePermiso('dashboard', 'gestionar')) {
+        if(!document.getElementById("btn-excel-dashboard")) {
+            panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-dashboard" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-700 transition shadow ml-2 flex items-center gap-2"><i class="fas fa-file-excel"></i> Exportar Datos</button>`);
+        }
+    } else if (document.getElementById("btn-excel-dashboard")) {
+        document.getElementById("btn-excel-dashboard").remove();
+    }
 
     let pedidosFiltrados = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
     if(document.getElementById("metrica-pedidos")) document.getElementById("metrica-pedidos").innerText = pedidosFiltrados.filter(p => p.estado === 'pendiente').length;
@@ -471,10 +531,21 @@ window.actualizarDashboard = function() {
 window.renderHistorialUnificado = function() {
     const t = document.getElementById("tabla-movimientos-unificados");
     if(!t) return;
+    
+    // Inyectar excel si tiene permiso
+    const panelFiltros = document.getElementById("panel-filtros-historial");
+    if(panelFiltros && window.tienePermiso('historial', 'gestionar')) {
+        if(!document.getElementById("btn-excel-historial")) {
+            panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-historial" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-700 shadow ml-2"><i class="fas fa-file-excel"></i> Exportar Todo</button>`);
+        }
+    } else if (document.getElementById("btn-excel-historial")) {
+        document.getElementById("btn-excel-historial").remove();
+    }
+
     let html = "";
     const ent = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo).map(e => ({ id: e.id, f: e.fecha || new Date(e.timestamp).toLocaleString(), ts: e.timestamp, t: 'ENTRADA', ins: e.insumo || 'N/A', c: e.cantidad || 0, det: `${e.usuario || 'N/A'} ${e.motivo_edicion ? `(Edit: ${e.motivo_edicion})` : ''}`, est: 'completado' }));
     const sal = window.cachePedidos.map(p => ({ id: p.id, f: p.fecha || new Date(p.timestamp).toLocaleString(), ts: p.timestamp, t: 'SALIDA', ins: p.insumoNom || 'N/A', c: p.cantidad || 0, det: `${p.usuarioId || 'N/A'} (${p.ubicacion || 'N/A'})`, est: p.estado || 'N/A' }));
-    const isAdmin = window.tienePermiso('comprar') || window.tienePermiso('aprobar');
+    const isGestor = window.tienePermiso('historial', 'gestionar');
     
     const combinados = [...ent, ...sal].sort((a,b) => b.ts - a.ts);
     if (combinados.length === 0) {
@@ -483,7 +554,7 @@ window.renderHistorialUnificado = function() {
     }
     combinados.forEach(h => {
         let btn = `<span class="badge status-${h.est}">${h.est}</span>`;
-        if(h.t === 'ENTRADA' && isAdmin) {
+        if(h.t === 'ENTRADA' && isGestor) {
             btn = `<div class="flex gap-2">${btn}<button onclick="window.abrirModalEditarEntrada('${h.id}', '${h.ins.replace(/'/g,"\\'")}', ${h.c})" class="text-amber-500 hover:text-amber-600 transition"><i class="fas fa-pen bg-amber-50 p-1.5 rounded"></i></button></div>`;
         }
         html += `<tr class="border-b border-slate-100 hover:bg-slate-50 transition"><td class="p-4 text-[10px] font-mono whitespace-nowrap">${h.f.split(',')[0]}</td><td class="p-4 text-xs font-black whitespace-nowrap text-slate-600">${h.t==='ENTRADA'?'<span class="text-emerald-500">📥</span>':'<span class="text-red-400">📤</span>'} ${h.t}</td><td class="p-4 font-bold uppercase text-xs text-slate-700">${h.ins}</td><td class="p-4 font-black text-center text-slate-800">${h.c}</td><td class="p-4 text-[10px] uppercase text-slate-500">${h.det}</td><td class="p-4">${btn}</td></tr>`;
@@ -494,11 +565,17 @@ window.renderHistorialUnificado = function() {
 window.procesarDatosFacturas = function() {
     const tb = document.getElementById("tabla-facturas-db");
     if(!tb) return;
+    
+    const btnReg = document.getElementById("btn-admin-facturas");
+    if(window.tienePermiso('facturas', 'gestionar') && btnReg) btnReg.classList.remove("hidden");
+
     const factGrupo = rawFacturas.filter(f => (f.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
     let html = "";
+    const isGestor = window.tienePermiso('facturas', 'gestionar');
+    
     factGrupo.forEach(f => {
         const docLink = f.archivo_url ? `<a href="${f.archivo_url}" target="_blank" class="text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg text-[10px]"><i class="fas fa-file-pdf"></i> Ver</a>` : 'N/A';
-        const trashBtn = ['admin','manager'].includes(window.usuarioActual?.rol) ? `<button onclick="window.eliminarDato('facturas','${f.id}')" class="text-red-400 hover:text-red-600 ml-2 bg-red-50 p-1.5 rounded-lg"><i class="fas fa-trash"></i></button>` : '';
+        const trashBtn = isGestor ? `<button onclick="window.eliminarDato('facturas','${f.id}')" class="text-red-400 hover:text-red-600 ml-2 bg-red-50 p-1.5 rounded-lg"><i class="fas fa-trash"></i></button>` : '';
         html += `<tr class="border-b border-slate-100 hover:bg-slate-50 transition"><td class="p-4 text-xs font-mono text-slate-500">${f.fecha_compra}</td><td class="p-4 text-xs font-bold uppercase text-slate-800">${f.proveedor}</td><td class="p-4 text-xs font-black text-emerald-600 text-right">$${f.gasto.toFixed(2)}</td><td class="p-4 text-[10px] text-center uppercase font-bold text-slate-500">${f.usuarioRegistro}</td><td class="p-4 text-xs text-center">${docLink}</td><td class="p-4 text-center">${trashBtn}</td></tr>`;
     });
     tb.innerHTML = html || '<tr><td colspan="6" class="p-4 text-center text-slate-400 font-medium">No hay facturas registradas.</td></tr>';
@@ -507,22 +584,30 @@ window.procesarDatosFacturas = function() {
 window.renderMantenimiento = function() {
     const tb = document.getElementById("tabla-mantenimiento-db");
     if(!tb) return;
+
+    const btnReg = document.getElementById("btn-admin-mantenimiento");
+    if(window.tienePermiso('mantenimiento', 'gestionar') && btnReg) btnReg.classList.remove("hidden");
+
     let html = "";
     const mantGrupo = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
+    const isGestor = window.tienePermiso('mantenimiento', 'gestionar');
+
     mantGrupo.forEach(m => {
         let badgeHtml = "", actions = "";
         if (m.estado === 'completado') {
             badgeHtml = `<span class="badge status-recibido mb-1">Completado</span>`;
         } else if (m.estado === 'en_proceso') {
             badgeHtml = `<span class="badge status-aprobado mb-1 animate-pulse">En Proceso</span>`;
-            actions = `<button onclick="window.completarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition mr-1 mb-1"><i class="fas fa-flag-checkered"></i> Finalizar</button>`;
+            if(isGestor) actions = `<button onclick="window.completarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition mr-1 mb-1"><i class="fas fa-flag-checkered"></i> Finalizar</button>`;
         } else {
             badgeHtml = `<span class="badge status-pendiente">Pendiente</span>`;
-            actions = `<button onclick="window.iniciarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition mr-1 mb-1"><i class="fas fa-play"></i> Iniciar</button>`;
+            if(isGestor) actions = `<button onclick="window.iniciarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition mr-1 mb-1"><i class="fas fa-play"></i> Iniciar</button>`;
         }
+        
         actions += `<button onclick="window.abrirBitacora('${m.id}')" class="text-slate-600 bg-slate-100 border border-slate-200 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition"><i class="fas fa-book"></i> Bitácora</button>`;
-        const trashBtn = window.tienePermiso('activos') ? `<button onclick="window.eliminarDato('mantenimiento','${m.id}')" class="text-red-400 hover:text-red-600 ml-2 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash"></i></button>` : '';
+        const trashBtn = isGestor ? `<button onclick="window.eliminarDato('mantenimiento','${m.id}')" class="text-red-400 hover:text-red-600 ml-2 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash"></i></button>` : '';
         let notifTag = m.fecha_notificacion ? `<br><span class="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded mt-1 inline-block font-bold"><i class="fas fa-bell"></i> Alerta: ${m.fecha_notificacion}</span>` : '';
+        
         html += `<tr class="hover:bg-slate-50 border-b border-slate-100 transition ${m.estado === 'completado' ? 'bg-slate-50/30' : ''}"><td class="p-4 align-top w-32">${badgeHtml}</td><td class="p-4 font-black text-slate-800 uppercase text-xs align-top">${m.equipo}</td><td class="p-4 text-slate-500 text-xs font-mono font-medium align-top">${m.fecha_programada}${notifTag}</td><td class="p-4 text-indigo-600 text-[10px] font-black uppercase align-top">${m.responsable}</td><td class="p-4 text-right align-top"><div class="flex flex-wrap justify-end gap-1">${actions}${trashBtn}</div></td></tr>`;
     });
     tb.innerHTML = html || '<tr><td colspan="5" class="p-4 text-center text-slate-400 font-medium">No hay mantenimientos.</td></tr>';
@@ -531,9 +616,13 @@ window.renderMantenimiento = function() {
 window.renderActivos = function() {
     const list = document.getElementById("lista-activos-db");
     if(!list) return;
+
+    const btnReg = document.getElementById("btn-admin-activos");
+    if(window.tienePermiso('activos', 'gestionar') && btnReg) btnReg.classList.remove("hidden");
+
     let html = "";
     const activosFiltrados = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
-    const isAdmin = window.tienePermiso('activos');
+    const isGestor = window.tienePermiso('activos', 'gestionar');
     
     activosFiltrados.forEach(a => {
         const jsId = a.id.replace(/'/g, "\\'");
@@ -543,7 +632,7 @@ window.renderActivos = function() {
         if(a.estado === "Fuera de Servicio") bColor = "bg-red-50 text-red-600 border-red-200";
         if(a.estado === "Almacenado") bColor = "bg-slate-50 text-slate-600 border-slate-200";
         
-        let controls = isAdmin ? `<button onclick="window.abrirModalActivo('${jsId}')" class="text-slate-400 hover:text-indigo-600 p-1 transition"><i class="fas fa-pen text-xs"></i></button><button onclick="window.eliminarDato('activos','${jsId}')" class="text-slate-400 hover:text-red-500 p-1 transition"><i class="fas fa-trash text-xs"></i></button>` : "";
+        let controls = isGestor ? `<button onclick="window.abrirModalActivo('${jsId}')" class="text-slate-400 hover:text-indigo-600 p-1 transition"><i class="fas fa-pen text-xs"></i></button><button onclick="window.eliminarDato('activos','${jsId}')" class="text-slate-400 hover:text-red-500 p-1 transition"><i class="fas fa-trash text-xs"></i></button>` : "";
         
         html += `
         <div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col item-tarjeta">
@@ -573,11 +662,14 @@ window.renderActivos = function() {
 
 window.renderCompras = function() {
     const btnComprar = document.getElementById("panel-registrar-compra");
-    if(window.tienePermiso('comprar') && btnComprar) btnComprar.classList.remove("hidden");
+    if(window.tienePermiso('compras', 'gestionar') && btnComprar) btnComprar.classList.remove("hidden");
+
     const tb = document.getElementById("lista-compras-db");
     if(!tb) return;
     let html = "";
     const comprasGrupo = rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
+    const isGestor = window.tienePermiso('compras', 'gestionar'); // Asumimos que quien puede comprar, puede recibir
+
     comprasGrupo.forEach(c => {
         let badge = c.estado === 'recibido' ? `<span class="badge status-recibido">Recibido</span>` : `<span class="badge status-pendiente animate-pulse">En Tránsito</span>`;
         let itemsList = `<ul class="text-[11px] text-slate-600 font-medium mt-3 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200 h-24 overflow-y-auto custom-scroll shadow-inner">`;
@@ -588,11 +680,13 @@ window.renderCompras = function() {
             totalCosto += i.precio; 
         });
         itemsList += `</ul>`;
+        
         let btnRecibir = "";
-        if (c.estado !== 'recibido' && window.tienePermiso('recibir')) {
+        if (c.estado !== 'recibido' && isGestor) {
             btnRecibir = `<button onclick="window.confirmarRecepcionCompra('${c.id}')" class="bg-emerald-500 text-white px-4 py-3 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-600 mt-4 w-full transition flex items-center justify-center gap-2"><i class="fas fa-box-open text-lg"></i> Recibir Inventario Físico</button>`;
         }
-        let trashBtn = window.tienePermiso('comprar') ? `<button onclick="window.eliminarDato('compras','${c.id}')" class="text-red-300 hover:text-red-500 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash text-xs"></i></button>` : '';
+        let trashBtn = isGestor ? `<button onclick="window.eliminarDato('compras','${c.id}')" class="text-red-300 hover:text-red-500 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash text-xs"></i></button>` : '';
+        
         html += `<div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-md flex flex-col justify-between hover:shadow-lg transition"><div class="flex justify-between items-start mb-2"><div>${badge}<h4 class="font-black text-slate-800 uppercase text-base mt-2">${c.proveedor}</h4></div>${trashBtn}</div><p class="text-[10px] font-mono text-slate-400 mt-1">Factura: <span class="font-bold">${c.factura || 'N/A'}</span> • ${c.fecha_compra}</p>${itemsList}<div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-100"><span class="text-[10px] uppercase text-indigo-500 font-black tracking-wide"><i class="fas fa-user mr-1 text-indigo-300"></i> ${c.registrado_por}</span><span class="text-emerald-600 font-black text-lg">$${totalCosto.toFixed(2)}</span></div>${btnRecibir}</div>`;
     });
     tb.innerHTML = html || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay compras registradas en este grupo.</p>`;
@@ -622,7 +716,7 @@ window.procesarDatosInventario = function() {
     if(!grid) return;
     let gridHTML = ""; let cartHTML = ""; let listHTML = ""; let tr = 0, ts = 0;
     const invFiltrado = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
-    const isAdmin = window.tienePermiso('recibir');
+    const isGestor = window.tienePermiso('stock', 'gestionar');
     
     invFiltrado.forEach(p => {
         const nombre = (p.id || '').toUpperCase();
@@ -631,7 +725,7 @@ window.procesarDatosInventario = function() {
         tr++; ts += (p.cantidad || 0);
         listHTML += `<option value="${nombre}">`;
         
-        let controls = isAdmin ? `<div class="flex gap-2"><button onclick="window.prepararEdicionProducto('${jsId}')" class="text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 p-1.5 rounded transition"><i class="fas fa-cog"></i></button><button onclick="window.eliminarDato('inventario','${jsId}')" class="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 p-1.5 rounded transition"><i class="fas fa-trash"></i></button></div>` : "";
+        let controls = isGestor ? `<div class="flex gap-2"><button onclick="window.prepararEdicionProducto('${jsId}')" class="text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 p-1.5 rounded transition"><i class="fas fa-cog"></i></button><button onclick="window.eliminarDato('inventario','${jsId}')" class="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 p-1.5 rounded transition"><i class="fas fa-trash"></i></button></div>` : "";
         const img = p.imagen ? `<img src="${p.imagen}" loading="lazy" class="w-14 h-14 object-cover rounded-xl border border-slate-200 shadow-sm mb-3">` : `<div class="w-14 h-14 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center text-slate-300 mb-3 shadow-inner"><i class="fas fa-image text-xl"></i></div>`;
         const isLow = (p.stockMinimo && p.cantidad <= p.stockMinimo);
         const border = isLow ? "border-2 border-red-400 bg-red-50" : "border border-slate-200 bg-white";
@@ -684,7 +778,7 @@ window.procesarDatosPedidos = function() {
         if(['pendiente', 'aprobado'].includes(p.estado)) htmlActive += cardHtml; else htmlHistory += cardHtml;
     });
 
-    if(window.tienePermiso('aprobar')) {
+    if(window.tienePermiso('aprobaciones', 'gestionar')) {
         Object.values(grupos).sort((a,b) => b.ts - a.ts).forEach(g => {
             const pendingItems = g.items.filter(i => i.estado === 'pendiente');
             if(pendingItems.length > 0) {
@@ -700,7 +794,6 @@ window.procesarDatosPedidos = function() {
     if(document.getElementById("lista-pendientes-admin")) document.getElementById("lista-pendientes-admin").innerHTML = htmlAdmin || `<p class="col-span-full text-slate-400 text-sm font-medium">No hay solicitudes pendientes.</p>`;
     if(document.getElementById("tab-content-activos")) document.getElementById("tab-content-activos").innerHTML = htmlActive || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No tienes solicitudes en curso.</p>`;
     if(document.getElementById("tab-content-historial")) document.getElementById("tab-content-historial").innerHTML = htmlHistory || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay historial de solicitudes.</p>`;
-    window.actualizarDashboard();
 };
 
 // ==========================================
@@ -731,91 +824,6 @@ window.detenerScanner = function() {
 // ==========================================
 // 9. LÓGICA DE NEGOCIO CRUD
 // ==========================================
-window.agregarItemCompra = function() {
-    const insumo = document.getElementById("compra-insumo").value.trim().toUpperCase();
-    const cant = parseInt(document.getElementById("compra-cant").value);
-    const precio = parseFloat(document.getElementById("compra-precio").value) || 0;
-    if(!insumo || isNaN(cant) || cant <= 0) return alert("Completa Insumo y Cantidad válida.");
-    if(!window.carritoCompras) window.carritoCompras = {};
-    window.carritoCompras[insumo] = { cantidad: cant, precio: precio };
-    window.renderCarritoCompras();
-    document.getElementById("compra-insumo").value = "";
-    document.getElementById("compra-cant").value = "";
-    document.getElementById("compra-precio").value = "";
-    document.getElementById("compra-insumo").focus();
-};
-
-window.renderCarritoCompras = function() {
-    const container = document.getElementById("lista-items-compra");
-    let items = Object.entries(window.carritoCompras || {});
-    if(items.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 text-center italic py-2">Sin items añadidos</p>`; return; }
-    let html = ""; let total = 0;
-    items.forEach(([ins, data]) => {
-        let pStr = data.precio > 0 ? `<span class="text-emerald-600 font-bold">$${data.precio.toFixed(2)}</span>` : '';
-        html += `<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 shadow-sm mb-2"><span>${data.cantidad}x ${ins}</span><div class="flex items-center gap-4">${pStr}<button onclick="delete window.carritoCompras['${ins}']; window.renderCarritoCompras()" class="text-red-400 hover:text-red-600 bg-red-50 p-1.5 rounded"><i class="fas fa-times"></i></button></div></div>`;
-        total += data.precio;
-    });
-    if(total > 0) html += `<div class="text-right text-sm font-black text-slate-800 mt-3 pr-2 border-t border-slate-200 pt-2">Total Estimado: <span class="text-emerald-600">$${total.toFixed(2)}</span></div>`;
-    container.innerHTML = html;
-};
-
-window.procesarCompra = async function() {
-    const prov = document.getElementById("compra-proveedor").value.trim().toUpperCase();
-    const fact = document.getElementById("compra-factura").value.trim().toUpperCase();
-    const items = Object.entries(window.carritoCompras || {});
-    if(!prov || items.length === 0) return alert("Proveedor y al menos 1 ítem son requeridos.");
-    const itemsArray = items.map(([ins, data]) => ({ insumo: ins, cantidad: data.cantidad, precio: data.precio }));
-    try {
-        await addDoc(collection(db, "compras"), {
-            proveedor: prov, factura: fact, items: itemsArray, estado: "en_transito",
-            grupo: window.grupoActivo, registrado_por: window.usuarioActual.id,
-            fecha_compra: new Date().toLocaleString(), timestamp: Date.now()
-        });
-        window.carritoCompras = {};
-        window.renderCarritoCompras();
-        document.getElementById("compra-proveedor").value = "";
-        document.getElementById("compra-factura").value = "";
-        alert("Compra registrada exitosamente.");
-    } catch(e) {
-        alert("Error registrando compra.");
-    }
-};
-
-window.confirmarRecepcionCompra = async function(compraId) {
-    if(!confirm("¿Confirmas recibir la compra en físico? Esto sumará el stock al inventario general.")) return;
-    const cRef = doc(db, "compras", compraId);
-    try {
-        const cSnap = await getDoc(cRef);
-        if(!cSnap.exists()) return;
-        const cData = cSnap.data();
-        const batch = writeBatch(db);
-        for (const item of cData.items) {
-            const iRef = doc(db, "inventario", item.insumo);
-            const iSnap = await getDoc(iRef);
-            if (iSnap.exists()) {
-                batch.update(iRef, { cantidad: iSnap.data().cantidad + item.cantidad });
-            } else {
-                batch.set(iRef, { cantidad: item.cantidad, precio: 0, stockMinimo: 0, grupo: window.grupoActivo });
-            }
-            const hRef = doc(collection(db, "entradas_stock"));
-            batch.set(hRef, {
-                insumo: item.insumo, cantidad: item.cantidad, grupo: window.grupoActivo,
-                usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(),
-                timestamp: Date.now(), motivo_edicion: `Recepción Compra: ${cData.factura || cData.proveedor}`
-            });
-        }
-        batch.update(cRef, {
-            estado: "recibido", recibido_por: window.usuarioActual.id,
-            fecha_recepcion: new Date().toLocaleString(), timestamp_recepcion: Date.now()
-        });
-        await batch.commit();
-        alert("✅ Inventario actualizado con los items de la compra.");
-    } catch(e) {
-        console.error(e);
-        alert("Error en la recepción.");
-    }
-};
-
 window.ajustarCantidad = function(idInsumo, delta) {
     const safeId = idInsumo.replace(/[^a-zA-Z0-9]/g, '_');
     const n = Math.max(0, (window.carritoGlobal[idInsumo] || 0) + delta);
@@ -949,7 +957,7 @@ window.abrirModalGrupo = function(bKey) {
     let h = "";
     items.forEach(p => {
         let act = `<span class="badge status-${p.estado}">${p.estado}</span>`;
-        if(p.estado === 'pendiente' && window.tienePermiso('aprobar')) {
+        if(p.estado === 'pendiente' && window.tienePermiso('aprobaciones', 'gestionar')) {
             act = `<div class="flex gap-2"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border rounded text-center font-bold text-xs"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom.replace(/'/g,"\\'")}')" class="text-white bg-emerald-500 px-2 rounded"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-red-400 bg-red-50 px-2 rounded"><i class="fas fa-times"></i></button></div>`;
         }
         h += `<div class="flex justify-between items-center p-3 border-b"><div class="text-xs"><b>${p.insumoNom}</b> <span class="badge status-pri-${p.prioridad}">${p.prioridad}</span><br>Cant: ${p.cantidad}</div>${act}</div>`;
@@ -988,70 +996,6 @@ window.eliminarDato = async function(col, id) {
     if(confirm("¿Seguro que deseas eliminar este dato?")) await deleteDoc(doc(db, col, id));
 };
 
-window.abrirModalActivo = function(id = null) {
-    document.getElementById("activo-preview-img").classList.add("hidden"); document.getElementById("activo-img-url").value = "";
-    if (id) {
-        const a = rawActivos.find(x => x.id === id); if(!a) return;
-        document.getElementById("activo-id").value = id; document.getElementById("activo-nombre").value = a.nombre || ""; document.getElementById("activo-categoria").value = a.categoria || ""; document.getElementById("activo-marca").value = a.marca || ""; document.getElementById("activo-proveedor").value = a.proveedor || ""; document.getElementById("activo-ubicacion").value = a.ubicacion || ""; document.getElementById("activo-precio").value = a.precio || ""; document.getElementById("activo-estado").value = a.estado || "Operativo"; document.getElementById("activo-descripcion").value = a.descripcion || ""; document.getElementById("activo-observacion").value = a.observacion || "";
-        if(a.imagen) { document.getElementById("activo-img-url").value = a.imagen; document.getElementById("activo-preview-img").src = a.imagen; document.getElementById("activo-preview-img").classList.remove("hidden"); }
-    } else {
-        document.getElementById("activo-id").value = ""; document.getElementById("activo-nombre").value = ""; document.getElementById("activo-categoria").value = ""; document.getElementById("activo-marca").value = ""; document.getElementById("activo-proveedor").value = ""; document.getElementById("activo-ubicacion").value = ""; document.getElementById("activo-precio").value = ""; document.getElementById("activo-estado").value = "Operativo"; document.getElementById("activo-descripcion").value = ""; document.getElementById("activo-observacion").value = "";
-    }
-    document.getElementById("modal-activo").classList.remove("hidden");
-};
-
-window.guardarActivo = async function() {
-    const actId = document.getElementById("activo-id").value;
-    const nombre = document.getElementById("activo-nombre").value.trim().toUpperCase();
-    if (!nombre) return alert("El nombre del activo es obligatorio.");
-    const data = {
-        nombre: nombre, categoria: document.getElementById("activo-categoria").value.trim().toUpperCase(), marca: document.getElementById("activo-marca").value.trim().toUpperCase(), proveedor: document.getElementById("activo-proveedor").value.trim().toUpperCase(), ubicacion: document.getElementById("activo-ubicacion").value.trim().toUpperCase(), precio: parseFloat(document.getElementById("activo-precio").value) || 0, estado: document.getElementById("activo-estado").value, descripcion: document.getElementById("activo-descripcion").value.trim(), observacion: document.getElementById("activo-observacion").value.trim(), imagen: document.getElementById("activo-img-url").value, grupo: window.grupoActivo
-    };
-    try {
-        if (actId) { await updateDoc(doc(db, "activos", actId), data); alert("Activo actualizado."); } 
-        else { const newId = "ACT-" + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*100); data.id = newId; data.creado_por = window.usuarioActual.id; data.fecha_registro = new Date().toLocaleString(); data.timestamp = Date.now(); data.bitacora = []; await setDoc(doc(db, "activos", newId), data); alert("Activo registrado. ID: " + newId); }
-        document.getElementById("modal-activo").classList.add("hidden");
-    } catch(e) { alert("Error al guardar activo."); }
-};
-
-window.abrirDetallesActivo = function(id) {
-    const a = rawActivos.find(x => x.id === id); if(!a) return;
-    document.getElementById("activo-bitacora-id").value = id; document.getElementById("activo-det-nombre").innerText = a.nombre; document.getElementById("activo-det-id").innerText = "ID: " + a.id;
-    document.getElementById("activo-det-qr-container").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=${encodeURIComponent(a.id)}" alt="QR Code" class="w-16 h-16 object-contain">`;
-    const imgEl = document.getElementById("activo-det-img");
-    if(a.imagen) { imgEl.src = a.imagen; imgEl.classList.remove("hidden"); } else { imgEl.classList.add("hidden"); }
-    document.getElementById("activo-det-estado").innerHTML = `<span class="px-2 py-1 bg-slate-100 rounded text-slate-700 text-xs">${a.estado}</span>`;
-    document.getElementById("activo-det-cat").innerText = a.categoria || '-'; document.getElementById("activo-det-marca").innerText = a.marca || '-'; document.getElementById("activo-det-ubi").innerText = a.ubicacion || '-'; document.getElementById("activo-det-fecha").innerText = a.fecha_registro || '-'; document.getElementById("activo-det-desc").innerText = a.descripcion || 'Sin detalles';
-    let bHtml = "";
-    if (a.observacion) bHtml += `<div class="relative pl-4 border-l-2 border-indigo-200 pb-3"><div class="absolute w-2.5 h-2.5 bg-indigo-500 rounded-full -left-[6px] top-1"></div><p class="text-[9px] text-slate-400 font-bold mb-1">NOTA ORIGINAL</p><p class="text-xs font-medium text-slate-700 italic">${a.observacion}</p></div>`;
-    if(a.bitacora && a.bitacora.length > 0) {
-        a.bitacora.forEach(b => {
-            let mediaHtml = "";
-            if(b.mediaUrl) {
-                if(b.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) mediaHtml = `<video src="${b.mediaUrl}" controls class="max-h-32 rounded-lg mt-2 border"></video>`;
-                else mediaHtml = `<a href="${b.mediaUrl}" target="_blank"><img src="${b.mediaUrl}" loading="lazy" class="max-h-24 object-contain rounded-lg mt-2 border hover:opacity-80"></a>`;
-            }
-            bHtml += `<div class="relative pl-4 border-l-2 border-slate-200 pb-4"><div class="absolute w-2.5 h-2.5 bg-slate-400 rounded-full -left-[6px] top-1"></div><div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p class="text-[9px] text-slate-400 font-bold mb-1 flex justify-between"><span>${b.usuario.toUpperCase()}</span><span>${b.fecha}</span></p><p class="text-xs text-slate-700 whitespace-pre-wrap">${b.nota}</p>${mediaHtml}</div></div>`;
-        });
-    } else if (!a.observacion) bHtml += `<p class="text-xs text-slate-400 italic">No hay notas registradas.</p>`;
-    document.getElementById("activo-bitacora-timeline").innerHTML = bHtml;
-    document.getElementById("activo-bitacora-texto").value = ""; document.getElementById("activo-bitacora-url").value = ""; document.getElementById("activo-bitacora-badge").classList.add("hidden");
-    document.getElementById("modal-activo-detalles").classList.remove("hidden");
-};
-window.cerrarDetallesActivo = function() { document.getElementById("modal-activo-detalles").classList.add("hidden"); };
-window.guardarBitacoraActivo = async function() {
-    const id = document.getElementById("activo-bitacora-id").value;
-    const txt = document.getElementById("activo-bitacora-texto").value.trim();
-    const url = document.getElementById("activo-bitacora-url").value;
-    if(!txt && !url) return alert("Escribe o adjunta algo.");
-    const aRef = doc(db, "activos", id); const aSnap = await getDoc(aRef);
-    if(aSnap.exists()) {
-        const bitacoraAnterior = aSnap.data().bitacora || [];
-        await updateDoc(aRef, { bitacora: [...bitacoraAnterior, { nota: txt, mediaUrl: url, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() }] });
-        window.abrirDetallesActivo(id);
-    }
-};
-
 window.abrirModalMantenimiento = function() {
     document.getElementById("mant-equipo").value=""; document.getElementById("mant-fecha").value=""; document.getElementById("mant-fecha-notificacion").value=""; document.getElementById("mant-correo").value=""; document.getElementById("mant-responsable").value=""; document.getElementById("mant-detalle").value=""; document.getElementById("modal-mantenimiento").classList.remove("hidden");
 };
@@ -1085,6 +1029,13 @@ window.abrirBitacora = function(id) {
         });
     } else html += `<p class="text-xs text-slate-400 italic mt-4">No hay observaciones registradas aún.</p>`;
     tl.innerHTML = html; document.getElementById("modal-bitacora").classList.remove("hidden");
+    
+    const bitacoraForm = document.getElementById("bitacora-form-container");
+    if(window.tienePermiso('mantenimiento', 'gestionar')) {
+        bitacoraForm.classList.remove("hidden");
+    } else {
+        bitacoraForm.classList.add("hidden");
+    }
 };
 window.guardarBitacora = async function() {
     const id = document.getElementById("bitacora-mant-id").value; const txt = document.getElementById("bitacora-texto").value.trim(); const url = document.getElementById("bitacora-media-url").value;
@@ -1099,27 +1050,74 @@ window.guardarGrupo = async function() { const g = document.getElementById("new-
 window.guardarConfigCorreos = async function() { const emailA = document.getElementById("config-admin-email").value.trim(); const emailS = document.getElementById("config-stock-email").value.trim(); try { if(emailA) await setDoc(doc(db, "configuracion", "notificaciones"), { emailAdmin: emailA }, { merge: true }); if(emailS) await setDoc(doc(db, "configuracion", "alertas_stock"), { [window.grupoActivo]: emailS }, { merge: true }); alert("Correos actualizados exitosamente."); } catch(e) { alert("Error al guardar correos."); } };
 
 window.guardarUsuario = async function() {
-    const id = document.getElementById("new-user").value.trim().toLowerCase(); const p = document.getElementById("new-pass").value.trim(); const e = document.getElementById("new-email").value.trim(); const r = document.getElementById("new-role").value;
-    const checkboxes = document.querySelectorAll('.chk-grupo:checked'); let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value); if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"];
-    const perms = { comprar: document.getElementById("perm-comprar").checked, recibir: document.getElementById("perm-recibir").checked, aprobar: document.getElementById("perm-aprobar").checked, activos: document.getElementById("perm-activos").checked };
-    if(!id || !p) return alert("Faltan datos.");
-    await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados, permisos: perms }, { merge: true }); alert("Usuario guardado."); window.cancelarEdicionUsuario();
+    const id = document.getElementById("new-user").value.trim().toLowerCase();
+    const p = document.getElementById("new-pass").value.trim();
+    const e = document.getElementById("new-email").value.trim();
+    const r = document.getElementById("new-role").value.trim().toUpperCase() || "USUARIO BASE";
+    
+    const checkboxes = document.querySelectorAll('.chk-grupo:checked');
+    let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value);
+    if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"];
+    
+    // Recopilar Matriz de Permisos
+    const perms = {};
+    document.querySelectorAll('.chk-permiso').forEach(chk => {
+        const mod = chk.dataset.modulo;
+        const acc = chk.dataset.accion;
+        if(!perms[mod]) perms[mod] = { ver: false, gestionar: false };
+        if(chk.checked) perms[mod][acc] = true;
+    });
+
+    if(!id || !p) return alert("El ID y la contraseña son obligatorios.");
+    try {
+        await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados, permisos: perms }, { merge: true });
+        alert("Usuario guardado exitosamente.");
+        window.cancelarEdicionUsuario();
+    } catch(e) {
+        alert("Error al guardar usuario.");
+    }
 };
 
 window.prepararEdicionUsuario = async function(userId) {
-    const snap = await getDoc(doc(db, "usuarios", userId)); if(!snap.exists()) return; const u = snap.data();
-    document.getElementById("edit-mode-id").value = userId; const inpU = document.getElementById("new-user"); inpU.value = userId; inpU.disabled = true;
-    document.getElementById("new-pass").value = u.pass; document.getElementById("new-email").value = u.email || ""; document.getElementById("new-role").value = u.rol;
-    const p = u.permisos || {}; document.getElementById("perm-comprar").checked = !!p.comprar; document.getElementById("perm-recibir").checked = !!p.recibir; document.getElementById("perm-aprobar").checked = !!p.aprobar; document.getElementById("perm-activos").checked = !!p.activos;
-    const gruposUsuario = u.grupos || ["SERVICIOS GENERALES"]; document.querySelectorAll('.chk-grupo').forEach(chk => { chk.checked = gruposUsuario.includes(chk.value); });
-    document.getElementById("btn-guardar-usuario").innerText = "Actualizar"; document.getElementById("cancel-edit-msg").classList.remove("hidden");
+    const snap = await getDoc(doc(db, "usuarios", userId));
+    if(!snap.exists()) return;
+    const u = snap.data();
+    
+    document.getElementById("edit-mode-id").value = userId;
+    const inpU = document.getElementById("new-user");
+    inpU.value = userId; inpU.disabled = true;
+    document.getElementById("new-pass").value = u.pass;
+    document.getElementById("new-email").value = u.email || "";
+    document.getElementById("new-role").value = u.rol || "";
+    
+    // Cargar Matriz de Permisos
+    const p = u.permisos || {};
+    document.querySelectorAll('.chk-permiso').forEach(chk => {
+        const mod = chk.dataset.modulo;
+        const acc = chk.dataset.accion;
+        chk.checked = p[mod] && p[mod][acc] === true;
+    });
+
+    const gruposUsuario = u.grupos || ["SERVICIOS GENERALES"];
+    document.querySelectorAll('.chk-grupo').forEach(chk => { chk.checked = gruposUsuario.includes(chk.value); });
+    
+    document.getElementById("btn-guardar-usuario").innerText = "Actualizar Usuario";
+    document.getElementById("cancel-edit-msg").classList.remove("hidden");
 };
 
 window.cancelarEdicionUsuario = function() {
-    document.getElementById("edit-mode-id").value = ""; const inpU = document.getElementById("new-user"); inpU.value = ""; inpU.disabled = false;
-    document.getElementById("new-pass").value = ""; document.getElementById("new-email").value = ""; document.getElementById("new-role").value = "user";
-    document.getElementById("perm-comprar").checked = false; document.getElementById("perm-recibir").checked = false; document.getElementById("perm-aprobar").checked = false; document.getElementById("perm-activos").checked = false;
-    document.querySelectorAll('.chk-grupo').forEach(chk => chk.checked = false); document.getElementById("btn-guardar-usuario").innerText = "Guardar"; document.getElementById("cancel-edit-msg").classList.add("hidden");
+    document.getElementById("edit-mode-id").value = "";
+    const inpU = document.getElementById("new-user");
+    inpU.value = ""; inpU.disabled = false;
+    document.getElementById("new-pass").value = "";
+    document.getElementById("new-email").value = "";
+    document.getElementById("new-role").value = "";
+    
+    document.querySelectorAll('.chk-permiso').forEach(chk => chk.checked = false);
+    document.querySelectorAll('.chk-grupo').forEach(chk => chk.checked = false);
+    
+    document.getElementById("btn-guardar-usuario").innerText = "Guardar Usuario";
+    document.getElementById("cancel-edit-msg").classList.add("hidden");
 };
 
 window.abrirModalEditarEntrada = function(idEntrada, insumo, cantidadActual) { document.getElementById('edit-entrada-id').value = idEntrada; document.getElementById('edit-entrada-insumo').value = insumo; document.getElementById('edit-entrada-insumo-display').value = insumo; document.getElementById('edit-entrada-cant-original').value = cantidadActual; document.getElementById('edit-entrada-cantidad').value = cantidadActual; document.getElementById('edit-entrada-motivo').value = ""; document.getElementById('modal-editar-entrada').classList.remove('hidden'); };
