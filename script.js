@@ -33,6 +33,8 @@ window.grupoActivo = "SERVICIOS GENERALES";
 window.miGraficoStock = null;
 window.miGraficoUbicacion = null;
 window.html5QrcodeScanner = null;
+window.configCorreosData = {};
+window.configStockData = {};
 window.adminEmailGlobal = "";
 window.stockAlertEmailGlobal = "";
 
@@ -71,20 +73,14 @@ window.formatoTiempoDiferencia = function(t1, t2) {
 };
 
 window.enviarNotificacionEmail = async function(correoDestino, asunto, mensaje) {
-    if(EMAILJS_PUBLIC_KEY === "TU_PUBLIC_KEY_AQUI") {
-        console.warn("Email simulado a", correoDestino);
-        return;
-    }
+    if(EMAILJS_PUBLIC_KEY === "TU_PUBLIC_KEY_AQUI") return;
     try {
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
             to_email: correoDestino,
             subject: asunto,
             message: mensaje
         });
-        console.log("Email a", correoDestino);
-    } catch (error) {
-        console.error("Error email:", error);
-    }
+    } catch (error) { console.error("Error email:", error); }
 };
 
 window.solicitarPermisosNotificacion = function() {
@@ -215,15 +211,11 @@ window.cargarSesion = function(datos) {
         infoDiv.innerHTML = `<div class="flex flex-col items-center"><div class="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center text-indigo-600 mb-2 shadow-inner"><i class="fas fa-user text-xl"></i></div><span class="font-black text-slate-800 uppercase tracking-wide">${datos.id}</span><span class="text-[10px] uppercase font-black text-white bg-indigo-500 px-3 py-1 rounded-md mt-1 shadow-sm tracking-widest">${datos.rol}</span></div>`;
     }
 
-    // CONSTRUCCIÓN DEL MENÚ DINÁMICO BASADO EN PERMISOS
     let menuHtml = "";
     const addHeader = (title) => `<p class="text-[10px] font-black text-indigo-400 uppercase mt-4 mb-2 ml-2 tracking-widest">${title}</p>`;
     const addItem = (id, icon, name) => `<button onclick="window.verPagina('${id}')" class="w-full flex items-center gap-4 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-white border border-slate-200 group-hover:border-indigo-200 flex items-center justify-center transition-colors"><i class="fas fa-${icon} group-hover:text-indigo-500"></i></div>${name}</button>`;
 
-    if(window.tienePermiso('dashboard', 'ver')) {
-        menuHtml += addHeader("Analítica");
-        menuHtml += addItem('stats', 'chart-pie', 'Dashboard');
-    }
+    if(window.tienePermiso('dashboard', 'ver')) { menuHtml += addHeader("Analítica"); menuHtml += addItem('stats', 'chart-pie', 'Dashboard'); }
     
     menuHtml += addHeader("Operaciones & Logística");
     if(window.tienePermiso('stock', 'ver')) menuHtml += addItem('stock', 'boxes', 'Inventario');
@@ -251,41 +243,15 @@ window.cargarSesion = function(datos) {
     const menuDin = document.getElementById("menu-dinamico");
     if(menuDin) menuDin.innerHTML = menuHtml;
 
-    // DEFINIR PÁGINA INICIAL
     let pageToLoad = 'stock';
-    const mapPages = {
-        'stats':'dashboard', 'stock':'stock', 'compras':'compras', 'solicitar':'pedir', 
-        'solicitudes':'aprobaciones', 'activos':'activos', 'mantenimiento':'mantenimiento', 
-        'notificaciones':'mis_pedidos', 'historial':'historial', 'facturas':'facturas', 
-        'usuarios':'usuarios', 'config':'configuracion'
-    };
-    for(let p in mapPages) {
-        if(window.tienePermiso(mapPages[p], 'ver')) {
-            pageToLoad = p;
-            break;
-        }
-    }
+    const mapPages = { 'stats':'dashboard', 'stock':'stock', 'compras':'compras', 'solicitar':'pedir', 'solicitudes':'aprobaciones', 'activos':'activos', 'mantenimiento':'mantenimiento', 'notificaciones':'mis_pedidos', 'historial':'historial', 'facturas':'facturas', 'usuarios':'usuarios', 'config':'configuracion' };
+    for(let p in mapPages) { if(window.tienePermiso(mapPages[p], 'ver')) { pageToLoad = p; break; } }
 
-    // INYECTAR MATRIZ DE PERMISOS EN LA VISTA DE USUARIOS
     const matrizBody = document.getElementById("matriz-permisos");
     if(matrizBody) {
         let matrixHtml = "";
-        const modules = [
-            { id: 'dashboard', name: 'Dashboard' }, { id: 'stock', name: 'Inventario' }, 
-            { id: 'compras', name: 'Compras' }, { id: 'pedir', name: 'Pedir Insumos' }, 
-            { id: 'aprobaciones', name: 'Aprobaciones' }, { id: 'mis_pedidos', name: 'Mis Pedidos' }, 
-            { id: 'activos', name: 'Activos Fijos' }, { id: 'mantenimiento', name: 'Mantenimiento' }, 
-            { id: 'historial', name: 'Movimientos' }, { id: 'facturas', name: 'Facturas' }, 
-            { id: 'usuarios', name: 'Usuarios' }, { id: 'configuracion', name: 'Configuración' }
-        ];
-        modules.forEach(m => {
-            matrixHtml += `
-            <tr class="hover:bg-slate-50 transition">
-                <td class="py-3 px-4 font-bold text-slate-700 text-xs uppercase">${m.name}</td>
-                <td class="py-3 px-4 text-center"><input type="checkbox" class="chk-permiso w-5 h-5 text-indigo-600 rounded border-slate-300 cursor-pointer shadow-sm" data-modulo="${m.id}" data-accion="ver"></td>
-                <td class="py-3 px-4 text-center"><input type="checkbox" class="chk-permiso w-5 h-5 text-indigo-600 rounded border-slate-300 cursor-pointer shadow-sm" data-modulo="${m.id}" data-accion="gestionar" onchange="if(this.checked) this.closest('tr').querySelector('[data-accion=\\'ver\\']').checked = true;"></td>
-            </tr>`;
-        });
+        const modules = [ { id: 'dashboard', name: 'Dashboard' }, { id: 'stock', name: 'Inventario' }, { id: 'compras', name: 'Compras' }, { id: 'pedir', name: 'Pedir Insumos' }, { id: 'aprobaciones', name: 'Aprobaciones' }, { id: 'mis_pedidos', name: 'Mis Pedidos' }, { id: 'activos', name: 'Activos Fijos' }, { id: 'mantenimiento', name: 'Mantenimiento' }, { id: 'historial', name: 'Movimientos' }, { id: 'facturas', name: 'Facturas' }, { id: 'usuarios', name: 'Usuarios' }, { id: 'configuracion', name: 'Configuración' } ];
+        modules.forEach(m => { matrixHtml += `<tr class="hover:bg-slate-50 transition"><td class="py-3 px-4 font-bold text-slate-700 text-xs uppercase">${m.name}</td><td class="py-3 px-4 text-center"><input type="checkbox" class="chk-permiso w-5 h-5 text-indigo-600 rounded border-slate-300 cursor-pointer shadow-sm" data-modulo="${m.id}" data-accion="ver"></td><td class="py-3 px-4 text-center"><input type="checkbox" class="chk-permiso w-5 h-5 text-indigo-600 rounded border-slate-300 cursor-pointer shadow-sm" data-modulo="${m.id}" data-accion="gestionar" onchange="if(this.checked) this.closest('tr').querySelector('[data-accion=\\'ver\\']').checked = true;"></td></tr>`; });
         matrizBody.innerHTML = matrixHtml;
     }
 
@@ -303,52 +269,25 @@ window.cambiarGrupoActivo = function(nuevoGrupo) {
     document.getElementById("lbl-grupo-solicitud").innerText = window.grupoActivo;
     window.carritoGlobal = {};
     
-    // Al cambiar de grupo, debemos actualizar las variables de correo global según la configuración cargada
-    if(window.configCorreosData && window.configCorreosData[window.grupoActivo]) {
-        window.adminEmailGlobal = window.configCorreosData[window.grupoActivo];
-    } else {
-        window.adminEmailGlobal = "";
-    }
-    
-    if(window.configStockData && window.configStockData[window.grupoActivo]) {
-        window.stockAlertEmailGlobal = window.configStockData[window.grupoActivo];
-    } else {
-        window.stockAlertEmailGlobal = "";
-    }
+    if(window.configCorreosData && window.configCorreosData[window.grupoActivo]) { window.adminEmailGlobal = window.configCorreosData[window.grupoActivo]; } else { window.adminEmailGlobal = ""; }
+    if(window.configStockData && window.configStockData[window.grupoActivo]) { window.stockAlertEmailGlobal = window.configStockData[window.grupoActivo]; } else { window.stockAlertEmailGlobal = ""; }
 
-    const elA = document.getElementById("config-admin-email");
-    if(elA) elA.value = window.adminEmailGlobal;
-    
-    const elS = document.getElementById("config-stock-email");
-    if(elS) elS.value = window.stockAlertEmailGlobal;
+    const elA = document.getElementById("config-admin-email"); if(elA) elA.value = window.adminEmailGlobal;
+    const elS = document.getElementById("config-stock-email"); if(elS) elS.value = window.stockAlertEmailGlobal;
 
-    window.procesarDatosInventario();
-    window.procesarDatosPedidos();
-    window.renderHistorialUnificado();
-    window.procesarDatosFacturas();
-    window.renderMantenimiento();
-    window.renderActivos();
-    window.renderCompras();
-    window.actualizarDashboard();
+    window.procesarDatosInventario(); window.procesarDatosPedidos(); window.renderHistorialUnificado(); window.procesarDatosFacturas(); window.renderMantenimiento(); window.renderActivos(); window.renderCompras(); window.actualizarDashboard();
 };
 
 window.renderizarSelectorGrupos = function(misGrupos) {
     const sel = document.getElementById("selector-grupo-activo");
-    if(sel) {
-        sel.innerHTML = misGrupos.map(g => `<option value="${g}">${g}</option>`).join('');
-        sel.value = window.grupoActivo;
-    }
-    const dashLbl = document.getElementById("dash-grupo-label");
-    if(dashLbl) dashLbl.innerText = window.grupoActivo;
-    const solLbl = document.getElementById("lbl-grupo-solicitud");
-    if(solLbl) solLbl.innerText = window.grupoActivo;
+    if(sel) { sel.innerHTML = misGrupos.map(g => `<option value="${g}">${g}</option>`).join(''); sel.value = window.grupoActivo; }
+    const dashLbl = document.getElementById("dash-grupo-label"); if(dashLbl) dashLbl.innerText = window.grupoActivo;
+    const solLbl = document.getElementById("lbl-grupo-solicitud"); if(solLbl) solLbl.innerText = window.grupoActivo;
 };
 
 window.actualizarCheckboxesGrupos = function() {
     const container = document.getElementById("user-grupos-checkboxes");
-    if(container) {
-        container.innerHTML = window.todosLosGrupos.map(g => `<label class="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-indigo-50 transition shadow-sm"><input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo"><span class="text-xs font-bold text-slate-700 uppercase">${g}</span></label>`).join('');
-    }
+    if(container) { container.innerHTML = window.todosLosGrupos.map(g => `<label class="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-indigo-50 transition shadow-sm"><input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo"><span class="text-xs font-bold text-slate-700 uppercase">${g}</span></label>`).join(''); }
 };
 
 // ==========================================
@@ -495,7 +434,7 @@ window.activarSincronizacion = function() {
 };
 
 // ==========================================
-// 7. RENDERIZADOS Y MÓDULOS DE PÁGINAS
+// 7. DASHBOARD E HISTORIAL
 // ==========================================
 window.renderChart = function(id, labels, data, title, palette, chartInstance, setInstance) {
     const ctx = document.getElementById(id);
@@ -504,7 +443,10 @@ window.renderChart = function(id, labels, data, title, palette, chartInstance, s
     const bgColors = id === 'locationChart' ? palette : palette.map(c=>c+'CC');
     const newChart = new Chart(ctx, {
         type: id === 'locationChart' ? 'doughnut' : 'bar',
-        data: { labels: labels, datasets: [{ label: title, data: data, backgroundColor: bgColors, borderColor: palette, borderWidth: 1, borderRadius: id === 'locationChart' ? 0 : 5 }] },
+        data: {
+            labels: labels,
+            datasets: [{ label: title, data: data, backgroundColor: bgColors, borderColor: palette, borderWidth: 1, borderRadius: id === 'locationChart' ? 0 : 5 }]
+        },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: id === 'locationChart', position: 'bottom' } } }
     });
     setInstance(newChart);
@@ -512,28 +454,21 @@ window.renderChart = function(id, labels, data, title, palette, chartInstance, s
 
 window.actualizarDashboard = function() {
     if(!window.cachePedidos) return;
-    if(!window.tienePermiso('dashboard', 'ver')) return;
-
     const desdeInput = document.getElementById("dash-desde")?.value;
     const hastaInput = document.getElementById("dash-hasta")?.value;
     let tDesde = 0; let tHasta = Infinity;
     if(desdeInput) tDesde = new Date(desdeInput + 'T00:00:00').getTime();
     if(hastaInput) tHasta = new Date(hastaInput + 'T23:59:59').getTime();
 
-    const panelFiltros = document.getElementById("panel-filtros-dashboard");
-    if(panelFiltros && window.tienePermiso('dashboard', 'gestionar')) {
-        if(!document.getElementById("btn-excel-dashboard")) {
-            panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-dashboard" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-700 transition shadow ml-2 flex items-center gap-2"><i class="fas fa-file-excel"></i> Exportar Datos</button>`);
-        }
-    } else if (document.getElementById("btn-excel-dashboard")) {
-        document.getElementById("btn-excel-dashboard").remove();
+    let pedidosFiltrados = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
+    if(document.getElementById("metrica-pedidos")) {
+        document.getElementById("metrica-pedidos").innerText = pedidosFiltrados.filter(p => p.estado === 'pendiente').length;
     }
 
-    let pedidosFiltrados = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
-    if(document.getElementById("metrica-pedidos")) document.getElementById("metrica-pedidos").innerText = pedidosFiltrados.filter(p => p.estado === 'pendiente').length;
-
     let sedesCount = {};
-    pedidosFiltrados.forEach(p => { if(p.estado !== 'rechazado') sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad; });
+    pedidosFiltrados.forEach(p => {
+        if(p.estado !== 'rechazado') sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad;
+    });
 
     const activosFiltrados = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo && a.timestamp >= tDesde && a.timestamp <= tHasta);
     if(document.getElementById("metrica-activos")) document.getElementById("metrica-activos").innerText = activosFiltrados.length;
@@ -544,7 +479,11 @@ window.actualizarDashboard = function() {
 
     const invActivo = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
     let lblS = [], datS = [];
-    invActivo.forEach(p => { const n = p.id || 'N/A'; lblS.push(n.toUpperCase().substring(0,10)); datS.push(p.cantidad); });
+    invActivo.forEach(p => {
+        const n = p.id || 'N/A';
+        lblS.push(n.toUpperCase().substring(0,10));
+        datS.push(p.cantidad);
+    });
     window.renderChart('stockChart', lblS, datS, 'Stock', chartPalette, window.miGraficoStock, ch => window.miGraficoStock = ch);
     window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Demandas', chartPalette, window.miGraficoUbicacion, ch => window.miGraficoUbicacion = ch);
 };
@@ -552,268 +491,54 @@ window.actualizarDashboard = function() {
 window.renderHistorialUnificado = function() {
     const t = document.getElementById("tabla-movimientos-unificados");
     if(!t) return;
-    
-    const panelFiltros = document.getElementById("panel-filtros-historial");
-    if(panelFiltros && window.tienePermiso('historial', 'gestionar')) {
-        if(!document.getElementById("btn-excel-historial")) {
-            panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-historial" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-emerald-700 shadow ml-2"><i class="fas fa-file-excel"></i> Exportar Todo</button>`);
-        }
-    } else if (document.getElementById("btn-excel-historial")) {
-        document.getElementById("btn-excel-historial").remove();
-    }
-
     let html = "";
-    const ent = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo).map(e => ({ id: e.id, f: e.fecha || new Date(e.timestamp).toLocaleString(), ts: e.timestamp, t: 'ENTRADA', ins: e.insumo || 'N/A', c: e.cantidad || 0, det: `${e.usuario || 'N/A'} ${e.motivo_edicion ? `(Edit: ${e.motivo_edicion})` : ''}`, est: 'completado' }));
-    const sal = window.cachePedidos.map(p => ({ id: p.id, f: p.fecha || new Date(p.timestamp).toLocaleString(), ts: p.timestamp, t: 'SALIDA', ins: p.insumoNom || 'N/A', c: p.cantidad || 0, det: `${p.usuarioId || 'N/A'} (${p.ubicacion || 'N/A'})`, est: p.estado || 'N/A' }));
-    const isGestor = window.tienePermiso('historial', 'gestionar');
     
+    const ent = rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo).map(e => ({
+        ts: e.timestamp,
+        fecha: e.fecha || new Date(e.timestamp).toLocaleString(),
+        tipo: '📥 ENTRADA',
+        insumo: e.insumo || 'N/A',
+        cant: e.cantidad || 0,
+        solicito: e.usuario || 'SISTEMA',
+        acepto: 'DIRECTO',
+        motivo: e.motivo_edicion || 'Ingreso de Almacén',
+        tiempo: 'N/A'
+    }));
+
+    const sal = window.cachePedidos.map(p => {
+        let tProc = (p.timestamp_aprobado && p.timestamp) ? window.formatoTiempoDiferencia(p.timestamp, p.timestamp_aprobado) : 'PEND';
+        return {
+            ts: p.timestamp,
+            fecha: p.fecha || new Date(p.timestamp).toLocaleString(),
+            tipo: '📤 SALIDA',
+            insumo: p.insumoNom || 'N/A',
+            cant: p.cantidad || 0,
+            solicito: p.usuarioId || 'N/A',
+            acepto: p.entregado_por || (p.estado === 'pendiente' ? 'ESPERANDO' : 'RECHAZADO'),
+            motivo: p.notas || 'Sin descripción',
+            tiempo: tProc
+        };
+    });
+
     const combinados = [...ent, ...sal].sort((a,b) => b.ts - a.ts);
     if (combinados.length === 0) {
-        t.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400 font-medium">No hay movimientos registrados.</td></tr>`;
+        t.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-bold">No hay registros.</td></tr>`;
         return;
     }
+
     combinados.forEach(h => {
-        let btn = `<span class="badge status-${h.est}">${h.est}</span>`;
-        if(h.t === 'ENTRADA' && isGestor) {
-            btn = `<div class="flex gap-2">${btn}<button onclick="window.abrirModalEditarEntrada('${h.id}', '${h.ins.replace(/'/g,"\\'")}', ${h.c})" class="text-amber-500 hover:text-amber-600 transition"><i class="fas fa-pen bg-amber-50 p-1.5 rounded"></i></button></div>`;
-        }
-        html += `<tr class="border-b border-slate-100 hover:bg-slate-50 transition"><td class="p-4 text-[10px] font-mono whitespace-nowrap">${h.f.split(',')[0]}</td><td class="p-4 text-xs font-black whitespace-nowrap text-slate-600">${h.t==='ENTRADA'?'<span class="text-emerald-500">📥</span>':'<span class="text-red-400">📤</span>'} ${h.t}</td><td class="p-4 font-bold uppercase text-xs text-slate-700">${h.ins}</td><td class="p-4 font-black text-center text-slate-800">${h.c}</td><td class="p-4 text-[10px] uppercase text-slate-500">${h.det}</td><td class="p-4">${btn}</td></tr>`;
+        html += `<tr class="border-b hover:bg-slate-50 transition">
+            <td class="p-4 text-[10px] font-mono whitespace-nowrap">${h.fecha.split(',')[0]}</td>
+            <td class="p-4 font-black text-xs">${h.tipo}</td>
+            <td class="p-4 font-bold uppercase text-xs text-slate-700">${h.insumo}</td>
+            <td class="p-4 font-black text-center text-indigo-600">${h.cant}</td>
+            <td class="p-4 text-[10px] uppercase font-bold text-slate-500">${h.solicito}</td>
+            <td class="p-4 text-[10px] uppercase font-bold text-emerald-600">${h.acepto}</td>
+            <td class="p-4 text-[10px] italic text-slate-400 max-w-xs truncate" title="${h.motivo}">${h.motivo}</td>
+            <td class="p-4 text-[10px] font-black text-indigo-400">${h.tiempo}</td>
+        </tr>`;
     });
     t.innerHTML = html;
-};
-
-window.procesarDatosFacturas = function() {
-    const tb = document.getElementById("tabla-facturas-db");
-    if(!tb) return;
-    
-    const btnReg = document.getElementById("btn-admin-facturas");
-    if(window.tienePermiso('facturas', 'gestionar') && btnReg) btnReg.classList.remove("hidden");
-
-    const factGrupo = rawFacturas.filter(f => (f.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
-    let html = "";
-    const isGestor = window.tienePermiso('facturas', 'gestionar');
-    
-    factGrupo.forEach(f => {
-        const docLink = f.archivo_url ? `<a href="${f.archivo_url}" target="_blank" class="text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg text-[10px]"><i class="fas fa-file-pdf"></i> Ver</a>` : 'N/A';
-        const trashBtn = isGestor ? `<button onclick="window.eliminarDato('facturas','${f.id}')" class="text-red-400 hover:text-red-600 ml-2 bg-red-50 p-1.5 rounded-lg"><i class="fas fa-trash"></i></button>` : '';
-        html += `<tr class="border-b border-slate-100 hover:bg-slate-50 transition"><td class="p-4 text-xs font-mono text-slate-500">${f.fecha_compra}</td><td class="p-4 text-xs font-bold uppercase text-slate-800">${f.proveedor}</td><td class="p-4 text-xs font-black text-emerald-600 text-right">$${f.gasto.toFixed(2)}</td><td class="p-4 text-[10px] text-center uppercase font-bold text-slate-500">${f.usuarioRegistro}</td><td class="p-4 text-xs text-center">${docLink}</td><td class="p-4 text-center">${trashBtn}</td></tr>`;
-    });
-    tb.innerHTML = html || '<tr><td colspan="6" class="p-4 text-center text-slate-400 font-medium">No hay facturas registradas.</td></tr>';
-};
-
-window.renderMantenimiento = function() {
-    const tb = document.getElementById("tabla-mantenimiento-db");
-    if(!tb) return;
-
-    const btnReg = document.getElementById("btn-admin-mantenimiento");
-    if(window.tienePermiso('mantenimiento', 'gestionar') && btnReg) btnReg.classList.remove("hidden");
-
-    let html = "";
-    const mantGrupo = rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
-    const isGestor = window.tienePermiso('mantenimiento', 'gestionar');
-
-    mantGrupo.forEach(m => {
-        let badgeHtml = "", actions = "";
-        if (m.estado === 'completado') {
-            badgeHtml = `<span class="badge status-recibido mb-1">Completado</span>`;
-        } else if (m.estado === 'en_proceso') {
-            badgeHtml = `<span class="badge status-aprobado mb-1 animate-pulse">En Proceso</span>`;
-            if(isGestor) actions = `<button onclick="window.completarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition mr-1 mb-1"><i class="fas fa-flag-checkered"></i> Finalizar</button>`;
-        } else {
-            badgeHtml = `<span class="badge status-pendiente">Pendiente</span>`;
-            if(isGestor) actions = `<button onclick="window.iniciarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition mr-1 mb-1"><i class="fas fa-play"></i> Iniciar</button>`;
-        }
-        
-        actions += `<button onclick="window.abrirBitacora('${m.id}')" class="text-slate-600 bg-slate-100 border border-slate-200 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition"><i class="fas fa-book"></i> Bitácora</button>`;
-        const trashBtn = isGestor ? `<button onclick="window.eliminarDato('mantenimiento','${m.id}')" class="text-red-400 hover:text-red-600 ml-2 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash"></i></button>` : '';
-        let notifTag = m.fecha_notificacion ? `<br><span class="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded mt-1 inline-block font-bold"><i class="fas fa-bell"></i> Alerta: ${m.fecha_notificacion}</span>` : '';
-        
-        html += `<tr class="hover:bg-slate-50 border-b border-slate-100 transition ${m.estado === 'completado' ? 'bg-slate-50/30' : ''}"><td class="p-4 align-top w-32">${badgeHtml}</td><td class="p-4 font-black text-slate-800 uppercase text-xs align-top">${m.equipo}</td><td class="p-4 text-slate-500 text-xs font-mono font-medium align-top">${m.fecha_programada}${notifTag}</td><td class="p-4 text-indigo-600 text-[10px] font-black uppercase align-top">${m.responsable}</td><td class="p-4 text-right align-top"><div class="flex flex-wrap justify-end gap-1">${actions}${trashBtn}</div></td></tr>`;
-    });
-    tb.innerHTML = html || '<tr><td colspan="5" class="p-4 text-center text-slate-400 font-medium">No hay mantenimientos.</td></tr>';
-};
-
-window.renderActivos = function() {
-    const list = document.getElementById("lista-activos-db");
-    if(!list) return;
-
-    const btnReg = document.getElementById("btn-admin-activos");
-    if(window.tienePermiso('activos', 'gestionar') && btnReg) btnReg.classList.remove("hidden");
-
-    let html = "";
-    const activosFiltrados = rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
-    const isGestor = window.tienePermiso('activos', 'gestionar');
-    
-    activosFiltrados.forEach(a => {
-        const jsId = a.id.replace(/'/g, "\\'");
-        const img = a.imagen ? `<img src="${a.imagen}" loading="lazy" class="w-16 h-16 object-cover rounded-xl border border-slate-200">` : `<div class="w-16 h-16 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center text-slate-300"><i class="fas fa-desktop text-2xl"></i></div>`;
-        let bColor = "bg-emerald-50 text-emerald-600 border-emerald-200";
-        if(a.estado === "En Mantenimiento") bColor = "bg-amber-50 text-amber-600 border-amber-200";
-        if(a.estado === "Fuera de Servicio") bColor = "bg-red-50 text-red-600 border-red-200";
-        if(a.estado === "Almacenado") bColor = "bg-slate-50 text-slate-600 border-slate-200";
-        
-        let controls = isGestor ? `<button onclick="window.abrirModalActivo('${jsId}')" class="text-slate-400 hover:text-indigo-600 p-1 transition"><i class="fas fa-pen text-xs"></i></button><button onclick="window.eliminarDato('activos','${jsId}')" class="text-slate-400 hover:text-red-500 p-1 transition"><i class="fas fa-trash text-xs"></i></button>` : "";
-        
-        html += `
-        <div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col item-tarjeta">
-            <div class="flex justify-between items-start mb-4">
-                <span class="px-2.5 py-1 rounded-md border text-[9px] font-black uppercase tracking-wider ${bColor}">${a.estado || 'Activo'}</span>
-                <div class="flex gap-2">${controls}</div>
-            </div>
-            <div class="flex items-center gap-4 mb-4">
-                ${img}
-                <div class="truncate flex-1">
-                    <h4 class="font-black text-slate-800 text-sm uppercase truncate" title="${a.nombre}">${a.nombre}</h4>
-                    <p class="text-[10px] text-slate-400 font-mono mt-0.5 border border-slate-100 bg-slate-50 inline-block px-1.5 rounded">${a.id}</p>
-                    <p class="text-[10px] text-indigo-500 font-black uppercase mt-1.5 truncate">${a.marca || ''}</p>
-                </div>
-            </div>
-            <div class="flex justify-between items-end mt-auto pt-4 border-t border-slate-100">
-                <div class="text-[10px] text-slate-500 font-medium">
-                    <p><i class="fas fa-map-marker-alt text-slate-300 w-4"></i> ${a.ubicacion || 'N/A'}</p>
-                    <p class="mt-1.5"><i class="fas fa-tags text-slate-300 w-4"></i> ${a.categoria || 'N/A'}</p>
-                </div>
-                <button onclick="window.abrirDetallesActivo('${jsId}')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-100 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm"><i class="fas fa-eye"></i> Detalles</button>
-            </div>
-        </div>`;
-    });
-    list.innerHTML = html || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay activos registrados en este grupo.</p>`;
-};
-
-window.renderCompras = function() {
-    const btnComprar = document.getElementById("panel-registrar-compra");
-    if(window.tienePermiso('compras', 'gestionar') && btnComprar) btnComprar.classList.remove("hidden");
-
-    const tb = document.getElementById("lista-compras-db");
-    if(!tb) return;
-    let html = "";
-    const comprasGrupo = rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
-    const isGestor = window.tienePermiso('compras', 'gestionar');
-
-    comprasGrupo.forEach(c => {
-        let badge = c.estado === 'recibido' ? `<span class="badge status-recibido">Recibido</span>` : `<span class="badge status-pendiente animate-pulse">En Tránsito</span>`;
-        let itemsList = `<ul class="text-[11px] text-slate-600 font-medium mt-3 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200 h-24 overflow-y-auto custom-scroll shadow-inner">`;
-        let totalCosto = 0;
-        c.items.forEach(i => { 
-            let pStr = i.precio > 0 ? `($${i.precio.toFixed(2)})` : '';
-            itemsList += `<li><span class="font-black text-slate-800">${i.cantidad}x</span> ${i.insumo} <span class="text-emerald-600 font-bold ml-1">${pStr}</span></li>`; 
-            totalCosto += i.precio; 
-        });
-        itemsList += `</ul>`;
-        
-        let btnRecibir = "";
-        if (c.estado !== 'recibido' && isGestor) {
-            btnRecibir = `<button onclick="window.confirmarRecepcionCompra('${c.id}')" class="bg-emerald-500 text-white px-4 py-3 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-600 mt-4 w-full transition flex items-center justify-center gap-2"><i class="fas fa-box-open text-lg"></i> Recibir Inventario Físico</button>`;
-        }
-        let trashBtn = isGestor ? `<button onclick="window.eliminarDato('compras','${c.id}')" class="text-red-300 hover:text-red-500 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash text-xs"></i></button>` : '';
-        
-        html += `<div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-md flex flex-col justify-between hover:shadow-lg transition"><div class="flex justify-between items-start mb-2"><div>${badge}<h4 class="font-black text-slate-800 uppercase text-base mt-2">${c.proveedor}</h4></div>${trashBtn}</div><p class="text-[10px] font-mono text-slate-400 mt-1">Factura: <span class="font-bold">${c.factura || 'N/A'}</span> • ${c.fecha_compra}</p>${itemsList}<div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-100"><span class="text-[10px] uppercase text-indigo-500 font-black tracking-wide"><i class="fas fa-user mr-1 text-indigo-300"></i> ${c.registrado_por}</span><span class="text-emerald-600 font-black text-lg">$${totalCosto.toFixed(2)}</span></div>${btnRecibir}</div>`;
-    });
-    tb.innerHTML = html || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay compras registradas en este grupo.</p>`;
-};
-
-window.renderListaInsumos = function() {
-    const contenedor = document.getElementById("contenedor-lista-insumos");
-    if(!contenedor) return;
-    const invFiltrado = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
-    if(invFiltrado.length === 0) {
-        contenedor.innerHTML = `<p class="text-center text-slate-400 text-xs py-4">No hay insumos creados aún.</p>`;
-        return;
-    }
-    contenedor.innerHTML = invFiltrado.map(p => {
-        const nombre = (p.id || '').toUpperCase();
-        const jsId = (p.id || '').replace(/'/g, "\\'");
-        const img = p.imagen ? `<img src="${p.imagen}" loading="lazy" class="w-10 h-10 object-cover rounded-lg border border-slate-200">` : `<div class="w-10 h-10 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-center text-slate-300"><i class="fas fa-box"></i></div>`;
-        return `<div onclick="window.seleccionarInsumoParaEntrada('${jsId}')" class="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-white shadow-sm cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition item-tarjeta mb-3"><div class="flex items-center gap-3 flex-1 min-w-0 pr-2">${img}<div class="flex-1 min-w-0"><p class="font-black text-xs uppercase text-slate-800 break-words whitespace-normal leading-tight">${nombre}</p><p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Stock Actual: <span class="text-indigo-600">${p.cantidad || 0}</span></p></div></div><i class="fas fa-chevron-right text-indigo-300 text-xs flex-shrink-0"></i></div>`;
-    }).join('');
-};
-
-window.procesarDatosInventario = function() {
-    const grid = document.getElementById("lista-inventario");
-    const cartContainer = document.getElementById("contenedor-lista-pedidos");
-    const dataList = document.getElementById("lista-sugerencias");
-    const datalistCompras = document.getElementById("lista-sugerencias-compras");
-    if(!grid) return;
-    let gridHTML = ""; let cartHTML = ""; let listHTML = ""; let tr = 0, ts = 0;
-    const invFiltrado = rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
-    const isGestor = window.tienePermiso('stock', 'gestionar');
-    
-    invFiltrado.forEach(p => {
-        const nombre = (p.id || '').toUpperCase();
-        const safeId = (p.id || '').replace(/[^a-zA-Z0-9]/g, '_');
-        const jsId = (p.id || '').replace(/'/g, "\\'");
-        tr++; ts += (p.cantidad || 0);
-        listHTML += `<option value="${nombre}">`;
-        
-        let controls = isGestor ? `<div class="flex gap-2"><button onclick="window.prepararEdicionProducto('${jsId}')" class="text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 p-1.5 rounded transition"><i class="fas fa-cog"></i></button><button onclick="window.eliminarDato('inventario','${jsId}')" class="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 p-1.5 rounded transition"><i class="fas fa-trash"></i></button></div>` : "";
-        const img = p.imagen ? `<img src="${p.imagen}" loading="lazy" class="w-14 h-14 object-cover rounded-xl border border-slate-200 shadow-sm mb-3">` : `<div class="w-14 h-14 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center text-slate-300 mb-3 shadow-inner"><i class="fas fa-image text-xl"></i></div>`;
-        const isLow = (p.stockMinimo && p.cantidad <= p.stockMinimo);
-        const border = isLow ? "border-2 border-red-400 bg-red-50" : "border border-slate-200 bg-white";
-        
-        gridHTML += `<div class="${border} p-5 rounded-[1.5rem] shadow-sm hover:shadow-md transition flex flex-col item-tarjeta h-full"><div class="flex justify-between items-start mb-2">${img}${controls}</div><h4 class="font-black text-slate-800 text-xs break-words whitespace-normal leading-tight flex-1" title="${nombre}">${nombre} ${isLow?'<i class="fas fa-exclamation-circle text-red-500 animate-pulse inline-block ml-1"></i>':''}</h4><div class="flex justify-between items-end mt-4 pt-4 border-t border-slate-100"><p class="text-3xl font-black text-indigo-900">${p.cantidad || 0}</p>${p.precio ? `<span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">$${p.precio}</span>` : ''}</div></div>`;
-
-        if(cartContainer && p.cantidad > 0) {
-            const enCarro = window.carritoGlobal[p.id] || 0;
-            const active = enCarro > 0 ? "border-indigo-500 bg-indigo-50" : "border-slate-200 bg-white";
-            cartHTML += `<div id="row-${safeId}" class="flex items-center justify-between p-4 rounded-xl border ${active} transition-all shadow-sm item-tarjeta mb-3"><div class="flex items-center gap-4 flex-1 min-w-0 pr-3">${p.imagen?`<img src="${p.imagen}" loading="lazy" class="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200">`:''}<div class="flex-1 min-w-0"><p class="font-black text-xs uppercase text-slate-800 break-words whitespace-normal leading-tight">${nombre}</p><p class="text-[10px] text-indigo-500 font-bold mt-1">Disponible: ${p.cantidad}</p></div></div><div class="flex items-center gap-2 bg-white rounded-lg p-1.5 border border-slate-200 flex-shrink-0 z-10 shadow-sm"><button type="button" onclick="window.ajustarCantidad('${jsId}', -1)" class="w-8 h-8 rounded-md bg-slate-100 hover:bg-slate-200 font-black text-lg text-slate-600 transition flex items-center justify-center">-</button><span id="cant-${safeId}" class="w-8 text-center font-black text-indigo-700 text-sm">${enCarro}</span><button type="button" onclick="window.ajustarCantidad('${jsId}', 1)" class="w-8 h-8 rounded-md bg-indigo-100 hover:bg-indigo-200 font-black text-lg text-indigo-700 transition flex items-center justify-center" ${enCarro>=p.cantidad?'disabled':''}>+</button></div></div>`;
-        }
-    });
-    grid.innerHTML = gridHTML;
-    if(cartContainer) cartContainer.innerHTML = cartHTML || `<div class="flex flex-col items-center justify-center py-10 text-slate-400"><i class="fas fa-shopping-basket text-4xl mb-3 opacity-50"></i><p class="text-xs font-medium">Aún no has seleccionado insumos.</p><p class="text-[10px] mt-1">Usa la pestaña "Stock" para agregar.</p></div>`;
-    if(dataList) dataList.innerHTML = listHTML;
-    if(datalistCompras) datalistCompras.innerHTML = listHTML;
-    if(document.getElementById("metrica-total")) document.getElementById("metrica-total").innerText = tr;
-    if(document.getElementById("metrica-stock")) document.getElementById("metrica-stock").innerText = ts;
-    window.actualizarDashboard();
-    window.renderListaInsumos();
-};
-
-window.procesarDatosPedidos = function() {
-    window.cachePedidos = window.pedidosRaw.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
-    let grupos = {}; let htmlAdmin = "", htmlActive = "", htmlHistory = "";
-    window.cachePedidos.forEach(p => {
-        const bKey = p.batchId || p.timestamp;
-        if(!grupos[bKey]) grupos[bKey] = { items:[], user:p.usuarioId, sede:p.ubicacion, date:p.fecha, ts:p.timestamp, notas: p.notas || '' };
-        grupos[bKey].items.push(p);
-    });
-    const misPedidos = window.cachePedidos.filter(p => p.usuarioId === window.usuarioActual?.id).sort((a,b) => b.timestamp - a.timestamp);
-    
-    misPedidos.forEach(p => {
-        let btns = "";
-        if(p.estado === 'aprobado') {
-            btns = `<div class="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3"><button onclick="window.confirmarRecibido('${p.id}')" class="bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow hover:bg-emerald-600 transition flex items-center gap-1"><i class="fas fa-check-circle"></i> Recibir</button><button onclick="window.abrirIncidencia('${p.id}')" class="bg-white border border-red-200 text-red-500 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-50 transition flex items-center gap-1"><i class="fas fa-exclamation-triangle"></i> Reportar</button></div>`;
-        } else if(['recibido', 'devuelto'].includes(p.estado)) {
-            btns = `<div class="mt-4 pt-3 border-t border-slate-100 flex justify-end"><button onclick="window.abrirIncidencia('${p.id}')" class="text-amber-600 text-xs font-bold hover:underline bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-undo mr-1"></i> Devolver / Reportar</button></div>`;
-        }
-        
-        const prio = p.prioridad || 'normal';
-        const notesHtml = p.notas ? `<div class="mt-3 bg-amber-50 p-2.5 rounded-xl border border-amber-100"><p class="text-[9px] font-black text-amber-600 uppercase mb-1">Tu Nota:</p><p class="text-[11px] text-amber-900 italic font-medium">"${p.notas}"</p></div>` : '';
-        let tiemposHtml = `<div class="mt-3 space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-[10px] font-mono text-slate-600 shadow-inner"><div class="flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="fas fa-clock text-slate-400"></i> Pedido:</span> <span class="font-bold">${new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>`;
-        if (p.timestamp_aprobado) tiemposHtml += `<div class="flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="fas fa-user-check text-indigo-500"></i> Atendido:</span> <span class="font-bold">${new Date(p.timestamp_aprobado).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} <span class="text-[9px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded ml-1 font-black">+${window.formatoTiempoDiferencia(p.timestamp, p.timestamp_aprobado)}</span></span></div>`;
-        if (p.timestamp_recibido) tiemposHtml += `<div class="flex justify-between items-center text-emerald-700"><span class="flex items-center gap-1.5"><i class="fas fa-box-open"></i> Recibido:</span> <span class="font-bold">${new Date(p.timestamp_recibido).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} <span class="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded ml-1 font-black">+${window.formatoTiempoDiferencia(p.timestamp_aprobado || p.timestamp, p.timestamp_recibido)}</span></span></div>`;
-        if (p.entregado_por) tiemposHtml += `<div class="flex justify-between items-center text-slate-700 mt-2 border-t border-slate-200 pt-2"><span class="flex items-center gap-1.5"><i class="fas fa-handshake text-slate-400"></i> Entregado por:</span> <span class="font-black uppercase">${p.entregado_por}</span></div>`;
-        tiemposHtml += `</div>`;
-
-        const cardHtml = `<div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm item-tarjeta"><div class="flex justify-between items-start mb-2"><div><span class="badge status-${p.estado}">${p.estado}</span><h4 class="font-black text-slate-800 uppercase text-sm mt-2 break-words whitespace-normal leading-tight">${p.insumoNom} <span class="badge status-pri-${prio} inline-block ml-1 shadow-sm">${prio}</span></h4><p class="text-xs text-indigo-600 font-black mt-1">x${p.cantidad} <span class="text-slate-400 font-medium ml-1">• ${p.ubicacion}</span></p><p class="text-[10px] text-slate-400 mt-1">${(p.fecha||'').split(',')[0]}</p></div></div>${notesHtml}${tiemposHtml}${btns}</div>`;
-        if(['pendiente', 'aprobado'].includes(p.estado)) htmlActive += cardHtml; else htmlHistory += cardHtml;
-    });
-
-    if(window.tienePermiso('aprobaciones', 'gestionar')) {
-        Object.values(grupos).sort((a,b) => b.ts - a.ts).forEach(g => {
-            const pendingItems = g.items.filter(i => i.estado === 'pendiente');
-            if(pendingItems.length > 0) {
-                let itemsStr = ""; const hasAlta = pendingItems.some(i => (i.prioridad || 'normal') === 'alta');
-                const badgeUrgente = hasAlta ? `<span class="bg-red-500 text-white px-2 py-1 rounded text-[9px] uppercase font-black animate-pulse ml-2 shadow-sm">Urgente</span>` : '';
-                const blockNota = g.notas ? `<div class="mb-4 text-[11px] text-indigo-800 bg-indigo-50 p-3 rounded-xl italic border border-indigo-100 shadow-inner">"${g.notas}"</div>` : '';
-                pendingItems.forEach(i => { itemsStr += `<span class="bg-white px-3 py-1.5 rounded-lg text-[10px] border border-slate-200 uppercase font-black text-slate-700 break-words whitespace-normal text-left shadow-sm">${i.insumoNom} (x${i.cantidad})</span>`; });
-                const timeStr = new Date(g.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                htmlAdmin += `<div class="bg-white p-6 rounded-[2rem] border-l-8 ${hasAlta?'border-l-red-500':'border-l-amber-400'} border-y border-r border-slate-200 shadow-md cursor-pointer group hover:shadow-lg transition" onclick="window.abrirModalGrupo('${g.items[0].batchId || g.ts}')"><div class="flex justify-between items-start mb-4"><div><h4 class="font-black text-slate-900 text-base uppercase flex items-center"><i class="fas fa-user-circle text-slate-300 mr-2 text-xl"></i> ${g.user} ${badgeUrgente}</h4><span class="text-xs text-slate-500 font-bold mt-1 block"><i class="fas fa-map-marker-alt text-slate-300 w-4"></i> ${g.sede} <br><i class="fas fa-calendar-alt text-slate-300 w-4 mt-1"></i> ${(g.date||'').split(',')[0]} a las ${timeStr}</span></div><span class="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-500 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm"><i class="fas fa-chevron-right text-sm"></i></span></div>${blockNota}<div class="flex flex-wrap gap-2">${itemsStr}</div></div>`;
-            }
-        });
-    }
-    if(document.getElementById("lista-pendientes-admin")) document.getElementById("lista-pendientes-admin").innerHTML = htmlAdmin || `<p class="col-span-full text-slate-400 text-sm font-medium">No hay solicitudes pendientes.</p>`;
-    if(document.getElementById("tab-content-activos")) document.getElementById("tab-content-activos").innerHTML = htmlActive || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No tienes solicitudes en curso.</p>`;
-    if(document.getElementById("tab-content-historial")) document.getElementById("tab-content-historial").innerHTML = htmlHistory || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay historial de solicitudes.</p>`;
 };
 
 // ==========================================
@@ -1016,6 +741,9 @@ window.eliminarDato = async function(col, id) {
     if(confirm("¿Seguro que deseas eliminar este dato?")) await deleteDoc(doc(db, col, id));
 };
 
+// ==========================================
+// 10. ACTIVOS FIJOS
+// ==========================================
 window.abrirModalActivo = function(id = null) {
     document.getElementById("activo-preview-img").classList.add("hidden"); document.getElementById("activo-img-url").value = "";
     if (id) {
@@ -1045,11 +773,12 @@ window.guardarActivo = async function() {
 window.abrirDetallesActivo = function(id) {
     const a = rawActivos.find(x => x.id === id); if(!a) return;
     document.getElementById("activo-bitacora-id").value = id; document.getElementById("activo-det-nombre").innerText = a.nombre; document.getElementById("activo-det-id").innerText = "ID: " + a.id;
-    document.getElementById("activo-det-qr-container").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=${encodeURIComponent(a.id)}" alt="QR Code" class="w-16 h-16 object-contain">`;
+    document.getElementById("activo-det-qr-container").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=${encodeURIComponent(a.id)}" alt="QR Code" class="w-20 h-20 object-contain">`;
     const imgEl = document.getElementById("activo-det-img");
     if(a.imagen) { imgEl.src = a.imagen; imgEl.classList.remove("hidden"); } else { imgEl.classList.add("hidden"); }
     document.getElementById("activo-det-estado").innerHTML = `<span class="px-2 py-1 bg-slate-100 rounded text-slate-700 text-xs">${a.estado}</span>`;
     document.getElementById("activo-det-cat").innerText = a.categoria || '-'; document.getElementById("activo-det-marca").innerText = a.marca || '-'; document.getElementById("activo-det-ubi").innerText = a.ubicacion || '-'; document.getElementById("activo-det-fecha").innerText = a.fecha_registro || '-'; document.getElementById("activo-det-desc").innerText = a.descripcion || 'Sin detalles';
+    
     let bHtml = "";
     if (a.observacion) bHtml += `<div class="relative pl-4 border-l-2 border-indigo-200 pb-3"><div class="absolute w-2.5 h-2.5 bg-indigo-500 rounded-full -left-[6px] top-1"></div><p class="text-[9px] text-slate-400 font-bold mb-1">NOTA ORIGINAL</p><p class="text-xs font-medium text-slate-700 italic">${a.observacion}</p></div>`;
     if(a.bitacora && a.bitacora.length > 0) {
@@ -1062,8 +791,18 @@ window.abrirDetallesActivo = function(id) {
             bHtml += `<div class="relative pl-4 border-l-2 border-slate-200 pb-4"><div class="absolute w-2.5 h-2.5 bg-slate-400 rounded-full -left-[6px] top-1"></div><div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p class="text-[9px] text-slate-400 font-bold mb-1 flex justify-between"><span>${b.usuario.toUpperCase()}</span><span>${b.fecha}</span></p><p class="text-xs text-slate-700 whitespace-pre-wrap">${b.nota}</p>${mediaHtml}</div></div>`;
         });
     } else if (!a.observacion) bHtml += `<p class="text-xs text-slate-400 italic">No hay notas registradas.</p>`;
+    
     document.getElementById("activo-bitacora-timeline").innerHTML = bHtml;
-    document.getElementById("activo-bitacora-texto").value = ""; document.getElementById("activo-bitacora-url").value = ""; document.getElementById("activo-bitacora-badge").classList.add("hidden");
+    document.getElementById("activo-bitacora-texto").value = ""; document.getElementById("activo-bitacora-url").value = "";
+    
+    // Validar permisos para escribir en bitácora
+    const bitacoraForm = document.getElementById("activo-bitacora-form");
+    if(window.tienePermiso('activos', 'gestionar')) {
+        bitacoraForm.classList.remove("hidden");
+    } else {
+        bitacoraForm.classList.add("hidden");
+    }
+
     document.getElementById("modal-activo-detalles").classList.remove("hidden");
 };
 window.cerrarDetallesActivo = function() { document.getElementById("modal-activo-detalles").classList.add("hidden"); };
@@ -1131,7 +870,6 @@ window.cerrarBitacora = function() { document.getElementById("modal-bitacora").c
 
 window.guardarSede = async function() { const s = document.getElementById("new-sede").value.trim().toUpperCase(); if(!s) return alert("Ingrese sede."); try { await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() }); document.getElementById("new-sede").value = ""; alert("Sede guardada."); } catch(e) { alert("Error."); } };
 window.guardarGrupo = async function() { const g = document.getElementById("new-grupo").value.trim().toUpperCase(); if(!g) return alert("Ingrese grupo."); try { await addDoc(collection(db, "grupos"), { nombre: g, timestamp: Date.now() }); document.getElementById("new-grupo").value = ""; alert("Grupo creado."); } catch(e) { alert("Error."); } };
-window.guardarConfigCorreos = async function() { const emailA = document.getElementById("config-admin-email").value.trim(); const emailS = document.getElementById("config-stock-email").value.trim(); try { if(emailA) await setDoc(doc(db, "configuracion", "notificaciones"), { emailAdmin: emailA }, { merge: true }); if(emailS) await setDoc(doc(db, "configuracion", "alertas_stock"), { [window.grupoActivo]: emailS }, { merge: true }); alert("Correos actualizados exitosamente."); } catch(e) { alert("Error al guardar correos."); } };
 
 window.guardarUsuario = async function() {
     const id = document.getElementById("new-user").value.trim().toLowerCase();
