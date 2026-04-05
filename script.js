@@ -209,7 +209,7 @@ window.cargarSesion = function(datos) {
         infoDiv.innerHTML = `<div class="flex flex-col items-center"><div class="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center text-indigo-600 mb-2 shadow-inner"><i class="fas fa-user text-xl"></i></div><span class="font-black text-slate-800 uppercase tracking-wide">${datos.id}</span><span class="text-[10px] uppercase font-black text-white bg-indigo-500 px-3 py-1 rounded-md mt-1 shadow-sm tracking-widest">${datos.rol}</span></div>`;
     }
 
-    // CONSTRUCCIÓN DEL MENÚ DINÁMICO BASADO EN PERMISOS
+    // CONSTRUCCIÓN DEL MENÚ DINÁMICO
     let menuHtml = "";
     const addHeader = (title) => `<p class="text-[10px] font-black text-indigo-400 uppercase mt-4 mb-2 ml-2 tracking-widest">${title}</p>`;
     const addItem = (id, icon, name) => `<button onclick="window.verPagina('${id}')" class="w-full flex items-center gap-4 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-white border border-slate-200 group-hover:border-indigo-200 flex items-center justify-center transition-colors"><i class="fas fa-${icon} group-hover:text-indigo-500"></i></div>${name}</button>`;
@@ -260,7 +260,7 @@ window.cargarSesion = function(datos) {
         }
     }
 
-    // INYECTAR MATRIZ DE PERMISOS EN LA VISTA DE USUARIOS
+    // INYECTAR MATRIZ DE PERMISOS
     const matrizBody = document.getElementById("matriz-permisos");
     if(matrizBody) {
         let matrixHtml = "";
@@ -330,7 +330,6 @@ window.actualizarCheckboxesGrupos = function() {
 // ==========================================
 window.activarSincronizacion = function() {
     
-    // Configuraciones Generales
     if(window.tienePermiso('configuracion', 'ver')) {
         onSnapshot(doc(db, "configuracion", "notificaciones"), (docSnap) => {
             if (docSnap.exists()) {
@@ -353,7 +352,6 @@ window.activarSincronizacion = function() {
         });
     }
 
-    // Grupos y Sedes
     onSnapshot(collection(db, "grupos"), snap => {
         window.todosLosGrupos = ["SERVICIOS GENERALES"];
         let html = `<div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center"><span class="font-black text-indigo-700 text-xs uppercase"><i class="fas fa-lock mr-1"></i> SERVICIOS GENERALES</span><span class="text-[10px] bg-indigo-200 text-indigo-700 px-2 rounded-full">Base</span></div>`;
@@ -381,7 +379,6 @@ window.activarSincronizacion = function() {
         if(document.getElementById("lista-sedes-db")) document.getElementById("lista-sedes-db").innerHTML = lst;
     });
 
-    // Inventario y Compras
     if(window.tienePermiso('stock', 'ver') || window.tienePermiso('pedir', 'ver')) {
         onSnapshot(collection(db, "inventario"), snap => {
             rawInventario = [];
@@ -398,7 +395,6 @@ window.activarSincronizacion = function() {
         });
     }
 
-    // Pedidos (Notificaciones y Alertas)
     let isInitialPedidos = true;
     onSnapshot(collection(db, "pedidos"), snap => {
         if (!isInitialPedidos) {
@@ -419,7 +415,6 @@ window.activarSincronizacion = function() {
         isInitialPedidos = false;
     });
 
-    // Historial
     if(window.tienePermiso('historial', 'ver')) {
         onSnapshot(collection(db, "entradas_stock"), snap => {
             rawEntradas = [];
@@ -428,7 +423,6 @@ window.activarSincronizacion = function() {
         });
     }
 
-    // Mantenimiento y Activos
     if(window.tienePermiso('mantenimiento', 'ver') || window.tienePermiso('dashboard', 'ver')) {
         onSnapshot(collection(db, "mantenimiento"), snap => {
             rawMantenimiento = [];
@@ -447,7 +441,6 @@ window.activarSincronizacion = function() {
         });
     }
 
-    // Facturas
     if(window.tienePermiso('facturas', 'ver')) {
         onSnapshot(collection(db, "facturas"), snap => {
             rawFacturas = [];
@@ -456,7 +449,6 @@ window.activarSincronizacion = function() {
         });
     }
 
-    // Usuarios
     if(window.tienePermiso('usuarios', 'ver')) {
         onSnapshot(collection(db, "usuarios"), snap => {
             let html = "";
@@ -498,7 +490,6 @@ window.actualizarDashboard = function() {
     if(desdeInput) tDesde = new Date(desdeInput + 'T00:00:00').getTime();
     if(hastaInput) tHasta = new Date(hastaInput + 'T23:59:59').getTime();
 
-    // Inyectar botón de Excel si tiene permiso
     const panelFiltros = document.getElementById("panel-filtros-dashboard");
     if(panelFiltros && window.tienePermiso('dashboard', 'gestionar')) {
         if(!document.getElementById("btn-excel-dashboard")) {
@@ -532,7 +523,6 @@ window.renderHistorialUnificado = function() {
     const t = document.getElementById("tabla-movimientos-unificados");
     if(!t) return;
     
-    // Inyectar excel si tiene permiso
     const panelFiltros = document.getElementById("panel-filtros-historial");
     if(panelFiltros && window.tienePermiso('historial', 'gestionar')) {
         if(!document.getElementById("btn-excel-historial")) {
@@ -668,7 +658,7 @@ window.renderCompras = function() {
     if(!tb) return;
     let html = "";
     const comprasGrupo = rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo).sort((a,b) => b.timestamp - a.timestamp);
-    const isGestor = window.tienePermiso('compras', 'gestionar'); // Asumimos que quien puede comprar, puede recibir
+    const isGestor = window.tienePermiso('compras', 'gestionar');
 
     comprasGrupo.forEach(c => {
         let badge = c.estado === 'recibido' ? `<span class="badge status-recibido">Recibido</span>` : `<span class="badge status-pendiente animate-pulse">En Tránsito</span>`;
@@ -996,6 +986,70 @@ window.eliminarDato = async function(col, id) {
     if(confirm("¿Seguro que deseas eliminar este dato?")) await deleteDoc(doc(db, col, id));
 };
 
+window.abrirModalActivo = function(id = null) {
+    document.getElementById("activo-preview-img").classList.add("hidden"); document.getElementById("activo-img-url").value = "";
+    if (id) {
+        const a = rawActivos.find(x => x.id === id); if(!a) return;
+        document.getElementById("activo-id").value = id; document.getElementById("activo-nombre").value = a.nombre || ""; document.getElementById("activo-categoria").value = a.categoria || ""; document.getElementById("activo-marca").value = a.marca || ""; document.getElementById("activo-proveedor").value = a.proveedor || ""; document.getElementById("activo-ubicacion").value = a.ubicacion || ""; document.getElementById("activo-precio").value = a.precio || ""; document.getElementById("activo-estado").value = a.estado || "Operativo"; document.getElementById("activo-descripcion").value = a.descripcion || ""; document.getElementById("activo-observacion").value = a.observacion || "";
+        if(a.imagen) { document.getElementById("activo-img-url").value = a.imagen; document.getElementById("activo-preview-img").src = a.imagen; document.getElementById("activo-preview-img").classList.remove("hidden"); }
+    } else {
+        document.getElementById("activo-id").value = ""; document.getElementById("activo-nombre").value = ""; document.getElementById("activo-categoria").value = ""; document.getElementById("activo-marca").value = ""; document.getElementById("activo-proveedor").value = ""; document.getElementById("activo-ubicacion").value = ""; document.getElementById("activo-precio").value = ""; document.getElementById("activo-estado").value = "Operativo"; document.getElementById("activo-descripcion").value = ""; document.getElementById("activo-observacion").value = "";
+    }
+    document.getElementById("modal-activo").classList.remove("hidden");
+};
+
+window.guardarActivo = async function() {
+    const actId = document.getElementById("activo-id").value;
+    const nombre = document.getElementById("activo-nombre").value.trim().toUpperCase();
+    if (!nombre) return alert("El nombre del activo es obligatorio.");
+    const data = {
+        nombre: nombre, categoria: document.getElementById("activo-categoria").value.trim().toUpperCase(), marca: document.getElementById("activo-marca").value.trim().toUpperCase(), proveedor: document.getElementById("activo-proveedor").value.trim().toUpperCase(), ubicacion: document.getElementById("activo-ubicacion").value.trim().toUpperCase(), precio: parseFloat(document.getElementById("activo-precio").value) || 0, estado: document.getElementById("activo-estado").value, descripcion: document.getElementById("activo-descripcion").value.trim(), observacion: document.getElementById("activo-observacion").value.trim(), imagen: document.getElementById("activo-img-url").value, grupo: window.grupoActivo
+    };
+    try {
+        if (actId) { await updateDoc(doc(db, "activos", actId), data); alert("Activo actualizado."); } 
+        else { const newId = "ACT-" + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*100); data.id = newId; data.creado_por = window.usuarioActual.id; data.fecha_registro = new Date().toLocaleString(); data.timestamp = Date.now(); data.bitacora = []; await setDoc(doc(db, "activos", newId), data); alert("Activo registrado. ID: " + newId); }
+        document.getElementById("modal-activo").classList.add("hidden");
+    } catch(e) { alert("Error al guardar activo."); }
+};
+
+window.abrirDetallesActivo = function(id) {
+    const a = rawActivos.find(x => x.id === id); if(!a) return;
+    document.getElementById("activo-bitacora-id").value = id; document.getElementById("activo-det-nombre").innerText = a.nombre; document.getElementById("activo-det-id").innerText = "ID: " + a.id;
+    document.getElementById("activo-det-qr-container").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=${encodeURIComponent(a.id)}" alt="QR Code" class="w-16 h-16 object-contain">`;
+    const imgEl = document.getElementById("activo-det-img");
+    if(a.imagen) { imgEl.src = a.imagen; imgEl.classList.remove("hidden"); } else { imgEl.classList.add("hidden"); }
+    document.getElementById("activo-det-estado").innerHTML = `<span class="px-2 py-1 bg-slate-100 rounded text-slate-700 text-xs">${a.estado}</span>`;
+    document.getElementById("activo-det-cat").innerText = a.categoria || '-'; document.getElementById("activo-det-marca").innerText = a.marca || '-'; document.getElementById("activo-det-ubi").innerText = a.ubicacion || '-'; document.getElementById("activo-det-fecha").innerText = a.fecha_registro || '-'; document.getElementById("activo-det-desc").innerText = a.descripcion || 'Sin detalles';
+    let bHtml = "";
+    if (a.observacion) bHtml += `<div class="relative pl-4 border-l-2 border-indigo-200 pb-3"><div class="absolute w-2.5 h-2.5 bg-indigo-500 rounded-full -left-[6px] top-1"></div><p class="text-[9px] text-slate-400 font-bold mb-1">NOTA ORIGINAL</p><p class="text-xs font-medium text-slate-700 italic">${a.observacion}</p></div>`;
+    if(a.bitacora && a.bitacora.length > 0) {
+        a.bitacora.forEach(b => {
+            let mediaHtml = "";
+            if(b.mediaUrl) {
+                if(b.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) mediaHtml = `<video src="${b.mediaUrl}" controls class="max-h-32 rounded-lg mt-2 border"></video>`;
+                else mediaHtml = `<a href="${b.mediaUrl}" target="_blank"><img src="${b.mediaUrl}" loading="lazy" class="max-h-24 object-contain rounded-lg mt-2 border hover:opacity-80"></a>`;
+            }
+            bHtml += `<div class="relative pl-4 border-l-2 border-slate-200 pb-4"><div class="absolute w-2.5 h-2.5 bg-slate-400 rounded-full -left-[6px] top-1"></div><div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p class="text-[9px] text-slate-400 font-bold mb-1 flex justify-between"><span>${b.usuario.toUpperCase()}</span><span>${b.fecha}</span></p><p class="text-xs text-slate-700 whitespace-pre-wrap">${b.nota}</p>${mediaHtml}</div></div>`;
+        });
+    } else if (!a.observacion) bHtml += `<p class="text-xs text-slate-400 italic">No hay notas registradas.</p>`;
+    document.getElementById("activo-bitacora-timeline").innerHTML = bHtml;
+    document.getElementById("activo-bitacora-texto").value = ""; document.getElementById("activo-bitacora-url").value = ""; document.getElementById("activo-bitacora-badge").classList.add("hidden");
+    document.getElementById("modal-activo-detalles").classList.remove("hidden");
+};
+window.cerrarDetallesActivo = function() { document.getElementById("modal-activo-detalles").classList.add("hidden"); };
+window.guardarBitacoraActivo = async function() {
+    const id = document.getElementById("activo-bitacora-id").value;
+    const txt = document.getElementById("activo-bitacora-texto").value.trim();
+    const url = document.getElementById("activo-bitacora-url").value;
+    if(!txt && !url) return alert("Escribe o adjunta algo.");
+    const aRef = doc(db, "activos", id); const aSnap = await getDoc(aRef);
+    if(aSnap.exists()) {
+        const bitacoraAnterior = aSnap.data().bitacora || [];
+        await updateDoc(aRef, { bitacora: [...bitacoraAnterior, { nota: txt, mediaUrl: url, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() }] });
+        window.abrirDetallesActivo(id);
+    }
+};
+
 window.abrirModalMantenimiento = function() {
     document.getElementById("mant-equipo").value=""; document.getElementById("mant-fecha").value=""; document.getElementById("mant-fecha-notificacion").value=""; document.getElementById("mant-correo").value=""; document.getElementById("mant-responsable").value=""; document.getElementById("mant-detalle").value=""; document.getElementById("modal-mantenimiento").classList.remove("hidden");
 };
@@ -1052,14 +1106,13 @@ window.guardarConfigCorreos = async function() { const emailA = document.getElem
 window.guardarUsuario = async function() {
     const id = document.getElementById("new-user").value.trim().toLowerCase();
     const p = document.getElementById("new-pass").value.trim();
-    const e = document.getElementById("new-email").value.trim();
+    const e = document.getElementById("new-email") ? document.getElementById("new-email").value.trim() : "";
     const r = document.getElementById("new-role").value.trim().toUpperCase() || "USUARIO BASE";
     
     const checkboxes = document.querySelectorAll('.chk-grupo:checked');
     let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value);
     if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"];
     
-    // Recopilar Matriz de Permisos
     const perms = {};
     document.querySelectorAll('.chk-permiso').forEach(chk => {
         const mod = chk.dataset.modulo;
@@ -1087,10 +1140,12 @@ window.prepararEdicionUsuario = async function(userId) {
     const inpU = document.getElementById("new-user");
     inpU.value = userId; inpU.disabled = true;
     document.getElementById("new-pass").value = u.pass;
-    document.getElementById("new-email").value = u.email || "";
+    
+    const elEmail = document.getElementById("new-email");
+    if(elEmail) elEmail.value = u.email || "";
+    
     document.getElementById("new-role").value = u.rol || "";
     
-    // Cargar Matriz de Permisos
     const p = u.permisos || {};
     document.querySelectorAll('.chk-permiso').forEach(chk => {
         const mod = chk.dataset.modulo;
@@ -1110,7 +1165,10 @@ window.cancelarEdicionUsuario = function() {
     const inpU = document.getElementById("new-user");
     inpU.value = ""; inpU.disabled = false;
     document.getElementById("new-pass").value = "";
-    document.getElementById("new-email").value = "";
+    
+    const elEmail = document.getElementById("new-email");
+    if(elEmail) elEmail.value = "";
+    
     document.getElementById("new-role").value = "";
     
     document.querySelectorAll('.chk-permiso').forEach(chk => chk.checked = false);
