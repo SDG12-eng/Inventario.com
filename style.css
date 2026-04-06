@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800;900&display=swap');
 
-/* TEMAS GLOBALES */
 :root {
     --bg-body: #f1f5f9; --bg-card: #ffffff; --bg-card-alt: #f8fafc;
     --text-main: #0f172a; --text-muted: #64748b; --border-color: #e2e8f0;
@@ -25,23 +24,19 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-
 .text-slate-600, .text-slate-500, .text-slate-400 { color: var(--text-muted) !important; }
 header.bg-white\/95 { background-color: var(--header-bg) !important; border-bottom-color: var(--border-color) !important; }
 
-/* BARRAS DE SCROLL */
 .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .custom-scroll::-webkit-scrollbar-track { background: var(--bg-body); border-radius: 10px; }
 .custom-scroll::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
 
-/* FORMULARIOS */
 .input-light { width: 100%; padding: 0.85rem 1rem; background-color: var(--bg-body) !important; border: 2px solid var(--border-color) !important; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 700; outline: none; transition: all 0.2s; color: var(--text-main) !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .input-light:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); }
 .label-form { display: block; font-size: 0.65rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; margin-left: 0.25rem; }
 
-/* TARJETAS METRICAS */
 .card-metrica { padding: 1.5rem; border-radius: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: flex-start; transition: transform 0.3s; border: 1px solid var(--border-color); }
 .card-metrica:hover { transform: translateY(-4px); box-shadow: 0 15px 25px rgba(0,0,0,0.1); }
 .card-metrica h2 { font-size: 2.5rem; font-weight: 900; line-height: 1; letter-spacing: -0.025em; }
 .icon-box { width: 3rem; height: 3rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 1rem; }
 
-/* TABLAS Y BADGES */
 .th-header { padding: 1.25rem 1rem; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; }
 .badge { padding: 0.35rem 0.6rem; border-radius: 0.5rem; font-size: 0.6rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; border-width: 1px; display: inline-flex; align-items: center; justify-content: center; }
 
@@ -55,8 +50,7 @@ header.bg-white\/95 { background-color: var(--header-bg) !important; border-bott
 .status-pri-normal { border-radius: 6px; padding: 3px 8px; font-size: 10px; }
 .status-pri-alta { background-color: #fef2f2 !important; color: #ef4444 !important; border: 1px solid #fca5a5 !important; font-weight: 900; animation: pulse 2s infinite; }
 
-/* ANIMACIONES */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in { animation: fadeIn 0.4s forwards; }
 .item-tarjeta { box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.2s ease-in-out; border: 1px solid var(--border-color); }
 .item-tarjeta:hover { border-color: #a5b4fc !important; box-shadow: 0 10px 15px rgba(99,102,241,0.1); transform: translateY(-2px); }
