@@ -35,7 +35,7 @@
             if(window.sistemaCargado && typeof window.iniciarSesion === 'function') {
                 window.iniciarSesion();
             } else {
-                alert("Conectando con el servidor de base de datos. Por favor espera unos segundos...");
+                alert("Conectando a la base de datos de Firebase. Por favor espera 3 segundos y vuelve a intentar.");
             }
         };
     </script>
@@ -53,7 +53,7 @@
             <div class="space-y-4">
                 <input id="login-user" name="username" autocomplete="username" type="text" placeholder="USUARIO" class="input-light uppercase font-bold text-center">
                 <input id="login-pass" name="password" autocomplete="current-password" type="password" placeholder="CONTRASEÑA" class="input-light font-bold text-center" onkeyup="if(event.keyCode===13) window.iniciarSesionUI()">
-                <button id="btn-login-submit" onclick="window.iniciarSesionUI()" class="w-full py-4 bg-slate-400 text-white font-bold rounded-2xl shadow-lg transition-all">Conectando Servidor...</button>
+                <button id="btn-login-submit" onclick="window.iniciarSesionUI()" class="w-full py-4 bg-slate-400 text-white font-bold rounded-2xl shadow-lg transition-all">Cargando Servidor...</button>
             </div>
         </div>
     </div>
@@ -118,23 +118,21 @@
 
                 <section id="pag-compras" class="view hidden space-y-6 animate-fade-in">
                     <h2 class="text-2xl font-black text-slate-800">Compras y Recepción</h2>
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                        
-                        <div id="panel-registrar-compra" class="col-span-1 lg:col-span-5 bg-white p-5 md:p-6 rounded-[2rem] border shadow-md hidden">
-                            <h3 class="text-lg font-black text-indigo-500 mb-4 pb-2 border-b border-slate-100"><i class="fas fa-cart-plus mr-2"></i>Nueva Compra</h3>
-                            
+                    <div class="flex flex-col lg:flex-row gap-6 items-start">
+                        <div id="panel-registrar-compra" class="w-full lg:w-5/12 bg-white p-5 md:p-6 rounded-[2rem] border shadow-md hidden sticky top-24">
+                            <h3 class="text-lg font-black text-indigo-500 mb-4 pb-2 border-b border-slate-100"><i class="fas fa-cart-plus mr-2 text-indigo-400"></i>Nueva Compra</h3>
                             <div class="grid grid-cols-2 gap-3 mb-4">
                                 <input id="compra-proveedor" name="compra-proveedor" type="text" class="input-light uppercase font-bold text-sm" placeholder="Proveedor *">
                                 <input id="compra-factura" name="compra-factura" type="text" class="input-light uppercase font-bold text-sm" placeholder="Nº Factura">
                             </div>
                             
                             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner mb-4">
-                                <p class="text-[10px] font-black text-indigo-600 uppercase mb-2"><i class="fas fa-search mr-1"></i>1. Buscar en Catálogo</p>
-                                <input type="text" onkeyup="window.debounceFiltrarTarjetas('grid-insumos-compra', this.value)" placeholder="🔍 Filtrar insumo..." class="input-light text-xs mb-2 p-2 focus:border-indigo-400">
-                                <div id="grid-insumos-compra" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 max-h-32 overflow-y-auto custom-scroll pr-1"></div>
+                                <p class="text-[10px] font-black text-indigo-600 uppercase mb-2"><i class="fas fa-search mr-1"></i>1. Seleccionar de Inventario</p>
+                                <input type="text" onkeyup="window.debounceFiltrarTarjetas('grid-insumos-compra', this.value)" placeholder="🔍 Buscar insumo para auto-completar..." class="input-light text-xs mb-2 p-2 bg-white">
+                                <div id="grid-insumos-compra" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3 max-h-32 overflow-y-auto custom-scroll pr-1"></div>
                                 
                                 <p class="text-[10px] font-black text-indigo-600 uppercase mb-2 border-t border-slate-200 pt-3"><i class="fas fa-plus mr-1"></i>2. Añadir al Lote</p>
-                                <input id="compra-insumo" name="compra-insumo" class="input-light uppercase text-xs mb-2 p-2 focus:border-indigo-500 bg-white" placeholder="Nombre del Insumo (Seleccionado o Nuevo)...">
+                                <input id="compra-insumo" name="compra-insumo" class="input-light uppercase text-xs mb-2 p-2 bg-white focus:border-indigo-400" placeholder="Nombre Insumo (Seleccionado o Nuevo)...">
                                 <div class="flex gap-2">
                                     <input id="compra-cant" name="compra-cant" type="number" class="input-light text-xs flex-1 p-2" placeholder="Cant.">
                                     <input id="compra-precio" name="compra-precio" type="number" step="0.01" class="input-light text-xs flex-1 p-2" placeholder="Precio ($)">
@@ -142,47 +140,11 @@
                                 </div>
                             </div>
                             
-                            <div id="lista-items-compra" class="space-y-2 mt-4 pt-2 border-t border-slate-100 max-h-32 overflow-y-auto custom-scroll"></div>
-                            <button onclick="window.procesarCompra()" class="w-full py-3.5 bg-emerald-600 text-white font-black rounded-xl mt-4 shadow-lg hover:bg-emerald-700 transition active:scale-95">Procesar Lote</button>
-                        </div>
-
-                        <div class="col-span-1 lg:col-span-7">
-                            <div id="lista-compras-db" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-20"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <section id="pag-solicitar" class="view hidden space-y-6 animate-fade-in max-w-6xl mx-auto">
-                    <h2 class="text-2xl font-black text-slate-800">Pedir Insumos <span id="lbl-grupo-solicitud" class="ml-2 text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full align-middle"></span></h2>
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                        
-                        <div class="col-span-1 lg:col-span-7 bg-slate-50 p-4 md:p-6 rounded-[2rem] border border-slate-200 shadow-inner flex flex-col h-[50vh] lg:h-[70vh]">
-                            <h3 class="font-black text-slate-700 text-sm mb-3 uppercase tracking-widest"><i class="fas fa-box-open text-indigo-500 mr-2"></i>1. Catálogo de Insumos</h3>
-                            <input type="text" onkeyup="window.debounceFiltrarTarjetas('grid-insumos-solicitar', this.value)" placeholder="🔍 Buscar para añadir..." class="input-light text-sm mb-4 p-3 shadow-sm">
-                            <div id="grid-insumos-solicitar" class="flex-1 overflow-y-auto custom-scroll pr-2 grid grid-cols-1 sm:grid-cols-2 gap-3 content-start">
-                                </div>
+                            <div id="lista-items-compra" class="space-y-2 mt-4 pt-2 border-t border-slate-100 max-h-40 overflow-y-auto custom-scroll"></div>
+                            <button onclick="window.procesarCompra()" class="w-full py-3.5 bg-emerald-600 text-white font-black rounded-xl mt-4 shadow-lg hover:bg-emerald-700 active:scale-95 transition">Procesar Lote de Compra</button>
                         </div>
                         
-                        <div class="col-span-1 lg:col-span-5 bg-white p-5 md:p-6 rounded-[2.5rem] border border-slate-200 shadow-xl flex flex-col h-[60vh] lg:h-[70vh]">
-                            <h3 class="font-black text-slate-700 text-sm mb-4 uppercase tracking-widest border-b border-slate-100 pb-2"><i class="fas fa-clipboard-check text-indigo-500 mr-2"></i>2. Tu Pedido</h3>
-                            
-                            <div class="grid grid-cols-2 gap-3 mb-4">
-                                <div><label for="sol-ubicacion" class="label-form">Destino *</label><select id="sol-ubicacion" name="sol-ubicacion" class="input-light text-xs border-2 border-indigo-100 focus:border-indigo-500 !p-2"></select></div>
-                                <div><label for="sol-prioridad" class="label-form">Prioridad *</label><select id="sol-prioridad" name="sol-prioridad" class="input-light text-xs !p-2"><option value="normal">🟢 Normal</option><option value="basica">⚪ Básica</option><option value="alta">🔴 Urgente</option></select></div>
-                            </div>
-                            
-                            <label class="label-form mb-1">Insumos Añadidos</label>
-                            <div class="flex-1 overflow-y-auto custom-scroll pr-1 mb-4 bg-slate-50 border border-slate-100 rounded-xl p-2 shadow-inner" id="contenedor-lista-pedidos">
-                                </div>
-
-                            <div class="mb-4">
-                                <label for="sol-notas" class="label-form">Justificación / Notas</label>
-                                <textarea id="sol-notas" name="sol-notas" class="input-light h-16 resize-none p-3 text-xs bg-slate-50" placeholder="Motivo de la solicitud..."></textarea>
-                            </div>
-                            
-                            <button onclick="window.procesarSolicitudMultiple()" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-black text-sm shadow-lg hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center gap-2"><i class="fas fa-paper-plane"></i> Enviar Solicitud</button>
-                        </div>
+                        <div id="lista-compras-db" class="w-full flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 pb-20"></div>
                     </div>
                 </section>
 
@@ -275,6 +237,36 @@
                     </div>
                 </section>
                 
+                <section id="pag-solicitar" class="view hidden max-w-4xl mx-auto space-y-6 animate-fade-in">
+                    <div class="text-center mb-6">
+                        <h2 class="text-3xl font-black text-slate-800">Pedir Insumos</h2>
+                        <span id="lbl-grupo-solicitud" class="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-black tracking-widest mt-2 inline-block shadow-sm"></span>
+                    </div>
+                    
+                    <div class="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-200 shadow-xl">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <div><label for="sol-ubicacion" class="label-form">Sede Destino *</label><select id="sol-ubicacion" name="sol-ubicacion" class="input-light text-sm border-2 border-indigo-100 focus:border-indigo-500"></select></div>
+                            <div><label for="sol-prioridad" class="label-form">Prioridad *</label><select id="sol-prioridad" name="sol-prioridad" class="input-light text-sm"><option value="normal">🟢 Normal</option><option value="basica">⚪ Básica</option><option value="alta">🔴 Alta (Urgente)</option></select></div>
+                        </div>
+                        
+                        <div class="mb-6 bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-200 shadow-inner">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-slate-200 pb-4">
+                                <label class="text-[10px] font-black text-indigo-600 uppercase tracking-widest"><i class="fas fa-boxes mr-1"></i> Selecciona tus Insumos</label>
+                                <input type="text" onkeyup="window.debounceFiltrarTarjetas('contenedor-lista-pedidos', this.value)" placeholder="🔍 Buscar insumo..." class="input-light !py-2 !px-3 sm:!w-64 text-xs shadow-sm bg-white">
+                            </div>
+                            <div id="contenedor-lista-pedidos" class="max-h-[45vh] overflow-y-auto custom-scroll pr-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label for="sol-notas" class="label-form">Justificación / Notas (Opcional)</label>
+                            <textarea id="sol-notas" name="sol-notas" class="input-light h-20 resize-none p-4 text-sm bg-slate-50" placeholder="Escribe aquí el motivo de tu solicitud..."></textarea>
+                        </div>
+                        
+                        <button onclick="window.procesarSolicitudMultiple()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-black text-lg shadow-lg hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center gap-3"><i class="fas fa-paper-plane"></i> Enviar Solicitud</button>
+                    </div>
+                </section>
+
                 <section id="pag-solicitudes" class="view hidden space-y-6 animate-fade-in"><h2 class="text-2xl font-black text-slate-800">Aprobaciones</h2><div id="lista-pendientes-admin" class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-4"></div></section>
                 <section id="pag-mantenimiento" class="view hidden space-y-6 animate-fade-in"><div class="flex justify-between items-center"><h2 class="text-2xl font-black text-slate-800">Mantenimientos</h2><button id="btn-admin-mantenimiento" onclick="window.abrirModalMantenimiento()" class="hidden bg-indigo-600 text-white px-6 py-2 rounded-xl text-sm font-bold">Programar</button></div><div class="bg-white rounded-2xl border shadow-md overflow-x-auto"><table class="w-full min-w-[900px]"><thead class="bg-slate-100 border-b text-left text-xs text-slate-500 uppercase font-black"><tr><th class="p-4">Estado</th><th class="p-4">Equipo</th><th class="p-4">Fechas</th><th class="p-4">Responsable</th><th class="p-4 text-right">Gestión</th></tr></thead><tbody id="tabla-mantenimiento-db" class="text-xs"></tbody></table></div></section>
                 <section id="pag-facturas" class="view hidden space-y-6 animate-fade-in"><div class="flex justify-between items-center"><h2 class="text-2xl font-black text-slate-800">Facturas Menores</h2><button id="btn-admin-facturas" onclick="window.abrirModalFactura()" class="hidden bg-indigo-600 text-white px-6 py-2 rounded-xl text-sm font-bold">Registrar</button></div><div class="bg-white rounded-2xl border shadow-md overflow-x-auto"><table class="w-full min-w-[800px]"><thead class="bg-slate-100 border-b text-left text-xs text-slate-500 uppercase font-black"><tr><th class="p-4">Fecha</th><th class="p-4">Proveedor</th><th class="p-4 text-right">Gasto</th><th class="p-4 text-center">Registrado Por</th><th class="p-4 text-center">Documento</th><th class="p-4 text-center">Acción</th></tr></thead><tbody id="tabla-facturas-db" class="text-xs"></tbody></table></div></section>
