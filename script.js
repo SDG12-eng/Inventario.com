@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebas
 import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, addDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 // ==========================================
-// 1. CONFIGURACIÓN FIREBASE Y GLOBALES
+// 1. CONFIGURACIONES GLOBALES Y FIREBASE
 // ==========================================
 const firebaseConfig = { apiKey: "AIzaSyA3cRmakg2dV2YRuNV1fY7LE87artsLmB8", authDomain: "mi-web-db.firebaseapp.com", projectId: "mi-web-db", storageBucket: "mi-web-db.appspot.com" };
 const app = initializeApp(firebaseConfig);
@@ -28,12 +28,11 @@ window.tienePermiso = function(modulo, accion = 'ver') {
 };
 
 window.formatoTiempoDiferencia = function(t1, t2) { let diffMs = Math.abs(t2 - t1); let diffMins = Math.floor(diffMs / 60000); if (diffMins < 60) return diffMins + "m"; let diffHrs = Math.floor(diffMins / 60); let rem = diffMins % 60; if (diffHrs < 24) return diffHrs + "h " + rem + "m"; return Math.floor(diffHrs / 24) + "d " + (diffHrs % 24) + "h"; };
-window.enviarNotificacionEmail = async function(correoDestino, asunto, mensaje) { try { await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email: correoDestino, subject: asunto, message: mensaje }); } catch (error) { console.error("Error email:", error); } };
+window.enviarNotificacionEmail = async function(correoDestino, asunto, mensaje) { try { await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email: correoDestino, subject: asunto, message: mensaje }); console.log("Email enviado"); } catch (error) { console.error("Error email:", error); } };
 window.solicitarPermisosNotificacion = function() { if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") { Notification.requestPermission(); } };
 window.enviarNotificacionNavegador = function(titulo, cuerpo) { if ("Notification" in window && Notification.permission === "granted") { new Notification(titulo, { body: cuerpo, icon: "https://cdn-icons-png.flaticon.com/512/2921/2921222.png" }); } };
 window.debounceFiltrarTarjetas = function(idContenedor, texto) { clearTimeout(window.timeoutBusqueda); window.timeoutBusqueda = setTimeout(() => { const term = texto.toLowerCase(); const container = document.getElementById(idContenedor); if(container) { container.querySelectorAll('.item-tarjeta').forEach(c => { c.style.display = c.innerText.toLowerCase().includes(term) ? '' : 'none'; }); } }, 150); };
 window.debounceFiltrarTabla = function(idTabla, texto) { clearTimeout(window.timeoutBusqueda); window.timeoutBusqueda = setTimeout(() => { const term = texto.toLowerCase(); document.querySelectorAll(`#${idTabla} tr`).forEach(f => { f.style.display = f.innerText.toLowerCase().includes(term) ? '' : 'none'; }); }, 150); };
-
 window.verPagina = function(id) { document.querySelectorAll(".view").forEach(v => { v.classList.add("hidden"); v.classList.remove("animate-fade-in"); }); const t = document.getElementById(`pag-${id}`); if(t) { t.classList.remove("hidden"); setTimeout(() => t.classList.add("animate-fade-in"), 10); } if(window.innerWidth < 768) window.toggleMenu(false); };
 window.toggleMenu = function(forceState) { const sb = document.getElementById("sidebar"); const ov = document.getElementById("sidebar-overlay"); if(!sb || !ov) return; const isClosed = sb.classList.contains("-translate-x-full"); const shouldOpen = forceState !== undefined ? forceState : isClosed; if (shouldOpen) { sb.classList.remove("-translate-x-full"); ov.classList.remove("hidden"); sb.style.zIndex = "100"; ov.style.zIndex = "90"; } else { sb.classList.add("-translate-x-full"); ov.classList.add("hidden"); } };
 window.switchTab = function(tab) { document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden')); document.getElementById(`tab-content-${tab}`)?.classList.remove('hidden'); const onC = "flex-1 py-3 rounded-xl text-sm font-black bg-white text-indigo-600 shadow-sm transition"; const offC = "flex-1 py-3 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 transition"; if(tab === 'activos') { document.getElementById('tab-btn-activos').className = onC; document.getElementById('tab-btn-historial').className = offC; } else { document.getElementById('tab-btn-historial').className = onC; document.getElementById('tab-btn-activos').className = offC; } };
@@ -100,12 +99,13 @@ window.cambiarGrupoActivo = function(nuevoGrupo) {
 };
 
 window.renderizarSelectorGrupos = function(misGrupos) { const sel = document.getElementById("selector-grupo-activo"); if(sel) { sel.innerHTML = misGrupos.map(g => `<option value="${g}">${g}</option>`).join(''); sel.value = window.grupoActivo; } const dashLbl = document.getElementById("dash-grupo-label"); if(dashLbl) dashLbl.innerText = window.grupoActivo; const solLbl = document.getElementById("lbl-grupo-solicitud"); if(solLbl) solLbl.innerText = window.grupoActivo; };
-window.actualizarCheckboxesGrupos = function() { const container = document.getElementById("user-grupos-checkboxes"); if(container) { container.innerHTML = window.todosLosGrupos.map(g => `<label class="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-indigo-50 transition shadow-sm"><input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo"><span class="text-xs font-bold text-slate-700 uppercase">${g}</span></label>`).join(''); } };
+window.actualizarCheckboxesGrupos = function() { const container = document.getElementById("user-grupos-checkboxes"); if(container) { container.innerHTML = window.todosLosGrupos.map(g => `<label class="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl cursor-pointer hover:bg-indigo-50 transition shadow-sm"><input type="checkbox" value="${g}" class="w-4 h-4 text-indigo-600 rounded border-slate-300 chk-grupo"><span class="text-[10px] font-bold text-slate-700 uppercase">${g}</span></label>`).join(''); } };
 
 // ==========================================
 // 6. FIREBASE SINCRONIZACIÓN (ONSNAPSHOT)
 // ==========================================
 window.activarSincronizacion = function() {
+    
     if(window.tienePermiso('configuracion', 'ver')) {
         onSnapshot(doc(db, "configuracion", "notificaciones"), (docSnap) => { if (docSnap.exists()) { window.configCorreosData = docSnap.data(); window.adminEmailGlobal = window.configCorreosData[window.grupoActivo] || ""; } else { window.configCorreosData = {}; window.adminEmailGlobal = ""; } const elA = document.getElementById("config-admin-email"); if(elA) elA.value = window.adminEmailGlobal; });
         onSnapshot(doc(db, "configuracion", "alertas_stock"), (docSnap) => { if (docSnap.exists()) { window.configStockData = docSnap.data(); window.stockAlertEmailGlobal = window.configStockData[window.grupoActivo] || ""; } else { window.configStockData = {}; window.stockAlertEmailGlobal = ""; } const elS = document.getElementById("config-stock-email"); if(elS) elS.value = window.stockAlertEmailGlobal; });
@@ -128,7 +128,13 @@ window.activarSincronizacion = function() {
 
     let isInitialPedidos = true;
     onSnapshot(collection(db, "pedidos"), snap => {
-        if (!isInitialPedidos) { snap.docChanges().forEach(change => { const p = change.doc.data(); const miId = window.usuarioActual?.id; if (change.type === "added" && p.estado === 'pendiente' && window.tienePermiso('aprobaciones', 'gestionar') && p.usuarioId !== miId) { window.enviarNotificacionNavegador("🚨 Nueva Solicitud", `${p.usuarioId.toUpperCase()} pide ${p.cantidad}x ${p.insumoNom}.\nSede: ${p.ubicacion}`); } if (change.type === "modified" && p.usuarioId === miId && ['aprobado', 'rechazado'].includes(p.estado)) { window.enviarNotificacionNavegador("Actualización de Pedido", `Tu pedido de ${p.insumoNom} fue ${p.estado.toUpperCase()}.`); } }); }
+        if (!isInitialPedidos) {
+            snap.docChanges().forEach(change => {
+                const p = change.doc.data(); const miId = window.usuarioActual?.id;
+                if (change.type === "added" && p.estado === 'pendiente' && window.tienePermiso('aprobaciones', 'gestionar') && p.usuarioId !== miId) { window.enviarNotificacionNavegador("🚨 Nueva Solicitud", `${p.usuarioId.toUpperCase()} pide ${p.cantidad}x ${p.insumoNom}.\nSede: ${p.ubicacion}`); }
+                if (change.type === "modified" && p.usuarioId === miId && ['aprobado', 'rechazado'].includes(p.estado)) { window.enviarNotificacionNavegador("Actualización de Pedido", `Tu pedido de ${p.insumoNom} fue ${p.estado.toUpperCase()}.`); }
+            });
+        }
         window.pedidosRaw = []; snap.forEach(ds => { window.pedidosRaw.push({ id: ds.id, ...ds.data() }); }); window.procesarDatosPedidos(); isInitialPedidos = false;
     });
 
@@ -136,46 +142,55 @@ window.activarSincronizacion = function() {
     if(window.tienePermiso('mantenimiento', 'ver') || window.tienePermiso('dashboard', 'ver')) { onSnapshot(collection(db, "mantenimiento"), snap => { window.rawMantenimiento = []; snap.forEach(x => { window.rawMantenimiento.push({id: x.id, ...x.data()}); }); window.renderMantenimiento(); window.actualizarDashboard(); }); }
     if(window.tienePermiso('activos', 'ver') || window.tienePermiso('dashboard', 'ver')) { onSnapshot(collection(db, "activos"), snap => { window.rawActivos = []; snap.forEach(x => { window.rawActivos.push({id: x.id, ...x.data()}); }); window.renderActivos(); window.actualizarDashboard(); }); }
     if(window.tienePermiso('facturas', 'ver')) { onSnapshot(collection(db, "facturas"), snap => { window.rawFacturas = []; snap.forEach(d => window.rawFacturas.push({id: d.id, ...d.data()})); window.procesarDatosFacturas(); }); }
-    
     if(window.tienePermiso('usuarios', 'ver')) {
         onSnapshot(collection(db, "usuarios"), snap => {
             let html = ""; const isManager = window.tienePermiso('usuarios', 'gestionar');
-            snap.forEach(d => { const u = d.data(); const jsId = d.id.replace(/'/g, "\\'"); let btns = isManager ? `<div class="flex gap-2"><button onclick="window.prepararEdicionUsuario('${jsId}')" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 p-2 rounded-lg transition"><i class="fas fa-pen"></i></button><button onclick="window.eliminarDato('usuarios','${jsId}')" class="text-red-400 hover:text-red-600 bg-red-50 p-2 rounded-lg transition"><i class="fas fa-trash"></i></button></div>` : ''; html += `<div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm flex justify-between items-center"><div class="truncate w-full"><div class="flex items-center gap-2"><span class="font-black text-sm uppercase text-slate-800">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold border border-slate-200">${u.rol}</span></div><span class="text-[10px] text-indigo-500 font-bold block truncate mt-1.5"><i class="fas fa-folder-open text-indigo-300"></i> ${(u.grupos||[]).join(", ")}</span></div>${btns}</div>`; });
+            snap.forEach(d => {
+                const u = d.data(); const jsId = d.id.replace(/'/g, "\\'");
+                let btns = isManager ? `<div class="flex gap-2"><button onclick="window.prepararEdicionUsuario('${jsId}')" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 p-2 rounded-lg transition"><i class="fas fa-pen"></i></button><button onclick="window.eliminarDato('usuarios','${jsId}')" class="text-red-400 hover:text-red-600 bg-red-50 p-2 rounded-lg transition"><i class="fas fa-trash"></i></button></div>` : '';
+                html += `<div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm flex justify-between items-center"><div class="truncate w-full"><div class="flex items-center gap-2"><span class="font-black text-sm uppercase text-slate-800">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold border border-slate-200">${u.rol}</span></div><span class="text-[10px] text-indigo-500 font-bold block truncate mt-1.5"><i class="fas fa-folder-open text-indigo-300"></i> ${(u.grupos||[]).join(", ")}</span></div>${btns}</div>`;
+            });
             if(document.getElementById("lista-usuarios-db")) document.getElementById("lista-usuarios-db").innerHTML = html;
         });
     }
 };
 
 // ==========================================
-// 7. DASHBOARD E HISTORIAL
+// 7. RENDERIZADOS Y DASHBOARD
 // ==========================================
 window.actualizarDashboard = function() {
     if(!window.cachePedidos || !window.tienePermiso('dashboard', 'ver')) return;
     const desdeInput = document.getElementById("dash-desde")?.value; const hastaInput = document.getElementById("dash-hasta")?.value;
     let tDesde = 0; let tHasta = Infinity; if(desdeInput) tDesde = new Date(desdeInput + 'T00:00:00').getTime(); if(hastaInput) tHasta = new Date(hastaInput + 'T23:59:59').getTime();
-    const panelFiltros = document.getElementById("panel-filtros-dashboard"); if(panelFiltros && window.tienePermiso('dashboard', 'gestionar')) { if(!document.getElementById("btn-excel-dashboard")) { panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-dashboard" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow hover:bg-emerald-700 transition ml-2"><i class="fas fa-file-excel"></i> Exportar</button>`); } } else if (document.getElementById("btn-excel-dashboard")) { document.getElementById("btn-excel-dashboard").remove(); }
+    
+    const panelFiltros = document.getElementById("panel-filtros-dashboard");
+    if(panelFiltros && window.tienePermiso('dashboard', 'gestionar')) { if(!document.getElementById("btn-excel-dashboard")) { panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-dashboard" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow hover:bg-emerald-700 transition ml-2"><i class="fas fa-file-excel"></i></button>`); } } else if (document.getElementById("btn-excel-dashboard")) { document.getElementById("btn-excel-dashboard").remove(); }
+    
     let pedidosFiltrados = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
     if(document.getElementById("metrica-pedidos")) document.getElementById("metrica-pedidos").innerText = pedidosFiltrados.filter(p => p.estado === 'pendiente').length;
     let sedesCount = {}; pedidosFiltrados.forEach(p => { if(p.estado !== 'rechazado') sedesCount[p.ubicacion] = (sedesCount[p.ubicacion] || 0) + p.cantidad; });
-    const activosFiltrados = window.rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo && a.timestamp >= tDesde && a.timestamp <= tHasta); if(document.getElementById("metrica-activos")) document.getElementById("metrica-activos").innerText = activosFiltrados.length; if(document.getElementById("metrica-activos-fallas")) document.getElementById("metrica-activos-fallas").innerText = activosFiltrados.filter(a => ['En Mantenimiento', 'Fuera de Servicio'].includes(a.estado)).length;
-    const mantFiltrados = window.rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.estado !== 'completado' && m.timestamp >= tDesde && m.timestamp <= tHasta); if(document.getElementById("metrica-mant-pend")) document.getElementById("metrica-mant-pend").innerText = mantFiltrados.length;
-    const invActivo = window.rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo); let lblS = [], datS = []; invActivo.forEach(p => { const n = p.id || 'N/A'; lblS.push(n.toUpperCase().substring(0,10)); datS.push(p.cantidad); });
+    const activosFiltrados = window.rawActivos.filter(a => (a.grupo || "SERVICIOS GENERALES") === window.grupoActivo && a.timestamp >= tDesde && a.timestamp <= tHasta);
+    if(document.getElementById("metrica-activos")) document.getElementById("metrica-activos").innerText = activosFiltrados.length;
+    if(document.getElementById("metrica-activos-fallas")) document.getElementById("metrica-activos-fallas").innerText = activosFiltrados.filter(a => ['En Mantenimiento', 'Fuera de Servicio'].includes(a.estado)).length;
+    const mantFiltrados = window.rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.estado !== 'completado' && m.timestamp >= tDesde && m.timestamp <= tHasta);
+    if(document.getElementById("metrica-mant-pend")) document.getElementById("metrica-mant-pend").innerText = mantFiltrados.length;
+    const invActivo = window.rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+    let lblS = [], datS = []; invActivo.forEach(p => { lblS.push((p.id || 'N/A').toUpperCase().substring(0,10)); datS.push(p.cantidad); });
     window.renderChart('stockChart', lblS, datS, 'Stock', window.chartPalette, window.miGraficoStock, ch => window.miGraficoStock = ch); window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Demandas', window.chartPalette, window.miGraficoUbicacion, ch => window.miGraficoUbicacion = ch);
 };
 
 window.renderHistorialUnificado = function() {
     const t = document.getElementById("tabla-movimientos-unificados"); if(!t) return;
-    const panelFiltros = document.getElementById("panel-filtros-historial"); if(panelFiltros && window.tienePermiso('historial', 'gestionar')) { if(!document.getElementById("btn-excel-historial")) { panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-historial" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow hover:bg-emerald-700 ml-2"><i class="fas fa-file-excel"></i> Todo</button>`); } } else if (document.getElementById("btn-excel-historial")) { document.getElementById("btn-excel-historial").remove(); }
+    const panelFiltros = document.getElementById("panel-filtros-historial");
+    if(panelFiltros && window.tienePermiso('historial', 'gestionar')) { if(!document.getElementById("btn-excel-historial")) { panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-historial" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow hover:bg-emerald-700 ml-2"><i class="fas fa-file-excel"></i> Todo</button>`); } } else if (document.getElementById("btn-excel-historial")) { document.getElementById("btn-excel-historial").remove(); }
     let html = ""; const ent = window.rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo).map(e => ({ ts: e.timestamp, fecha: e.fecha || new Date(e.timestamp).toLocaleString(), tipo: '📥 ENTRADA', insumo: e.insumo || 'N/A', cant: e.cantidad || 0, solicito: e.usuario || 'SISTEMA', acepto: 'DIRECTO', motivo: e.motivo_edicion || 'Ingreso Almacén', tiempo: 'N/A', id: e.id }));
     const sal = window.cachePedidos.map(p => { let tProc = (p.timestamp_aprobado && p.timestamp) ? window.formatoTiempoDiferencia(p.timestamp, p.timestamp_aprobado) : 'PEND'; return { ts: p.timestamp, fecha: p.fecha || new Date(p.timestamp).toLocaleString(), tipo: '📤 SALIDA', insumo: p.insumoNom || 'N/A', cant: p.cantidad || 0, solicito: p.usuarioId || 'N/A', acepto: p.entregado_por || (p.estado === 'pendiente' ? 'ESPERANDO' : 'RECHAZADO'), motivo: p.notas || 'Sin notas', tiempo: tProc, id: p.id }; });
     const isGestor = window.tienePermiso('historial', 'gestionar'); const combinados = [...ent, ...sal].sort((a,b) => b.ts - a.ts);
     if (combinados.length === 0) { t.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-bold">No hay registros.</td></tr>`; return; }
-    combinados.forEach(h => { let btnEdit = (h.tipo === '📥 ENTRADA' && isGestor) ? `<button onclick="window.abrirModalEditarEntrada('${h.id}', '${h.insumo.replace(/'/g,"\\'")}', ${h.cant})" class="text-amber-500 hover:text-amber-600 transition ml-2"><i class="fas fa-pen bg-amber-50 p-1.5 rounded"></i></button>` : ''; html += `<tr class="border-b hover:bg-slate-50 transition"><td class="p-4 text-[10px] font-mono whitespace-nowrap">${h.fecha.split(',')[0]}</td><td class="p-4 font-black text-xs">${h.tipo}</td><td class="p-4 font-bold uppercase text-xs text-slate-700">${h.insumo}</td><td class="p-4 font-black text-center text-indigo-600">${h.cant}</td><td class="p-4 text-[10px] uppercase font-bold text-slate-500">${h.solicito}</td><td class="p-4 text-[10px] uppercase font-bold text-emerald-600">${h.acepto}</td><td class="p-4 text-[10px] italic text-slate-400 max-w-[150px] truncate" title="${h.motivo}">${h.motivo} ${btnEdit}</td><td class="p-4 text-[10px] font-black text-indigo-400">${h.tiempo}</td></tr>`; }); t.innerHTML = html;
+    combinados.forEach(h => { let btnEdit = (h.tipo === '📥 ENTRADA' && isGestor) ? `<button onclick="window.abrirModalEditarEntrada('${h.id}', '${h.insumo.replace(/'/g,"\\'")}', ${h.cant})" class="text-amber-500 hover:text-amber-600 transition ml-2"><i class="fas fa-pen bg-amber-50 p-1.5 rounded"></i></button>` : ''; html += `<tr class="border-b hover:bg-slate-50 transition"><td class="p-4 text-[10px] font-mono whitespace-nowrap">${h.fecha.split(',')[0]}</td><td class="p-4 font-black text-xs">${h.tipo}</td><td class="p-4 font-bold uppercase text-xs text-slate-700">${h.insumo}</td><td class="p-4 font-black text-center text-indigo-600">${h.cant}</td><td class="p-4 text-[10px] uppercase font-bold text-slate-500">${h.solicito}</td><td class="p-4 text-[10px] uppercase font-bold text-emerald-600">${h.acepto}</td><td class="p-4 text-[10px] italic text-slate-400 max-w-[150px] truncate" title="${h.motivo}">${h.motivo} ${btnEdit}</td><td class="p-4 text-[10px] font-black text-indigo-400">${h.tiempo}</td></tr>`; });
+    t.innerHTML = html;
 };
 
-// ==========================================
-// 8. RENDERIZADO DE TABLAS
-// ==========================================
 window.renderActivos = function() {
     const list = document.getElementById("lista-activos-db"); if(!list) return; let html = "";
     const btnReg = document.getElementById("btn-admin-activos"); if(window.tienePermiso('activos', 'gestionar') && btnReg) btnReg.classList.remove("hidden");
@@ -185,7 +200,8 @@ window.renderActivos = function() {
         let bColor = "bg-emerald-50 text-emerald-600 border-emerald-200"; if(a.estado === "En Mantenimiento") bColor = "bg-amber-50 text-amber-600 border-amber-200"; if(a.estado === "Fuera de Servicio") bColor = "bg-red-50 text-red-600 border-red-200";
         let controls = isGestor ? `<button onclick="window.abrirModalActivo('${jsId}')" class="text-indigo-400 hover:bg-indigo-50 p-2 rounded-lg transition"><i class="fas fa-pen"></i></button><button onclick="window.eliminarDato('activos','${jsId}')" class="text-red-300 hover:bg-red-50 p-2 rounded-lg transition"><i class="fas fa-trash"></i></button>` : "";
         html += `<div class="bg-white p-5 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-indigo-200 transition flex items-center gap-6">${img}<div class="flex-1 min-w-0 grid grid-cols-2 lg:grid-cols-4 gap-4 items-center"><div class="col-span-1"><h4 class="font-black text-slate-800 uppercase text-sm truncate">${a.nombre}</h4><p class="text-[10px] font-mono text-indigo-500 font-bold">${a.id}</p><span class="badge ${bColor} mt-1">${a.estado}</span></div><div><p class="text-[9px] font-black text-slate-400 uppercase">Marca / Modelo</p><p class="text-xs font-bold text-slate-700 uppercase truncate">${a.marca || 'N/A'}</p></div><div><p class="text-[9px] font-black text-slate-400 uppercase">Ubicación</p><p class="text-xs font-bold text-slate-700 uppercase truncate"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${a.ubicacion || 'N/A'}</p></div><div class="flex justify-end gap-2 items-center"><button onclick="window.abrirDetallesActivo('${jsId}')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md hover:bg-indigo-700 transition">Ver Ficha</button>${controls}</div></div></div>`;
-    }); list.innerHTML = html || `<p class="text-center text-slate-400 py-10 font-bold">No hay activos en este entorno.</p>`;
+    });
+    list.innerHTML = html || `<p class="text-center text-slate-400 py-10 font-bold">No hay activos en este entorno.</p>`;
 };
 
 window.renderMantenimiento = function() {
@@ -201,7 +217,8 @@ window.renderMantenimiento = function() {
         const trashBtn = isGestor ? `<button onclick="window.eliminarDato('mantenimiento','${m.id}')" class="text-red-400 hover:text-red-600 ml-2 p-1"><i class="fas fa-trash"></i></button>` : '';
         let notifTag = m.fecha_notificacion ? `<br><span class="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 rounded mt-1 inline-block font-bold"><i class="fas fa-bell"></i> Alerta: ${m.fecha_notificacion}</span>` : '';
         html += `<tr class="hover:bg-slate-50 border-b border-slate-100 transition ${m.estado === 'completado' ? 'bg-slate-50/30' : ''}"><td class="p-4 align-top w-32">${badgeHtml}</td><td class="p-4 font-bold text-slate-700 uppercase text-xs align-top">${m.equipo}</td><td class="p-4 text-slate-500 text-xs font-mono font-medium align-top">${m.fecha_programada}${notifTag}</td><td class="p-4 text-indigo-600 text-[10px] font-bold uppercase align-top">${m.responsable}</td><td class="p-4 text-right align-top"><div class="flex flex-wrap justify-end gap-1">${actions}${trashBtn}</div></td></tr>`;
-    }); tb.innerHTML = html || '<tr><td colspan="5" class="p-4 text-center text-slate-400">No hay mantenimientos.</td></tr>';
+    });
+    tb.innerHTML = html || '<tr><td colspan="5" class="p-4 text-center text-slate-400">No hay mantenimientos.</td></tr>';
 };
 
 window.renderCompras = function() {
@@ -212,10 +229,11 @@ window.renderCompras = function() {
         let badge = c.estado === 'recibido' ? `<span class="badge status-recibido">Recibido</span>` : `<span class="badge status-pendiente animate-pulse">En Tránsito</span>`;
         let itemsList = `<ul class="text-[11px] text-slate-600 font-medium mt-3 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200 h-24 overflow-y-auto custom-scroll shadow-inner">`;
         let totalCosto = 0; c.items.forEach(i => { let pStr = i.precio > 0 ? `($${i.precio.toFixed(2)})` : ''; itemsList += `<li><span class="font-black text-slate-800">${i.cantidad}x</span> ${i.insumo} <span class="text-emerald-600 font-bold ml-1">${pStr}</span></li>`; totalCosto += i.precio; }); itemsList += `</ul>`;
-        let btnRecibir = ""; if (c.estado !== 'recibido' && window.tienePermiso('recibir', 'gestionar')) { btnRecibir = `<button onclick="window.confirmarRecepcionCompra('${c.id}')" class="bg-emerald-500 text-white px-4 py-3 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-600 mt-4 w-full transition flex items-center justify-center gap-2"><i class="fas fa-box-open text-lg"></i> Recibir Inventario Físico</button>`; }
+        let btnRecibir = ""; if (c.estado !== 'recibido' && window.tienePermiso('compras', 'gestionar')) { btnRecibir = `<button onclick="window.confirmarRecepcionCompra('${c.id}')" class="bg-emerald-500 text-white px-4 py-3 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-600 mt-4 w-full transition flex items-center justify-center gap-2"><i class="fas fa-box-open text-lg"></i> Recibir Físico</button>`; }
         let trashBtn = isGestor ? `<button onclick="window.eliminarDato('compras','${c.id}')" class="text-red-300 hover:text-red-500 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash text-xs"></i></button>` : '';
         html += `<div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-md flex flex-col justify-between hover:shadow-lg transition"><div class="flex justify-between items-start mb-2"><div>${badge}<h4 class="font-black text-slate-800 uppercase text-base mt-2">${c.proveedor}</h4></div>${trashBtn}</div><p class="text-[10px] font-mono text-slate-400 mt-1">Fac: <span class="font-bold">${c.factura || 'N/A'}</span> • ${c.fecha_compra}</p>${itemsList}<div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-100"><span class="text-[10px] uppercase text-indigo-500 font-black tracking-wide"><i class="fas fa-user mr-1 text-indigo-300"></i> ${c.registrado_por}</span><span class="text-emerald-600 font-black text-lg">$${totalCosto.toFixed(2)}</span></div>${btnRecibir}</div>`;
-    }); tb.innerHTML = html || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay compras registradas en este grupo.</p>`;
+    });
+    tb.innerHTML = html || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay compras registradas en este grupo.</p>`;
 };
 
 window.procesarDatosFacturas = function() {
@@ -227,7 +245,8 @@ window.procesarDatosFacturas = function() {
         const docLink = f.archivo_url ? `<a href="${f.archivo_url}" target="_blank" class="text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-3 py-1.5 rounded-lg text-[10px]"><i class="fas fa-file-pdf"></i> Ver</a>` : 'N/A';
         const trashBtn = isGestor ? `<button onclick="window.eliminarDato('facturas','${f.id}')" class="text-red-400 hover:text-red-600 ml-2 bg-red-50 p-1.5 rounded-lg"><i class="fas fa-trash"></i></button>` : '';
         html += `<tr class="border-b border-slate-100 hover:bg-slate-50 transition"><td class="p-4 text-xs font-mono text-slate-500">${f.fecha_compra}</td><td class="p-4 text-xs font-bold uppercase text-slate-800">${f.proveedor}</td><td class="p-4 text-xs font-black text-emerald-600 text-right">$${f.gasto.toFixed(2)}</td><td class="p-4 text-[10px] text-center uppercase font-bold text-slate-500">${f.usuarioRegistro}</td><td class="p-4 text-xs text-center">${docLink}</td><td class="p-4 text-center">${trashBtn}</td></tr>`;
-    }); tb.innerHTML = html || '<tr><td colspan="6" class="p-4 text-center text-slate-400 font-medium">No hay facturas registradas.</td></tr>';
+    });
+    tb.innerHTML = html || '<tr><td colspan="6" class="p-4 text-center text-slate-400 font-medium">No hay facturas registradas.</td></tr>';
 };
 
 window.renderListaInsumos = function() {
@@ -297,14 +316,14 @@ window.procesarDatosPedidos = function() {
 };
 
 // ==========================================
-// 9. ESCÁNER QR Y ACCIONES CRUD EXTRAS
+// 8. ESCÁNER QR
 // ==========================================
-window.iniciarScanner = function(inputIdTarget) { document.getElementById("modal-scanner").classList.remove("hidden"); window.html5QrcodeScanner = new Html5Qrcode("reader"); window.html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (txt) => { window.detenerScanner(); const i = document.getElementById(inputIdTarget); if(i) { i.value = txt; if(inputIdTarget === 'buscador-activos') window.debounceFiltrarTarjetas('lista-activos-db', txt); else window.debounceFiltrarTarjetas('lista-inventario', txt); } }, () => {}).catch(err => { alert("Error de cámara."); window.detenerScanner(); }); };
+window.iniciarScanner = function(inputIdTarget) { document.getElementById("modal-scanner").classList.remove("hidden"); window.html5QrcodeScanner = new Html5Qrcode("reader"); window.html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (txt) => { window.detenerScanner(); const i = document.getElementById(inputIdTarget); if(i) { i.value = txt; if(inputIdTarget === 'buscador-activos') window.debounceFiltrarTarjetas('lista-activos-db', txt); else window.debounceFiltrarTarjetas('lista-inventario', txt); } }, () => {}).catch(err => { alert("Error de cámara al iniciar escáner."); window.detenerScanner(); }); };
 window.detenerScanner = function() { if(window.html5QrcodeScanner) window.html5QrcodeScanner.stop().catch(()=>{}); document.getElementById("modal-scanner").classList.add("hidden"); };
-window.ajustarCantidad = function(idInsumo, delta) { const safeId = idInsumo.replace(/[^a-zA-Z0-9]/g, '_'); const n = Math.max(0, (window.carritoGlobal[idInsumo] || 0) + delta); window.carritoGlobal[idInsumo] = n; const el = document.getElementById(`cant-${safeId}`); if(el) el.innerText = n; const row = document.getElementById(`row-${safeId}`); if(row) { if(n > 0){ row.classList.add("border-indigo-500", "bg-indigo-50"); row.classList.remove("border-slate-200", "bg-white"); } else { row.classList.remove("border-indigo-500", "bg-indigo-50"); row.classList.add("border-slate-200", "bg-white"); } } };
-window.prepararEdicionProducto = async function(id) { const s = await getDoc(doc(db,"inventario",id)); const d = s.data(); document.getElementById('edit-prod-id').value = id; document.getElementById('edit-prod-precio').value = d.precio || ''; document.getElementById('edit-prod-min').value = d.stockMinimo || ''; if (d.imagen) { document.getElementById('edit-prod-img').value = d.imagen; document.getElementById('preview-img').src = d.imagen; document.getElementById('preview-img').classList.remove('hidden'); } else { document.getElementById('edit-prod-img').value = ''; document.getElementById('preview-img').classList.add('hidden'); } document.getElementById('qr-insumo-id-text').innerText = "ID: " + id.toUpperCase(); document.getElementById('qr-insumo-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=" + encodeURIComponent(id); document.getElementById('modal-detalles').classList.remove('hidden'); };
-window.guardarDetallesProducto = async function() { const imgUrl = document.getElementById('edit-prod-img').value; const precio = parseFloat(document.getElementById('edit-prod-precio').value) || 0; const minimo = parseInt(document.getElementById('edit-prod-min').value) || 0; await updateDoc(doc(db,"inventario",document.getElementById('edit-prod-id').value),{ precio: precio, stockMinimo: minimo, imagen: imgUrl }); document.getElementById('modal-detalles').classList.add('hidden'); };
 
+// ==========================================
+// 9. LÓGICA DE NEGOCIO CRUD
+// ==========================================
 window.agregarItemCompra = function() { const insumo = document.getElementById("compra-insumo").value.trim().toUpperCase(); const cant = parseInt(document.getElementById("compra-cant").value); const precio = parseFloat(document.getElementById("compra-precio").value) || 0; if(!insumo || isNaN(cant) || cant <= 0) return alert("Completa Insumo y Cantidad válida."); if(!window.carritoCompras) window.carritoCompras = {}; window.carritoCompras[insumo] = { cantidad: cant, precio: precio }; window.renderCarritoCompras(); document.getElementById("compra-insumo").value = ""; document.getElementById("compra-cant").value = ""; document.getElementById("compra-precio").value = ""; document.getElementById("compra-insumo").focus(); };
 window.renderCarritoCompras = function() { const container = document.getElementById("lista-items-compra"); let items = Object.entries(window.carritoCompras || {}); if(items.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 text-center italic py-2">Sin items añadidos</p>`; return; } let html = ""; let total = 0; items.forEach(([ins, data]) => { let pStr = data.precio > 0 ? `<span class="text-emerald-600 font-bold">$${data.precio.toFixed(2)}</span>` : ''; html += `<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 shadow-sm mb-2"><span>${data.cantidad}x ${ins}</span><div class="flex items-center gap-4">${pStr}<button onclick="delete window.carritoCompras['${ins}']; window.renderCarritoCompras()" class="text-red-400 hover:text-red-600 bg-red-50 p-1.5 rounded"><i class="fas fa-times"></i></button></div></div>`; total += data.precio; }); if(total > 0) html += `<div class="text-right text-sm font-black text-slate-800 mt-3 pr-2 border-t border-slate-200 pt-2">Total Estimado: <span class="text-emerald-600">$${total.toFixed(2)}</span></div>`; container.innerHTML = html; };
 window.procesarCompra = async function() { const prov = document.getElementById("compra-proveedor").value.trim().toUpperCase(); const fact = document.getElementById("compra-factura").value.trim().toUpperCase(); const items = Object.entries(window.carritoCompras || {}); if(!prov || items.length === 0) return alert("Proveedor y al menos 1 ítem son requeridos."); const itemsArray = items.map(([ins, data]) => ({ insumo: ins, cantidad: data.cantidad, precio: data.precio })); try { await addDoc(collection(db, "compras"), { proveedor: prov, factura: fact, items: itemsArray, estado: "en_transito", grupo: window.grupoActivo, registrado_por: window.usuarioActual.id, fecha_compra: new Date().toLocaleString(), timestamp: Date.now() }); window.carritoCompras = {}; window.renderCarritoCompras(); document.getElementById("compra-proveedor").value = ""; document.getElementById("compra-factura").value = ""; alert("Compra registrada exitosamente."); } catch(e) { alert("Error registrando compra."); } };
@@ -335,7 +354,6 @@ window.cerrarBitacora = function() { document.getElementById("modal-bitacora").c
 
 window.guardarSede = async function() { const s = document.getElementById("new-sede").value.trim().toUpperCase(); if(!s) return alert("Ingrese sede."); try { await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() }); document.getElementById("new-sede").value = ""; alert("Sede guardada."); } catch(e) { alert("Error."); } };
 window.guardarGrupo = async function() { const g = document.getElementById("new-grupo").value.trim().toUpperCase(); if(!g) return alert("Ingrese grupo."); try { await addDoc(collection(db, "grupos"), { nombre: g, timestamp: Date.now() }); document.getElementById("new-grupo").value = ""; alert("Grupo creado."); } catch(e) { alert("Error."); } };
-window.guardarConfigCorreos = async function() { const emailA = document.getElementById("config-admin-email").value.trim(); const emailS = document.getElementById("config-stock-email").value.trim(); try { if(emailA) await setDoc(doc(db, "configuracion", "notificaciones"), { [window.grupoActivo]: emailA }, { merge: true }); if(emailS) await setDoc(doc(db, "configuracion", "alertas_stock"), { [window.grupoActivo]: emailS }, { merge: true }); alert("Correos actualizados exitosamente para el entorno " + window.grupoActivo); } catch(e) { alert("Error al guardar correos."); } };
 
 window.guardarUsuario = async function() { const id = document.getElementById("new-user").value.trim().toLowerCase(); const p = document.getElementById("new-pass").value.trim(); const e = document.getElementById("new-email") ? document.getElementById("new-email").value.trim() : ""; const r = document.getElementById("new-role") ? document.getElementById("new-role").value.trim().toUpperCase() : "USUARIO BASE"; const checkboxes = document.querySelectorAll('.chk-grupo:checked'); let gruposSeleccionados = Array.from(checkboxes).map(chk => chk.value); if(gruposSeleccionados.length === 0) gruposSeleccionados = ["SERVICIOS GENERALES"]; const perms = {}; document.querySelectorAll('.chk-permiso').forEach(chk => { const mod = chk.dataset.modulo; const acc = chk.dataset.accion; if(!perms[mod]) perms[mod] = { ver: false, gestionar: false }; if(chk.checked) perms[mod][acc] = true; }); if(!id || !p) return alert("El ID y la contraseña son obligatorios."); try { await setDoc(doc(db,"usuarios",id), { pass: p, rol: r, email: e, grupos: gruposSeleccionados, permisos: perms }, { merge: true }); alert("Usuario guardado exitosamente."); window.cancelarEdicionUsuario(); } catch(e) { alert("Error al guardar usuario."); } };
 window.prepararEdicionUsuario = async function(userId) { const snap = await getDoc(doc(db, "usuarios", userId)); if(!snap.exists()) return; const u = snap.data(); document.getElementById("edit-mode-id").value = userId; const inpU = document.getElementById("new-user"); inpU.value = userId; inpU.disabled = true; document.getElementById("new-pass").value = u.pass; const elEmail = document.getElementById("new-email"); if(elEmail) elEmail.value = u.email || ""; const elRole = document.getElementById("new-role"); if(elRole) elRole.value = u.rol || ""; const p = u.permisos || {}; document.querySelectorAll('.chk-permiso').forEach(chk => { const mod = chk.dataset.modulo; const acc = chk.dataset.accion; chk.checked = p[mod] && p[mod][acc] === true; }); const gruposUsuario = u.grupos || ["SERVICIOS GENERALES"]; document.querySelectorAll('.chk-grupo').forEach(chk => { chk.checked = gruposUsuario.includes(chk.value); }); document.getElementById("btn-guardar-usuario").innerText = "Actualizar Usuario"; document.getElementById("cancel-edit-msg").classList.remove("hidden"); };
@@ -348,14 +366,16 @@ window.cerrarModalFactura = function() { document.getElementById("modal-factura"
 window.guardarFactura = async function() { const pv = document.getElementById("fact-proveedor").value.trim(); const ga = parseFloat(document.getElementById("fact-gasto").value); const fe = document.getElementById("fact-fecha").value; const ar = document.getElementById("fact-archivo-url").value; if(!pv || isNaN(ga) || !fe) return alert("Campos requeridos."); try { await addDoc(collection(db, "facturas"), { proveedor: pv, gasto: ga, fecha_compra: fe, archivo_url: ar, grupo: window.grupoActivo, usuarioRegistro: window.usuarioActual.id, timestamp: Date.now(), fecha_registro: new Date().toLocaleString() }); alert("Factura registrada."); window.cerrarModalFactura(); } catch(e) { alert("Error."); } };
 
 // ==========================================
-// 11. EXPORTACIÓN EXCEL
+// 10. EXPORTACIÓN EXCEL
 // ==========================================
 window.descargarReporte = async function() {
     if(typeof XLSX === 'undefined') return alert("Cargando Excel...");
     const inputDesde = document.getElementById("dash-desde")?.value || document.getElementById("rep-desde")?.value; const inputHasta = document.getElementById("dash-hasta")?.value || document.getElementById("rep-hasta")?.value;
     let tDesde = 0; let tHasta = Infinity; if(inputDesde) tDesde = new Date(inputDesde + 'T00:00:00').getTime(); if(inputHasta) tHasta = new Date(inputHasta + 'T23:59:59').getTime();
     if(!confirm(`¿Generar reporte general (Exportar Datos) del grupo ${window.grupoActivo}?`)) return;
-    const uSnap = await getDocs(collection(db, "usuarios")); const usersMap = {}; uSnap.forEach(u => { usersMap[u.id] = u.data(); }); const obtenerMesAno = (timestamp) => { if(!timestamp) return 'N/A'; const d = new Date(timestamp); return `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]} ${d.getFullYear()}`; };
+    
+    const uSnap = await getDocs(collection(db, "usuarios")); const usersMap = {}; uSnap.forEach(u => { usersMap[u.id] = u.data(); });
+    const obtenerMesAno = (timestamp) => { if(!timestamp) return 'N/A'; const d = new Date(timestamp); return `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][d.getMonth()]} ${d.getFullYear()}`; };
     
     const invActivo = window.rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo); const stockData = invActivo.map(p => ({ "Insumo": (p.id||'').toUpperCase(), "Cantidad Disponible": p.cantidad || 0, "Stock Mínimo": p.stockMinimo || 0, "Precio Unit. ($)": p.precio || 0 }));
     const entActivas = window.rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo && e.timestamp >= tDesde && e.timestamp <= tHasta).sort((a,b) => b.timestamp - a.timestamp); const entradasData = entActivas.map(mov => ({ "Mes y Año": obtenerMesAno(mov.timestamp), "Fecha de Entrada": mov.fecha || 'N/A', "Insumo": (mov.insumo || '').toUpperCase(), "Cantidad Ingresada": mov.cantidad || 0, "Usuario Responsable": (mov.usuario || '').toUpperCase() }));
@@ -364,21 +384,19 @@ window.descargarReporte = async function() {
     const mantActivos = window.rawMantenimiento.filter(m => (m.grupo || "SERVICIOS GENERALES") === window.grupoActivo && m.timestamp >= tDesde && m.timestamp <= tHasta); const mantData = mantActivos.map(m => ({ "Equipo": m.equipo, "Fecha Programada": m.fecha_programada, "Fecha Notificación": m.fecha_notificacion || 'No Aplica', "Responsable": m.responsable, "Estado": (m.estado || 'N/A').toUpperCase(), "Detalle Tarea": m.detalle || '' }));
     const compActivas = window.rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo && c.timestamp >= tDesde && c.timestamp <= tHasta); const compData = compActivas.map(c => ({ "Proveedor": c.proveedor, "Factura": c.factura, "Fecha Compra": c.fecha_compra, "Estado": c.estado, "Registrado Por": c.registrado_por, "Total Items": c.items.length }));
 
-    const wb = XLSX.utils.book_new(); if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Inventario"); if(activosData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(activosData), "Activos Fijos"); if(compData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compData), "Compras Generales"); if(entradasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entradasData), "Entradas de Stock"); if(salidasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salidasData), "Salidas (Pedidos)"); if(mantData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mantData), "Mantenimientos"); XLSX.writeFile(wb, `Reporte_FCILog_${window.grupoActivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const wb = XLSX.utils.book_new(); if(stockData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), "Inventario"); if(activosData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(activosData), "Activos Fijos"); if(compData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compData), "Compras Generales"); if(entradasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entradasData), "Entradas de Stock"); if(salidasData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salidasData), "Salidas (Pedidos)"); if(mantData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mantData), "Mantenimientos"); XLSX.writeFile(wb, `ReporteCompleto_FCILog_${window.grupoActivo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
 
 // ==========================================
-// 12. ARRANQUE DEL SISTEMA (DOMContentLoaded)
+// 11. INICIALIZACIÓN FINAL Y CLOUDINARY
 // ==========================================
-window.addEventListener('DOMContentLoaded', () => {
-    
-    // Habilitar botón de login
+const inicializarApp = function() {
     window.sistemaCargado = true;
     const btn = document.getElementById("btn-login-submit");
     if (btn) { btn.innerText = "Iniciar Sesión"; btn.classList.replace("bg-slate-400", "bg-indigo-600"); btn.classList.add("hover:bg-indigo-700"); }
 
     const sesion = localStorage.getItem("fcilog_session");
-    if(sesion) window.cargarSesion(JSON.parse(sesion));
+    if(sesion) { window.cargarSesion(JSON.parse(sesion)); }
     
     if (typeof cloudinary !== "undefined") {
         window.cloudinaryEditProdWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('edit-prod-img').value = result.info.secure_url; const preview = document.getElementById('preview-img'); preview.src = result.info.secure_url; preview.classList.remove('hidden'); } }); document.getElementById("btn-upload-edit-prod")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryEditProdWidget.open(); }, false);
@@ -388,4 +406,6 @@ window.addEventListener('DOMContentLoaded', () => {
         window.cloudinaryFacturasWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local'], multiple: false, folder: 'fcilog_facturas', resourceType: 'auto' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('fact-archivo-url').value = result.info.secure_url; document.getElementById('factura-file-name').innerText = result.info.original_filename || "Documento"; } }); document.getElementById("btn-upload-factura")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryFacturasWidget.open(); }, false);
         window.cloudinaryNewProdWidget = cloudinary.createUploadWidget({ cloudName: 'df79cjklp', uploadPreset: 'insumos', sources: ['local', 'camera'], multiple: false, cropping: true, folder: 'fcilog_insumos' }, (error, result) => { if (!error && result && result.event === "success") { document.getElementById('new-prod-img-url').value = result.info.secure_url; const p = document.getElementById('new-prod-preview-img'); p.src = result.info.secure_url; p.classList.remove('hidden'); } }); document.getElementById("btn-upload-new-prod")?.addEventListener("click", (e) => { e.preventDefault(); window.cloudinaryNewProdWidget.open(); }, false);
     }
-});
+};
+
+window.addEventListener('DOMContentLoaded', inicializarApp);
