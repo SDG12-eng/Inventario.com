@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FCILog </title>
+    <title>FCILog - InsuManager Enterprise</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -18,10 +18,12 @@
     <script>
         const temaGuardado = localStorage.getItem('fcilog_theme') || 'light'; 
         document.documentElement.setAttribute('data-theme', temaGuardado); 
+        
         window.addEventListener('DOMContentLoaded', () => { 
             const sel = document.getElementById('selector-tema'); 
             if(sel) sel.value = temaGuardado; 
         }); 
+        
         window.cambiarTema = (tema) => { 
             document.documentElement.setAttribute('data-theme', tema); 
             localStorage.setItem('fcilog_theme', tema); 
@@ -30,10 +32,10 @@
         
         window.sistemaCargado = false;
         window.iniciarSesionUI = function() {
-            if(window.sistemaCargado && window.iniciarSesion) {
+            if(window.sistemaCargado && typeof window.iniciarSesion === 'function') {
                 window.iniciarSesion();
             } else {
-                alert("Conectando al servidor, por favor espera un par de segundos...");
+                alert("Conectando con el servidor de base de datos. Por favor espera unos segundos...");
             }
         };
     </script>
@@ -42,13 +44,16 @@
 
     <div id="pantalla-login" class="fixed inset-0 z-[1000] bg-white flex items-center justify-center p-6">
         <div class="w-full max-w-sm text-center">
-            <div class="inline-block p-6 bg-indigo-50 rounded-[2rem] mb-6 border-2 border-indigo-100 shadow-md"><i class="fas fa-cubes text-6xl text-indigo-600"></i></div>
+            <div class="inline-block p-6 bg-indigo-50 rounded-[2rem] mb-6 border-2 border-indigo-100 shadow-md">
+                <i class="fas fa-cubes text-6xl text-indigo-600"></i>
+            </div>
             <h1 class="text-3xl font-black mb-2 text-indigo-900 tracking-tight">FCILog System</h1>
             <p class="text-slate-500 text-sm mb-8 font-medium">Gestión Integral Empresarial</p>
+            
             <div class="space-y-4">
                 <input id="login-user" name="username" autocomplete="username" type="text" placeholder="USUARIO" class="input-light uppercase font-bold text-center">
                 <input id="login-pass" name="password" autocomplete="current-password" type="password" placeholder="CONTRASEÑA" class="input-light font-bold text-center" onkeyup="if(event.keyCode===13) window.iniciarSesionUI()">
-                <button id="btn-login-submit" onclick="window.iniciarSesionUI()" class="w-full py-4 bg-slate-400 text-white font-bold rounded-2xl shadow-lg transition-all">Cargando Servidor...</button>
+                <button id="btn-login-submit" onclick="window.iniciarSesionUI()" class="w-full py-4 bg-slate-400 text-white font-bold rounded-2xl shadow-lg transition-all">Conectando Servidor...</button>
             </div>
         </div>
     </div>
@@ -113,61 +118,70 @@
 
                 <section id="pag-compras" class="view hidden space-y-6 animate-fade-in">
                     <h2 class="text-2xl font-black text-slate-800">Compras y Recepción</h2>
-                    <div class="flex flex-col lg:flex-row gap-6 items-start">
-                        <div id="panel-registrar-compra" class="w-full lg:w-5/12 bg-white p-6 rounded-[2rem] border shadow-md hidden sticky top-24">
-                            <h3 class="text-lg font-black text-indigo-500 mb-4 pb-2 border-b border-slate-100"><i class="fas fa-cart-plus mr-2 text-indigo-400"></i>Nueva Compra</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        
+                        <div id="panel-registrar-compra" class="col-span-1 lg:col-span-5 bg-white p-5 md:p-6 rounded-[2rem] border shadow-md hidden">
+                            <h3 class="text-lg font-black text-indigo-500 mb-4 pb-2 border-b border-slate-100"><i class="fas fa-cart-plus mr-2"></i>Nueva Compra</h3>
+                            
                             <div class="grid grid-cols-2 gap-3 mb-4">
                                 <input id="compra-proveedor" name="compra-proveedor" type="text" class="input-light uppercase font-bold text-sm" placeholder="Proveedor *">
                                 <input id="compra-factura" name="compra-factura" type="text" class="input-light uppercase font-bold text-sm" placeholder="Nº Factura">
                             </div>
                             
                             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner mb-4">
-                                <p class="text-[10px] font-black text-indigo-600 uppercase mb-2"><i class="fas fa-search mr-1"></i>1. Buscar Insumo Existente</p>
-                                <input type="text" onkeyup="window.debounceFiltrarTarjetas('grid-insumos-compra', this.value)" placeholder="🔍 Buscar para rellenar..." class="input-light text-xs mb-2 p-2">
+                                <p class="text-[10px] font-black text-indigo-600 uppercase mb-2"><i class="fas fa-search mr-1"></i>1. Buscar en Catálogo</p>
+                                <input type="text" onkeyup="window.debounceFiltrarTarjetas('grid-insumos-compra', this.value)" placeholder="🔍 Filtrar insumo..." class="input-light text-xs mb-2 p-2 focus:border-indigo-400">
                                 <div id="grid-insumos-compra" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 max-h-32 overflow-y-auto custom-scroll pr-1"></div>
                                 
-                                <p class="text-[10px] font-black text-indigo-600 uppercase mb-2 border-t border-slate-200 pt-3"><i class="fas fa-plus mr-1"></i>2. Añadir Insumo al Lote</p>
-                                <input id="compra-insumo" name="compra-insumo" list="lista-sugerencias-compras" class="input-light uppercase text-xs mb-2 p-2 focus:border-indigo-500" placeholder="Nombre del Insumo (Seleccionado o Nuevo)...">
-                                <datalist id="lista-sugerencias-compras"></datalist>
+                                <p class="text-[10px] font-black text-indigo-600 uppercase mb-2 border-t border-slate-200 pt-3"><i class="fas fa-plus mr-1"></i>2. Añadir al Lote</p>
+                                <input id="compra-insumo" name="compra-insumo" class="input-light uppercase text-xs mb-2 p-2 focus:border-indigo-500 bg-white" placeholder="Nombre del Insumo (Seleccionado o Nuevo)...">
                                 <div class="flex gap-2">
-                                    <input id="compra-cant" name="compra-cant" type="number" class="input-light text-xs flex-1 p-2" placeholder="Cant">
+                                    <input id="compra-cant" name="compra-cant" type="number" class="input-light text-xs flex-1 p-2" placeholder="Cant.">
                                     <input id="compra-precio" name="compra-precio" type="number" step="0.01" class="input-light text-xs flex-1 p-2" placeholder="Precio ($)">
                                     <button onclick="window.agregarItemCompra()" class="bg-indigo-600 text-white px-4 rounded-lg shadow hover:bg-indigo-700 transition"><i class="fas fa-plus"></i></button>
                                 </div>
                             </div>
                             
-                            <div id="lista-items-compra" class="space-y-2 mt-4 pt-2 border-t border-slate-100 max-h-40 overflow-y-auto custom-scroll"></div>
-                            <button onclick="window.procesarCompra()" class="w-full py-4 bg-emerald-600 text-white font-black rounded-xl mt-4 shadow-lg hover:bg-emerald-700 transition active:scale-95">Procesar Lote de Compra</button>
+                            <div id="lista-items-compra" class="space-y-2 mt-4 pt-2 border-t border-slate-100 max-h-32 overflow-y-auto custom-scroll"></div>
+                            <button onclick="window.procesarCompra()" class="w-full py-3.5 bg-emerald-600 text-white font-black rounded-xl mt-4 shadow-lg hover:bg-emerald-700 transition active:scale-95">Procesar Lote</button>
                         </div>
-                        <div id="lista-compras-db" class="w-full flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 pb-20"></div>
+
+                        <div class="col-span-1 lg:col-span-7">
+                            <div id="lista-compras-db" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-20"></div>
+                        </div>
                     </div>
                 </section>
 
-                <section id="pag-solicitar" class="view hidden max-w-5xl mx-auto space-y-6 animate-fade-in">
+                <section id="pag-solicitar" class="view hidden space-y-6 animate-fade-in max-w-6xl mx-auto">
                     <h2 class="text-2xl font-black text-slate-800">Pedir Insumos <span id="lbl-grupo-solicitud" class="ml-2 text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full align-middle"></span></h2>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                        <div class="bg-slate-50 p-5 rounded-[2rem] border border-slate-200 shadow-inner flex flex-col h-[65vh]">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        
+                        <div class="col-span-1 lg:col-span-7 bg-slate-50 p-4 md:p-6 rounded-[2rem] border border-slate-200 shadow-inner flex flex-col h-[50vh] lg:h-[70vh]">
                             <h3 class="font-black text-slate-700 text-sm mb-3 uppercase tracking-widest"><i class="fas fa-box-open text-indigo-500 mr-2"></i>1. Catálogo de Insumos</h3>
                             <input type="text" onkeyup="window.debounceFiltrarTarjetas('grid-insumos-solicitar', this.value)" placeholder="🔍 Buscar para añadir..." class="input-light text-sm mb-4 p-3 shadow-sm">
-                            <div id="grid-insumos-solicitar" class="flex-1 overflow-y-auto custom-scroll pr-2 space-y-2">
+                            <div id="grid-insumos-solicitar" class="flex-1 overflow-y-auto custom-scroll pr-2 grid grid-cols-1 sm:grid-cols-2 gap-3 content-start">
                                 </div>
                         </div>
                         
-                        <div class="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-200 shadow-xl flex flex-col h-[65vh]">
-                            <h3 class="font-black text-slate-700 text-sm mb-5 uppercase tracking-widest border-b border-slate-100 pb-2"><i class="fas fa-clipboard-check text-indigo-500 mr-2"></i>2. Detalles del Pedido</h3>
+                        <div class="col-span-1 lg:col-span-5 bg-white p-5 md:p-6 rounded-[2.5rem] border border-slate-200 shadow-xl flex flex-col h-[60vh] lg:h-[70vh]">
+                            <h3 class="font-black text-slate-700 text-sm mb-4 uppercase tracking-widest border-b border-slate-100 pb-2"><i class="fas fa-clipboard-check text-indigo-500 mr-2"></i>2. Tu Pedido</h3>
                             
-                            <div class="grid grid-cols-2 gap-4 mb-5">
-                                <div><label for="sol-ubicacion" class="label-form">Sede Destino *</label><select id="sol-ubicacion" name="sol-ubicacion" class="input-light text-sm border-2 border-indigo-100 focus:border-indigo-500"></select></div>
-                                <div><label for="sol-prioridad" class="label-form">Prioridad *</label><select id="sol-prioridad" name="sol-prioridad" class="input-light text-sm"><option value="normal">🟢 Normal</option><option value="basica">⚪ Básica</option><option value="alta">🔴 Alta (Urgente)</option></select></div>
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div><label for="sol-ubicacion" class="label-form">Destino *</label><select id="sol-ubicacion" name="sol-ubicacion" class="input-light text-xs border-2 border-indigo-100 focus:border-indigo-500 !p-2"></select></div>
+                                <div><label for="sol-prioridad" class="label-form">Prioridad *</label><select id="sol-prioridad" name="sol-prioridad" class="input-light text-xs !p-2"><option value="normal">🟢 Normal</option><option value="basica">⚪ Básica</option><option value="alta">🔴 Urgente</option></select></div>
                             </div>
                             
-                            <div class="flex-1 flex flex-col mb-4">
-                                <label for="sol-notas" class="label-form">Justificación / Notas (Opcional)</label>
-                                <textarea id="sol-notas" name="sol-notas" class="input-light flex-1 resize-none p-4 text-sm bg-slate-50" placeholder="Escribe aquí el motivo de tu solicitud..."></textarea>
+                            <label class="label-form mb-1">Insumos Añadidos</label>
+                            <div class="flex-1 overflow-y-auto custom-scroll pr-1 mb-4 bg-slate-50 border border-slate-100 rounded-xl p-2 shadow-inner" id="contenedor-lista-pedidos">
+                                </div>
+
+                            <div class="mb-4">
+                                <label for="sol-notas" class="label-form">Justificación / Notas</label>
+                                <textarea id="sol-notas" name="sol-notas" class="input-light h-16 resize-none p-3 text-xs bg-slate-50" placeholder="Motivo de la solicitud..."></textarea>
                             </div>
                             
-                            <button onclick="window.procesarSolicitudMultiple()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-black text-lg shadow-lg hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center gap-3"><i class="fas fa-paper-plane"></i> Enviar Solicitud</button>
+                            <button onclick="window.procesarSolicitudMultiple()" class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-black text-sm shadow-lg hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center gap-2"><i class="fas fa-paper-plane"></i> Enviar Solicitud</button>
                         </div>
                     </div>
                 </section>
@@ -230,16 +244,16 @@
                             <h3 class="font-black text-lg mb-5 text-indigo-500">Usuario & Permisos</h3>
                             <div class="space-y-3 mb-6">
                                 <label for="new-user" class="label-form">Usuario ID</label>
-                                <input id="new-user" name="new-user" placeholder="Usuario ID" class="input-light">
+                                <input id="new-user" name="new-user" placeholder="Usuario ID" class="input-light text-sm">
                                 
                                 <label for="new-pass" class="label-form">Contraseña</label>
-                                <input id="new-pass" name="new-pass" type="text" placeholder="Contraseña" class="input-light">
+                                <input id="new-pass" name="new-pass" type="text" placeholder="Contraseña" class="input-light text-sm">
                                 
                                 <label for="new-email" class="label-form">Email</label>
-                                <input id="new-email" name="new-email" type="email" placeholder="Email (Opcional)" class="input-light">
+                                <input id="new-email" name="new-email" type="email" placeholder="Email (Opcional)" class="input-light text-sm">
                                 
                                 <label for="new-role" class="label-form">Rol Visual</label>
-                                <input id="new-role" name="new-role" type="text" placeholder="Cargo / Rol" class="input-light uppercase font-bold text-indigo-500">
+                                <input id="new-role" name="new-role" type="text" placeholder="Cargo / Rol" class="input-light uppercase font-bold text-indigo-500 text-sm">
                             </div>
                             <div class="mb-6 bg-slate-50 p-4 rounded-2xl border">
                                 <p class="text-[10px] font-black text-indigo-600 uppercase mb-3">Matriz de Acceso</p>
@@ -299,15 +313,23 @@
     </div>
 
     <div id="modal-detalles" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl"><input type="hidden" id="edit-prod-id" name="edit-prod-id"><input type="hidden" id="edit-prod-img" name="edit-prod-img"><div class="text-center mb-4"><img id="preview-img" class="h-32 mx-auto rounded-xl mb-3 hidden object-cover"><button type="button" id="btn-upload-edit-prod" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg text-xs font-bold">Cambiar Foto</button></div><div class="grid grid-cols-2 gap-4 mb-4"><div><label for="edit-prod-precio" class="label-form">Precio</label><input id="edit-prod-precio" name="edit-prod-precio" type="number" step="0.01" class="input-light"></div><div><label for="edit-prod-min" class="label-form">Stock Mínimo</label><input id="edit-prod-min" name="edit-prod-min" type="number" class="input-light border-red-200"></div></div><div id="qr-insumo-container" class="mb-4 flex flex-col items-center p-4 bg-slate-50 rounded-xl"><img id="qr-insumo-img" class="w-24 h-24 mb-2"><p id="qr-insumo-id-text" class="text-xs font-mono font-bold"></p></div><div class="flex gap-2"><button onclick="document.getElementById('modal-detalles').classList.add('hidden')" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold">Cerrar</button><button onclick="window.guardarDetallesProducto()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">Actualizar</button></div></div></div>
-    <div id="modal-insumo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl"><h3 class="text-xl font-black mb-4">Ajuste Directo</h3><input id="nombre-prod" list="lista-sugerencias" class="input-light uppercase mb-4" placeholder="Insumo..."><datalist id="lista-sugerencias"></datalist><input id="cantidad-prod" type="number" class="input-light text-center text-xl font-black text-emerald-600 mb-4" placeholder="Cant"><div class="text-center mb-4"><img id="new-prod-preview-img" class="h-24 mx-auto hidden rounded mb-2"><button type="button" id="btn-upload-new-prod" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded text-xs font-bold">Añadir Foto</button><input type="hidden" id="new-prod-img-url"></div><div class="flex gap-2"><button onclick="document.getElementById('modal-insumo').classList.add('hidden')" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold">Cancelar</button><button onclick="window.agregarProductoRapido()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">Ajustar</button></div></div></div>
+    
     <div id="modal-activo-detalles" class="fixed inset-0 bg-slate-900/80 hidden z-[400] flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm"><div class="bg-white rounded-[2rem] w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"><div class="bg-indigo-900 p-5 text-white flex justify-between items-center"><h3 id="activo-det-nombre" class="font-black text-xl uppercase">Detalles</h3><button onclick="window.cerrarDetallesActivo()" class="text-white text-2xl"><i class="fas fa-times"></i></button></div><div class="flex-1 overflow-y-auto custom-scroll p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50"><div class="bg-white p-5 rounded-2xl shadow-sm border"><img id="activo-det-img" class="w-full h-48 object-cover rounded-xl mb-4 hidden border"><div id="activo-det-qr-container" class="flex justify-center mb-4"></div><div class="space-y-2 text-sm"><p class="font-bold text-slate-400 uppercase text-[10px]">Info</p><p><strong>ID:</strong> <span id="activo-det-id" class="font-mono text-indigo-600"></span></p><p><strong>Cat:</strong> <span id="activo-det-cat"></span></p><p><strong>Marca:</strong> <span id="activo-det-marca"></span></p><p><strong>Ubi:</strong> <span id="activo-det-ubi"></span></p><p><strong>Estado:</strong> <span id="activo-det-estado"></span></p></div></div><div class="flex flex-col h-full bg-white p-5 rounded-2xl border shadow-sm"><p class="font-black text-slate-700 mb-3"><i class="fas fa-history text-indigo-400"></i> Bitácora</p><div id="activo-bitacora-timeline" class="flex-1 overflow-y-auto custom-scroll space-y-4 mb-4 pr-2"></div><div id="activo-bitacora-form" class="border-t pt-4"><textarea id="activo-bitacora-texto" name="activo-bitacora-texto" class="input-light h-16 text-xs mb-2" placeholder="Nota..."></textarea><div class="flex justify-between items-center"><button id="btn-upload-activo-bitacora" class="bg-slate-100 px-3 py-1.5 rounded-lg text-[10px] font-bold border"><i class="fas fa-paperclip"></i></button><input type="hidden" id="activo-bitacora-url" name="activo-bitacora-url"><button onclick="window.guardarBitacoraActivo()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold">Guardar</button></div></div></div></div></div></div>
+    
     <div id="modal-activo" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-lg shadow-2xl"><input type="hidden" id="activo-id" name="activo-id"><div class="text-center mb-4"><img id="activo-preview-img" class="h-24 mx-auto hidden rounded mb-2"><button type="button" id="btn-upload-activo" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded text-xs font-bold">Foto</button><input type="hidden" id="activo-img-url" name="activo-img-url"></div><div class="grid grid-cols-2 gap-3 mb-4"><input id="activo-nombre" name="activo-nombre" class="input-light uppercase" placeholder="Nombre *"><input id="activo-categoria" name="activo-categoria" class="input-light uppercase" placeholder="Categoría *"><input id="activo-marca" name="activo-marca" class="input-light uppercase" placeholder="Marca"><input id="activo-ubicacion" name="activo-ubicacion" class="input-light uppercase" placeholder="Ubicación"><input id="activo-precio" name="activo-precio" type="number" class="input-light" placeholder="Precio ($)"></div><select id="activo-estado" name="activo-estado" class="input-light mb-3"><option value="Operativo">Operativo</option><option value="En Mantenimiento">Mantenimiento</option><option value="Fuera de Servicio">Fuera de Servicio</option><option value="Almacenado">Almacenado</option></select><textarea id="activo-descripcion" name="activo-descripcion" class="input-light h-16 mb-2 text-sm" placeholder="Especificaciones"></textarea><textarea id="activo-observacion" name="activo-observacion" class="input-light h-16 mb-4 text-sm" placeholder="Observaciones"></textarea><div class="flex gap-2"><button onclick="document.getElementById('modal-activo').classList.add('hidden')" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold">Cancelar</button><button onclick="window.guardarActivo()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">Guardar</button></div></div></div>
+    
     <div id="modal-mantenimiento" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl"><h3 class="text-xl font-black mb-4 text-center">Programar Mtto.</h3><input id="mant-equipo" name="mant-equipo" type="text" placeholder="Equipo *" class="input-light mb-3"><div class="grid grid-cols-2 gap-2 mb-3"><input id="mant-fecha" name="mant-fecha" type="date" class="input-light text-xs"><input id="mant-fecha-notificacion" name="mant-fecha-notificacion" type="date" class="input-light text-xs text-indigo-600" title="Fecha Alerta"></div><div class="grid grid-cols-2 gap-2 mb-3"><input id="mant-responsable" name="mant-responsable" type="text" placeholder="Técnico" class="input-light uppercase"><input id="mant-correo" name="mant-correo" type="email" placeholder="Alerta (Email)" class="input-light text-xs"></div><textarea id="mant-detalle" name="mant-detalle" class="input-light h-20 mb-4 text-sm" placeholder="Detalles..."></textarea><div class="flex gap-2"><button onclick="document.getElementById('modal-mantenimiento').classList.add('hidden')" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold">Cerrar</button><button onclick="window.guardarMantenimiento()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">Guardar</button></div></div></div>
+    
     <div id="modal-bitacora" class="fixed inset-0 bg-slate-900/80 hidden z-[400] flex items-center justify-center p-4"><div class="bg-white rounded-[2rem] w-full max-w-xl p-6"><div class="flex justify-between items-center mb-4"><h3 class="font-black text-lg">Bitácora</h3><button onclick="window.cerrarBitacora()" class="text-slate-400 text-xl"><i class="fas fa-times"></i></button></div><p id="bitacora-equipo-titulo" class="text-xs text-slate-400 font-mono mb-4"></p><div id="bitacora-timeline" class="mb-4 max-h-60 overflow-y-auto pr-2 space-y-3"></div><div id="bitacora-form-container" class="border-t pt-4"><input type="hidden" id="bitacora-mant-id" name="bitacora-mant-id"><textarea id="bitacora-texto" name="bitacora-texto" class="input-light h-16 text-xs mb-2" placeholder="Observación..."></textarea><div class="flex justify-between items-center"><button id="btn-upload-bitacora" class="bg-slate-100 px-3 py-1.5 rounded text-xs font-bold border"><i class="fas fa-paperclip"></i></button><span id="bitacora-media-badge" class="hidden text-[10px] text-emerald-600">Adjunto</span><input type="hidden" id="bitacora-media-url" name="bitacora-media-url"><button onclick="window.guardarBitacora()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold">Añadir</button></div></div></div></div>
+    
     <div id="modal-grupo-admin" class="fixed inset-0 bg-slate-900/70 hidden z-[200] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-2xl shadow-2xl"><div class="flex justify-between items-center border-b pb-4 mb-4"><h3 class="text-2xl font-black">Solicitud</h3><button onclick="document.getElementById('modal-grupo-admin').classList.add('hidden')" class="bg-slate-100 w-8 h-8 rounded-full"><i class="fas fa-times"></i></button></div><p id="modal-grupo-titulo" class="font-bold text-indigo-600 text-sm mb-4"></p><div id="modal-grupo-notas-container" class="mb-4 hidden bg-amber-50 p-3 rounded-lg"><p class="text-[10px] font-black text-amber-600 mb-1">NOTAS:</p><p id="modal-grupo-notas" class="text-sm italic text-amber-900"></p></div><div id="modal-grupo-contenido" class="space-y-2 max-h-60 overflow-y-auto"></div></div></div>
+    
     <div id="modal-incidencia" class="fixed inset-0 bg-slate-900/70 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm text-center shadow-2xl"><h3 class="text-xl font-black text-red-600 mb-4">Reportar</h3><input type="hidden" id="incidencia-pid" name="incidencia-pid"><textarea id="incidencia-detalle" name="incidencia-detalle" class="input-light h-24 mb-4" placeholder="Motivo..."></textarea><button onclick="window.confirmarIncidencia(true)" class="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold border border-red-200 mb-2">Devolver Stock</button><button onclick="window.confirmarIncidencia(false)" class="w-full bg-amber-50 text-amber-600 py-3 rounded-xl font-bold border border-amber-200 mb-2">Solo Reportar</button><button onclick="document.getElementById('modal-incidencia').classList.add('hidden')" class="w-full text-slate-500 py-2 font-bold">Cancelar</button></div></div>
+    
     <div id="modal-editar-entrada" class="fixed inset-0 bg-slate-900/70 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl"><h3 class="text-xl font-black text-amber-600 text-center mb-4">Corregir</h3><input type="hidden" id="edit-entrada-id" name="edit-entrada-id"><input type="hidden" id="edit-entrada-insumo" name="edit-entrada-insumo"><input type="hidden" id="edit-entrada-cant-original" name="edit-entrada-cant-original"><input id="edit-entrada-insumo-display" name="edit-entrada-insumo-display" type="text" class="input-light mb-3 bg-slate-100" disabled><input id="edit-entrada-cantidad" name="edit-entrada-cantidad" type="number" class="input-light text-center text-2xl text-amber-600 mb-3"><textarea id="edit-entrada-motivo" name="edit-entrada-motivo" class="input-light h-20 mb-4 text-sm" placeholder="Motivo..."></textarea><div class="flex gap-2"><button onclick="document.getElementById('modal-editar-entrada').classList.add('hidden')" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold">Cancelar</button><button onclick="window.guardarEdicionEntrada()" class="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold">Guardar</button></div></div></div>
+    
     <div id="modal-factura" class="fixed inset-0 bg-slate-900/70 hidden z-[250] flex items-center justify-center p-4"><div class="bg-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl"><h3 class="text-xl font-black text-center mb-4">Factura</h3><input id="fact-proveedor" name="fact-proveedor" class="input-light mb-3 uppercase" placeholder="Proveedor"><input id="fact-gasto" name="fact-gasto" type="number" step="0.01" class="input-light text-center text-xl text-emerald-600 mb-3" placeholder="0.00"><input id="fact-fecha" name="fact-fecha" type="date" class="input-light mb-3 text-sm"><div class="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border mb-4"><button id="btn-upload-factura" class="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded font-bold text-[10px]">Archivo</button><span id="factura-file-name" class="text-[10px] truncate text-slate-500 flex-1">Ninguno</span><input type="hidden" id="fact-archivo-url" name="fact-archivo-url"></div><div class="flex gap-2"><button onclick="window.cerrarModalFactura()" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold">Cerrar</button><button onclick="window.guardarFactura()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">Guardar</button></div></div></div>
+    
     <div id="modal-scanner" class="fixed inset-0 bg-black/95 hidden z-[500] flex flex-col items-center justify-center p-4"><div class="w-full max-w-md bg-white rounded-[2rem] overflow-hidden"><div class="p-4 bg-indigo-600 text-white flex justify-between"><h3 class="font-black text-lg">Escanear</h3><button onclick="window.detenerScanner()"><i class="fas fa-times text-xl"></i></button></div><div id="reader" class="w-full h-64 bg-black"></div></div></div>
 
     <script type="module" src="script.js"></script>
