@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FCILog - InsuManager Enterprise</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://widget.cloudinary.com https://cdn.sheetjs.com https://unpkg.com https://www.gstatic.com; object-src 'self' data:;">
+    
+    <title>FCILog - InsuManager v19.5 Enterprise</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,26 +18,26 @@
     <link rel="stylesheet" href="style.css">
 
     <script>
-        // Tema
         const temaGuardado = localStorage.getItem('fcilog_theme') || 'light'; 
         document.documentElement.setAttribute('data-theme', temaGuardado); 
+        
         window.addEventListener('DOMContentLoaded', () => { 
             const sel = document.getElementById('selector-tema'); 
             if(sel) sel.value = temaGuardado; 
         }); 
+        
         window.cambiarTema = (tema) => { 
             document.documentElement.setAttribute('data-theme', tema); 
             localStorage.setItem('fcilog_theme', tema); 
             if(window.miGraficoStock && window.actualizarDashboard) window.actualizarDashboard(); 
         };
         
-        // Escudo Inicio Sesión
         window.sistemaCargado = false;
         window.iniciarSesionUI = function() {
             if(window.sistemaCargado && window.iniciarSesion) {
                 window.iniciarSesion();
             } else {
-                alert("Conectando a la base de datos de Firebase. Por favor espera 3 segundos y vuelve a intentar.");
+                alert("Conectando al servidor, por favor espera un momento...");
             }
         };
     </script>
@@ -49,7 +51,6 @@
             </div>
             <h1 class="text-3xl font-black mb-2 text-indigo-900 tracking-tight">FCILog System</h1>
             <p class="text-slate-500 text-sm mb-8 font-medium">Gestión Integral Empresarial</p>
-            
             <div class="space-y-4">
                 <input id="login-user" name="username" autocomplete="username" type="text" placeholder="USUARIO" class="input-light uppercase font-bold text-center">
                 <input id="login-pass" name="password" autocomplete="current-password" type="password" placeholder="CONTRASEÑA" class="input-light font-bold text-center" onkeyup="if(event.keyCode===13) window.iniciarSesionUI()">
@@ -123,8 +124,10 @@
                             <h3 class="text-lg font-black text-indigo-500 mb-4">Nueva Compra</h3>
                             <label for="compra-proveedor" class="label-form">Proveedor *</label>
                             <input id="compra-proveedor" name="compra-proveedor" type="text" class="input-light uppercase font-bold mb-4" placeholder="Ej: Office Depot">
+                            
                             <label for="compra-factura" class="label-form">Nº Factura</label>
                             <input id="compra-factura" name="compra-factura" type="text" class="input-light uppercase font-bold mb-4" placeholder="Opcional">
+                            
                             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
                                 <label for="compra-insumo" class="label-form">Insumo</label>
                                 <input id="compra-insumo" name="compra-insumo" list="lista-sugerencias-compras" class="input-light uppercase text-xs mb-2" placeholder="Buscar...">
@@ -200,16 +203,16 @@
                             <h3 class="font-black text-lg mb-5 text-indigo-500">Usuario & Permisos</h3>
                             <div class="space-y-3 mb-6">
                                 <label for="new-user" class="label-form">Usuario ID</label>
-                                <input id="new-user" name="new-user" placeholder="Usuario ID" class="input-light text-sm">
+                                <input id="new-user" name="new-user" placeholder="Usuario ID" class="input-light">
                                 
                                 <label for="new-pass" class="label-form">Contraseña</label>
-                                <input id="new-pass" name="new-pass" type="text" placeholder="Contraseña" class="input-light text-sm">
+                                <input id="new-pass" name="new-pass" type="text" placeholder="Contraseña" class="input-light">
                                 
                                 <label for="new-email" class="label-form">Email</label>
-                                <input id="new-email" name="new-email" type="email" placeholder="Email (Opcional)" class="input-light text-sm">
+                                <input id="new-email" name="new-email" type="email" placeholder="Email (Opcional)" class="input-light">
                                 
                                 <label for="new-role" class="label-form">Rol Visual</label>
-                                <input id="new-role" name="new-role" type="text" placeholder="Cargo / Rol" class="input-light uppercase font-bold text-indigo-500 text-sm">
+                                <input id="new-role" name="new-role" type="text" placeholder="Cargo / Rol" class="input-light uppercase font-bold text-indigo-500">
                             </div>
                             <div class="mb-6 bg-slate-50 p-4 rounded-2xl border">
                                 <p class="text-[10px] font-black text-indigo-600 uppercase mb-3">Matriz de Acceso</p>
