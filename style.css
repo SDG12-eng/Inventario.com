@@ -55,7 +55,7 @@ header.bg-white\/95 { background-color: var(--header-bg) !important; border-bott
 .status-pri-normal { border-radius: 6px; padding: 3px 8px; font-size: 10px; }
 .status-pri-alta { background-color: #fef2f2 !important; color: #ef4444 !important; border: 1px solid #fca5a5 !important; font-weight: 900; animation: pulse 2s infinite; }
 
-/* ANIMACIONES Y COMPONENTES */
+/* ANIMACIONES */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .item-tarjeta { box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.2s ease-in-out; border: 1px solid var(--border-color); cursor: pointer; }
