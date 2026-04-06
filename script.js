@@ -16,7 +16,9 @@ const db = getFirestore(app);
 const EMAILJS_PUBLIC_KEY = "2jVnfkJKKG0bpKN-U"; 
 const EMAILJS_SERVICE_ID = "service_a7yozqh";
 const EMAILJS_TEMPLATE_ID = "template_zglatmb";
-if(EMAILJS_PUBLIC_KEY) emailjs.init(EMAILJS_PUBLIC_KEY);
+if(EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+}
 
 // ==========================================
 // 2. DEFINICIÓN SEGURA DE GLOBALES
@@ -26,7 +28,7 @@ window.chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#
 window.rawInventario = []; window.rawEntradas = []; window.rawFacturas = []; window.rawMantenimiento = []; window.rawActivos = []; window.rawCompras = []; window.pedidosRaw = []; window.timeoutBusqueda = null;
 
 // ==========================================
-// 3. ANCLAJE DE TODAS LAS FUNCIONES A WINDOW (Anti-errores "is not a function")
+// 3. ANCLAJE DE FUNCIONES BASE AL WINDOW
 // ==========================================
 window.tienePermiso = function(modulo, accion = 'ver') {
     if (!window.usuarioActual) return false;
@@ -40,7 +42,7 @@ window.formatoTiempoDiferencia = function(t1, t2) { let diffMs = Math.abs(t2 - t
 
 window.enviarNotificacionEmail = async function(correoDestino, asunto, mensaje) {
     if (typeof emailjs !== "undefined") {
-        try { await emailjs.send("service_a7yozqh", "template_zglatmb", { to_email: correoDestino, subject: asunto, message: mensaje }); console.log("Email enviado"); } 
+        try { await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email: correoDestino, subject: asunto, message: mensaje }); console.log("Email enviado"); } 
         catch (error) { console.error("Error enviando email:", error); }
     }
 };
@@ -52,7 +54,15 @@ window.debounceFiltrarTabla = function(idTabla, texto) { clearTimeout(window.tim
 window.verPagina = function(id) { document.querySelectorAll(".view").forEach(v => { v.classList.add("hidden"); v.classList.remove("animate-fade-in"); }); const t = document.getElementById(`pag-${id}`); if(t) { t.classList.remove("hidden"); setTimeout(() => t.classList.add("animate-fade-in"), 10); } if(window.innerWidth < 768) window.toggleMenu(false); };
 window.toggleMenu = function(forceState) { const sb = document.getElementById("sidebar"); const ov = document.getElementById("sidebar-overlay"); if(!sb || !ov) return; const isClosed = sb.classList.contains("-translate-x-full"); const shouldOpen = forceState !== undefined ? forceState : isClosed; if (shouldOpen) { sb.classList.remove("-translate-x-full"); ov.classList.remove("hidden"); sb.style.zIndex = "100"; ov.style.zIndex = "90"; } else { sb.classList.add("-translate-x-full"); ov.classList.add("hidden"); } };
 window.switchTab = function(tab) { document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden')); document.getElementById(`tab-content-${tab}`)?.classList.remove('hidden'); const onC = "flex-1 py-3 rounded-xl text-sm font-black bg-white text-indigo-600 shadow-sm transition"; const offC = "flex-1 py-3 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 transition"; if(tab === 'activos') { document.getElementById('tab-btn-activos').className = onC; document.getElementById('tab-btn-historial').className = offC; } else { document.getElementById('tab-btn-historial').className = onC; document.getElementById('tab-btn-activos').className = offC; } };
-window.renderChart = function(id, labels, data, title, palette, chartInstance, setInstance) { const ctx = document.getElementById(id); if(!ctx) return; if(chartInstance && typeof chartInstance.destroy === 'function') chartInstance.destroy(); const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || document.documentElement.getAttribute('data-theme') === 'medium'; const textColor = isDark ? '#cbd5e1' : '#64748b'; const bgColors = id === 'locationChart' ? palette : palette.map(c=>c+'CC'); const newChart = new Chart(ctx, { type: id === 'locationChart' ? 'doughnut' : 'bar', data: { labels: labels, datasets: [{ label: title, data: data, backgroundColor: bgColors, borderColor: palette, borderWidth: 1, borderRadius: id === 'locationChart' ? 0 : 5 }] }, options: { responsive: true, maintainAspectRatio: false, color: textColor, plugins: { legend: { display: id === 'locationChart', position: 'bottom', labels: { color: textColor } } }, scales: id === 'locationChart' ? {} : { x: { ticks: { color: textColor } }, y: { ticks: { color: textColor } } } } }); setInstance(newChart); };
+
+window.renderChart = function(id, labels, data, title, palette, chartInstance, setInstance) {
+    const ctx = document.getElementById(id); if(!ctx) return;
+    if(chartInstance && typeof chartInstance.destroy === 'function') chartInstance.destroy();
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || document.documentElement.getAttribute('data-theme') === 'medium';
+    const textColor = isDark ? '#cbd5e1' : '#64748b'; const bgColors = id === 'locationChart' ? palette : palette.map(c=>c+'CC');
+    const newChart = new Chart(ctx, { type: id === 'locationChart' ? 'doughnut' : 'bar', data: { labels: labels, datasets: [{ label: title, data: data, backgroundColor: bgColors, borderColor: palette, borderWidth: 1, borderRadius: id === 'locationChart' ? 0 : 5 }] }, options: { responsive: true, maintainAspectRatio: false, color: textColor, plugins: { legend: { display: id === 'locationChart', position: 'bottom', labels: { color: textColor } } }, scales: id === 'locationChart' ? {} : { x: { ticks: { color: textColor } }, y: { ticks: { color: textColor } } } } });
+    setInstance(newChart);
+};
 
 // ==========================================
 // 4. AUTENTICACIÓN Y ENTORNO
@@ -75,10 +85,15 @@ window.cargarSesion = function(datos) {
     window.usuarioActual = datos; localStorage.setItem("fcilog_session", JSON.stringify(datos));
     document.getElementById("pantalla-login").classList.add("hidden"); document.getElementById("interfaz-app").classList.remove("hidden");
     window.solicitarPermisosNotificacion();
+    
     const infoDiv = document.getElementById("info-usuario");
     if(infoDiv) { infoDiv.innerHTML = `<div class="flex flex-col items-center"><div class="w-12 h-12 bg-indigo-100 border border-indigo-200 rounded-full flex items-center justify-center text-indigo-600 mb-2 shadow-inner"><i class="fas fa-user text-xl"></i></div><span class="font-black text-slate-800 uppercase tracking-wide">${datos.id}</span><span class="text-[10px] uppercase font-black text-white bg-indigo-500 px-3 py-1 rounded-md mt-1 shadow-sm tracking-widest">${datos.rol || 'USUARIO'}</span></div>`; }
+
     const matrizBody = document.getElementById("matriz-permisos");
-    if(matrizBody) { const mods = [ {id:'dashboard', n:'Dashboard'}, {id:'stock', n:'Inventario'}, {id:'compras', n:'Compras'}, {id:'pedir', n:'Pedir Insumos'}, {id:'aprobaciones', n:'Aprobaciones'}, {id:'activos', n:'Activos Fijos'}, {id:'mantenimiento', n:'Mantenimiento'}, {id:'historial', n:'Movimientos'}, {id:'facturas', n:'Facturas Directas'}, {id:'usuarios', n:'Usuarios'}, {id:'configuracion', n:'Configuración'} ]; matrizBody.innerHTML = mods.map(m => `<tr class="hover:bg-slate-50 transition border-b border-slate-100"><td class="py-2 px-3 font-bold text-slate-700 text-[10px] uppercase">${m.n}</td><td class="text-center"><input type="checkbox" class="chk-permiso" data-modulo="${m.id}" data-accion="ver"></td><td class="text-center"><input type="checkbox" class="chk-permiso" data-modulo="${m.id}" data-accion="gestionar" onchange="if(this.checked) this.closest('tr').querySelector('[data-accion=\\'ver\\']').checked = true;"></td></tr>`).join(''); }
+    if(matrizBody) {
+        const mods = [ {id:'dashboard', n:'Dashboard'}, {id:'stock', n:'Inventario'}, {id:'compras', n:'Compras'}, {id:'pedir', n:'Pedir Insumos'}, {id:'aprobaciones', n:'Aprobaciones'}, {id:'activos', n:'Activos Fijos'}, {id:'mantenimiento', n:'Mantenimiento'}, {id:'historial', n:'Movimientos'}, {id:'facturas', n:'Facturas Directas'}, {id:'usuarios', n:'Usuarios'}, {id:'configuracion', n:'Configuración'} ];
+        matrizBody.innerHTML = mods.map(m => `<tr class="hover:bg-slate-50 transition border-b border-slate-100"><td class="py-2 px-3 font-bold text-slate-700 text-[10px] uppercase">${m.n}</td><td class="text-center"><input type="checkbox" class="chk-permiso" data-modulo="${m.id}" data-accion="ver"></td><td class="text-center"><input type="checkbox" class="chk-permiso" data-modulo="${m.id}" data-accion="gestionar" onchange="if(this.checked) this.closest('tr').querySelector('[data-accion=\\'ver\\']').checked = true;"></td></tr>`).join('');
+    }
 
     let menuHtml = ""; const addHeader = (t) => `<p class="text-[10px] font-black text-indigo-400 uppercase mt-4 mb-2 ml-2 tracking-widest">${t}</p>`; const addItem = (id, icon, n) => `<button onclick="window.verPagina('${id}')" class="w-full flex items-center gap-4 p-3 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all font-bold text-sm group"><div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-white border border-slate-200 group-hover:border-indigo-200 flex items-center justify-center transition-colors"><i class="fas fa-${icon} group-hover:text-indigo-500"></i></div>${n}</button>`;
     if(window.tienePermiso('dashboard', 'ver')) { menuHtml += addHeader("Analítica"); menuHtml += addItem('stats', 'chart-pie', 'Dashboard'); }
@@ -93,12 +108,13 @@ window.cargarSesion = function(datos) {
     if(window.tienePermiso('historial', 'ver')) menuHtml += addItem('historial', 'history', 'Movimientos');
     if(window.tienePermiso('facturas', 'ver')) menuHtml += addItem('facturas', 'file-invoice-dollar', 'Facturas Directas');
     if(window.tienePermiso('usuarios', 'ver') || window.tienePermiso('configuracion', 'ver')) { menuHtml += addHeader("Avanzado"); if(window.tienePermiso('usuarios', 'ver')) menuHtml += addItem('usuarios', 'users-cog', 'Usuarios'); if(window.tienePermiso('configuracion', 'ver')) menuHtml += addItem('config', 'cogs', 'Configuración'); }
+    
     const menuDin = document.getElementById("menu-dinamico"); if(menuDin) menuDin.innerHTML = menuHtml;
 
     let pageToLoad = 'stock'; const mapPages = { 'stats':'dashboard', 'stock':'stock', 'compras':'compras', 'solicitar':'pedir', 'solicitudes':'aprobaciones', 'activos':'activos', 'mantenimiento':'mantenimiento', 'notificaciones':'mis_pedidos', 'historial':'historial', 'facturas':'facturas', 'usuarios':'usuarios', 'config':'configuracion' };
     for(let p in mapPages) { if(window.tienePermiso(mapPages[p], 'ver')) { pageToLoad = p; break; } }
+
     let misGrupos = datos.grupos || ["SERVICIOS GENERALES"]; if(datos.id === 'admin') misGrupos = window.todosLosGrupos;
-    
     window.grupoActivo = misGrupos[0]; window.renderizarSelectorGrupos(misGrupos); window.verPagina(pageToLoad); window.activarSincronizacion();
 };
 
@@ -122,11 +138,13 @@ window.activarSincronizacion = function() {
         onSnapshot(doc(db, "configuracion", "notificaciones"), (docSnap) => { if (docSnap.exists()) { window.configCorreosData = docSnap.data(); window.adminEmailGlobal = window.configCorreosData[window.grupoActivo] || ""; } else { window.configCorreosData = {}; window.adminEmailGlobal = ""; } const elA = document.getElementById("config-admin-email"); if(elA) elA.value = window.adminEmailGlobal; });
         onSnapshot(doc(db, "configuracion", "alertas_stock"), (docSnap) => { if (docSnap.exists()) { window.configStockData = docSnap.data(); window.stockAlertEmailGlobal = window.configStockData[window.grupoActivo] || ""; } else { window.configStockData = {}; window.stockAlertEmailGlobal = ""; } const elS = document.getElementById("config-stock-email"); if(elS) elS.value = window.stockAlertEmailGlobal; });
     }
+
     onSnapshot(collection(db, "grupos"), snap => {
         window.todosLosGrupos = ["SERVICIOS GENERALES"]; let html = `<div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center"><span class="font-black text-indigo-700 text-xs uppercase"><i class="fas fa-lock mr-1"></i> SERVICIOS GENERALES</span></div>`;
         snap.forEach(d => { const n = d.data().nombre.toUpperCase(); if(n !== "SERVICIOS GENERALES") { window.todosLosGrupos.push(n); let btn = window.tienePermiso('configuracion', 'gestionar') ? `<button onclick="window.eliminarDato('grupos','${d.id}')" class="text-red-400 hover:text-red-600 p-2"><i class="fas fa-trash-alt"></i></button>` : ''; html += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm"><span class="font-bold text-slate-700 text-xs uppercase"><i class="fas fa-folder text-slate-300 mr-1"></i> ${n}</span>${btn}</div>`; } });
         window.renderizarSelectorGrupos(window.usuarioActual.id === 'admin' ? window.todosLosGrupos : window.usuarioActual.grupos); if(document.getElementById("lista-grupos-db")) document.getElementById("lista-grupos-db").innerHTML = html; window.actualizarCheckboxesGrupos();
     });
+
     onSnapshot(collection(db, "sedes"), snap => {
         let opt = '<option value="" disabled selected>Seleccionar Sede...</option>', lst = '';
         snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(s => { opt += `<option value="${s.nombre}">📍 ${s.nombre}</option>`; let btn = window.tienePermiso('configuracion', 'gestionar') ? `<button onclick="window.eliminarDato('sedes','${s.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash-alt"></i></button>` : ''; lst += `<div class="bg-white p-4 rounded-xl border border-slate-100 flex justify-between shadow-sm items-center"><span class="font-bold text-xs uppercase"><i class="fas fa-map-marker-alt text-slate-300 mr-1"></i> ${s.nombre}</span>${btn}</div>`; });
@@ -167,7 +185,7 @@ window.activarSincronizacion = function() {
 };
 
 // ==========================================
-// 6. RENDERIZACIÓN DE VISTAS Y DATOS
+// 6. RENDERIZACIÓN DE VISTAS (COMPRAS, PEDIDOS, STOCK)
 // ==========================================
 window.renderCatalogoCompras = function() {
     const contenedor = document.getElementById("grid-insumos-compra"); const datalistCompras = document.getElementById("lista-sugerencias-compras");
@@ -186,10 +204,13 @@ window.renderCatalogoSolicitud = function() {
     const contenedor = document.getElementById("grid-insumos-solicitar"); if(!contenedor) return;
     const invFiltrado = window.rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
     if(invFiltrado.length === 0) { contenedor.innerHTML = `<p class="text-center text-slate-400 text-xs py-4 col-span-full">No hay insumos disponibles en este entorno.</p>`; return; }
+    
     contenedor.innerHTML = invFiltrado.map(p => {
         const nombre = (p.id || '').toUpperCase(); const jsId = (p.id || '').replace(/'/g, "\\'");
         const img = p.imagen ? `<img src="${p.imagen}" loading="lazy" class="w-10 h-10 object-cover rounded-lg border border-slate-200 flex-shrink-0">` : `<div class="w-10 h-10 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-center text-slate-300 flex-shrink-0"><i class="fas fa-box"></i></div>`;
-        if (p.cantidad <= 0) { return `<div class="flex items-center justify-between p-3 rounded-xl border border-red-100 bg-red-50/50 opacity-60"><div class="flex items-center gap-3 flex-1 min-w-0 pr-2">${img}<div class="flex-1 min-w-0"><p class="font-black text-xs uppercase text-slate-800 truncate line-through">${nombre}</p><p class="text-[10px] text-red-500 font-bold uppercase mt-0.5">Agotado</p></div></div><i class="fas fa-ban text-red-300 text-lg"></i></div>`; }
+        if (p.cantidad <= 0) {
+            return `<div class="flex items-center justify-between p-3 rounded-xl border border-red-100 bg-red-50/50 opacity-60"><div class="flex items-center gap-3 flex-1 min-w-0 pr-2">${img}<div class="flex-1 min-w-0"><p class="font-black text-xs uppercase text-slate-800 truncate line-through">${nombre}</p><p class="text-[10px] text-red-500 font-bold uppercase mt-0.5">Agotado</p></div></div><i class="fas fa-ban text-red-300 text-lg"></i></div>`;
+        }
         return `<div onclick="window.ajustarCantidad('${jsId}', 1)" class="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white shadow-sm cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition item-tarjeta"><div class="flex items-center gap-3 flex-1 min-w-0 pr-2">${img}<div class="flex-1 min-w-0"><p class="font-black text-xs uppercase text-slate-800 truncate">${nombre}</p><p class="text-[10px] text-slate-500 font-bold uppercase mt-0.5">Stock: <span class="text-indigo-600">${p.cantidad || 0}</span></p></div></div><i class="fas fa-plus-circle text-indigo-400 text-lg"></i></div>`;
     }).join('');
 };
@@ -197,12 +218,14 @@ window.renderCatalogoSolicitud = function() {
 window.renderCarritoPedidos = function() {
     const cartContainer = document.getElementById("contenedor-lista-pedidos"); if(!cartContainer) return;
     let html = ""; const invFiltrado = window.rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
+    
     Object.keys(window.carritoGlobal).forEach(idInsumo => {
         const cant = window.carritoGlobal[idInsumo];
         if (cant > 0) {
             const p = invFiltrado.find(x => x.id === idInsumo) || { id: idInsumo, cantidad: 0 };
             const nombre = p.id.toUpperCase(); const jsId = p.id.replace(/'/g, "\\'");
             const disablePlus = cant >= p.cantidad ? 'opacity-30 cursor-not-allowed' : 'hover:bg-indigo-200 hover:text-indigo-800';
+            
             html += `<div class="flex items-center justify-between p-3 bg-indigo-50 rounded-xl border border-indigo-200 shadow-sm mb-2 item-tarjeta">
                 <p class="font-black text-xs uppercase text-indigo-900 truncate flex-1 pr-2">${nombre}</p>
                 <div class="flex items-center gap-2 bg-white rounded-lg p-1 border border-indigo-100 flex-shrink-0">
@@ -222,7 +245,7 @@ window.actualizarDashboard = function() {
     let tDesde = 0; let tHasta = Infinity; if(desdeInput) tDesde = new Date(desdeInput + 'T00:00:00').getTime(); if(hastaInput) tHasta = new Date(hastaInput + 'T23:59:59').getTime();
     
     const panelFiltros = document.getElementById("panel-filtros-dashboard");
-    if(panelFiltros && window.tienePermiso('dashboard', 'gestionar')) { if(!document.getElementById("btn-excel-dashboard")) { panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-dashboard" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow hover:bg-emerald-700 transition"><i class="fas fa-file-excel"></i></button>`); } } else if (document.getElementById("btn-excel-dashboard")) { document.getElementById("btn-excel-dashboard").remove(); }
+    if(panelFiltros && window.tienePermiso('dashboard', 'gestionar')) { if(!document.getElementById("btn-excel-dashboard")) { panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-dashboard" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow hover:bg-emerald-700 transition ml-2"><i class="fas fa-file-excel"></i></button>`); } } else if (document.getElementById("btn-excel-dashboard")) { document.getElementById("btn-excel-dashboard").remove(); }
     
     let pedidosFiltrados = window.cachePedidos.filter(p => p.timestamp >= tDesde && p.timestamp <= tHasta);
     if(document.getElementById("metrica-pedidos")) document.getElementById("metrica-pedidos").innerText = pedidosFiltrados.filter(p => p.estado === 'pendiente').length;
@@ -234,6 +257,7 @@ window.actualizarDashboard = function() {
     if(document.getElementById("metrica-mant-pend")) document.getElementById("metrica-mant-pend").innerText = mantFiltrados.length;
     const invActivo = window.rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
     let lblS = [], datS = []; invActivo.forEach(p => { const n = p.id || 'N/A'; lblS.push(n.toUpperCase().substring(0,10)); datS.push(p.cantidad); });
+    
     window.renderChart('stockChart', lblS, datS, 'Stock', window.chartPalette, window.miGraficoStock, ch => window.miGraficoStock = ch); window.renderChart('locationChart', Object.keys(sedesCount), Object.values(sedesCount), 'Demandas', window.chartPalette, window.miGraficoUbicacion, ch => window.miGraficoUbicacion = ch);
 };
 
@@ -243,9 +267,24 @@ window.renderHistorialUnificado = function() {
     if(panelFiltros && window.tienePermiso('historial', 'gestionar')) { if(!document.getElementById("btn-excel-historial")) { panelFiltros.insertAdjacentHTML('beforeend', `<button id="btn-excel-historial" onclick="window.descargarReporte()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow hover:bg-emerald-700 ml-2"><i class="fas fa-file-excel"></i> Exportar</button>`); } } else if (document.getElementById("btn-excel-historial")) { document.getElementById("btn-excel-historial").remove(); }
 
     let html = "";
-    const ent = window.rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo).map(e => ({ ts: e.timestamp, fecha: e.fecha || new Date(e.timestamp).toLocaleString(), tipo: '📥 ENTRADA', insumo: e.insumo || 'N/A', cant: e.cantidad || 0, solicito: e.usuario || 'SISTEMA', acepto: 'DIRECTO', motivo: e.motivo_edicion || 'Ingreso Almacén', tiempo: 'N/A', estado: 'COMPLETADO', id: e.id }));
-    const sal = window.cachePedidos.map(p => { let tProc = (p.timestamp_aprobado && p.timestamp) ? window.formatoTiempoDiferencia(p.timestamp, p.timestamp_aprobado) : 'PEND'; return { ts: p.timestamp, fecha: p.fecha || new Date(p.timestamp).toLocaleString(), tipo: '📤 SALIDA', insumo: p.insumoNom || 'N/A', cant: p.cantidad || 0, solicito: p.usuarioId || 'N/A', acepto: p.entregado_por || (p.estado === 'pendiente' ? 'ESPERANDO' : 'RECHAZADO'), motivo: p.notas || 'Sin notas', tiempo: tProc, estado: p.estado ? p.estado.toUpperCase() : 'DESCONOCIDO', id: p.id, rawEstado: p.estado || 'pendiente' }; });
-    const isGestor = window.tienePermiso('historial', 'gestionar'); const combinados = [...ent, ...sal].sort((a,b) => b.ts - a.ts);
+    const ent = window.rawEntradas.filter(e => (e.grupo || "SERVICIOS GENERALES") === window.grupoActivo).map(e => ({
+        ts: e.timestamp, fecha: e.fecha || new Date(e.timestamp).toLocaleString(), tipo: '📥 ENTRADA',
+        insumo: e.insumo || 'N/A', cant: e.cantidad || 0, solicito: e.usuario || 'SISTEMA', acepto: 'DIRECTO',
+        motivo: e.motivo_edicion || 'Ingreso Almacén', tiempo: 'N/A', estado: 'COMPLETADO', id: e.id
+    }));
+
+    const sal = window.cachePedidos.map(p => {
+        let tProc = (p.timestamp_aprobado && p.timestamp) ? window.formatoTiempoDiferencia(p.timestamp, p.timestamp_aprobado) : 'PEND';
+        return {
+            ts: p.timestamp, fecha: p.fecha || new Date(p.timestamp).toLocaleString(), tipo: '📤 SALIDA',
+            insumo: p.insumoNom || 'N/A', cant: p.cantidad || 0, solicito: p.usuarioId || 'N/A',
+            acepto: p.entregado_por || (p.estado === 'pendiente' ? 'ESPERANDO' : 'RECHAZADO'),
+            motivo: p.notas || 'Sin notas', tiempo: tProc, estado: p.estado ? p.estado.toUpperCase() : 'DESCONOCIDO', id: p.id, rawEstado: p.estado || 'pendiente'
+        };
+    });
+
+    const isGestor = window.tienePermiso('historial', 'gestionar');
+    const combinados = [...ent, ...sal].sort((a,b) => b.ts - a.ts);
     
     if (combinados.length === 0) { t.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400 font-bold">No hay registros.</td></tr>`; return; }
 
@@ -275,7 +314,7 @@ window.renderActivos = function() {
         const jsId = a.id.replace(/'/g, "\\'"); const img = a.imagen ? `<img src="${a.imagen}" class="w-24 h-24 object-cover rounded-xl border shadow-sm">` : `<div class="w-24 h-24 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300 border-2 border-dashed"><i class="fas fa-image text-2xl"></i></div>`;
         let bColor = "bg-emerald-50 text-emerald-600 border-emerald-200"; if(a.estado === "En Mantenimiento") bColor = "bg-amber-50 text-amber-600 border-amber-200"; if(a.estado === "Fuera de Servicio") bColor = "bg-red-50 text-red-600 border-red-200";
         let controls = isGestor ? `<button onclick="window.abrirModalActivo('${jsId}')" class="text-indigo-400 hover:bg-indigo-50 p-2 rounded-lg transition"><i class="fas fa-pen"></i></button><button onclick="window.eliminarDato('activos','${jsId}')" class="text-red-300 hover:bg-red-50 p-2 rounded-lg transition"><i class="fas fa-trash"></i></button>` : "";
-        html += `<div class="bg-white p-5 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-indigo-200 transition flex items-center gap-6">${img}<div class="flex-1 min-w-0 grid grid-cols-2 lg:grid-cols-4 gap-4 items-center"><div class="col-span-1"><h4 class="font-black text-slate-800 uppercase text-sm truncate">${a.nombre}</h4><p class="text-[10px] font-mono text-indigo-500 font-bold">${a.id}</p><span class="badge ${bColor} mt-1">${a.estado}</span></div><div><p class="text-[9px] font-black text-slate-400 uppercase">Marca / Modelo</p><p class="text-xs font-bold text-slate-700 uppercase truncate">${a.marca || 'N/A'}</p></div><div><p class="text-[9px] font-black text-slate-400 uppercase">Ubicación Actual</p><p class="text-xs font-bold text-slate-700 uppercase truncate"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${a.ubicacion || 'N/A'}</p></div><div class="flex justify-end gap-2 items-center"><button onclick="window.abrirDetallesActivo('${jsId}')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md hover:bg-indigo-700 transition">Ver Ficha</button>${controls}</div></div></div>`;
+        html += `<div class="bg-white p-5 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-indigo-200 transition flex items-center gap-6">${img}<div class="flex-1 min-w-0 grid grid-cols-2 lg:grid-cols-4 gap-4 items-center"><div class="col-span-1"><h4 class="font-black text-slate-800 uppercase text-sm truncate">${a.nombre}</h4><p class="text-[10px] font-mono text-indigo-500 font-bold">${a.id}</p><span class="badge ${bColor} mt-1">${a.estado}</span></div><div><p class="text-[9px] font-black text-slate-400 uppercase">Marca / Modelo</p><p class="text-xs font-bold text-slate-700 uppercase truncate">${a.marca || 'N/A'}</p></div><div><p class="text-[9px] font-black text-slate-400 uppercase">Ubicación</p><p class="text-xs font-bold text-slate-700 uppercase truncate"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${a.ubicacion || 'N/A'}</p></div><div class="flex justify-end gap-2 items-center"><button onclick="window.abrirDetallesActivo('${jsId}')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md hover:bg-indigo-700 transition">Ver Ficha</button>${controls}</div></div></div>`;
     }); list.innerHTML = html || `<p class="text-center text-slate-400 py-10 font-bold">No hay activos en este entorno.</p>`;
 };
 
@@ -290,7 +329,7 @@ window.renderMantenimiento = function() {
         else { badgeHtml = `<span class="badge status-pendiente">Pendiente</span>`; if(isGestor) actions = `<button onclick="window.iniciarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition mr-1 mb-1"><i class="fas fa-play"></i> Iniciar</button>`; }
         actions += `<button onclick="window.abrirBitacora('${m.id}')" class="text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition"><i class="fas fa-book"></i> Bitácora</button>`;
         const trashBtn = isGestor ? `<button onclick="window.eliminarDato('mantenimiento','${m.id}')" class="text-red-400 hover:text-red-600 ml-2 p-1"><i class="fas fa-trash"></i></button>` : '';
-        let notifTag = m.fecha_notificacion ? `<br><span class="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded mt-1 inline-block font-bold"><i class="fas fa-bell"></i> Alerta: ${m.fecha_notificacion}</span>` : '';
+        let notifTag = m.fecha_notificacion ? `<br><span class="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 rounded mt-1 inline-block font-bold"><i class="fas fa-bell"></i> Alerta: ${m.fecha_notificacion}</span>` : '';
         html += `<tr class="hover:bg-slate-50 border-b border-slate-100 transition ${m.estado === 'completado' ? 'bg-slate-50/30' : ''}"><td class="p-4 align-top w-32">${badgeHtml}</td><td class="p-4 font-bold text-slate-700 uppercase text-xs align-top">${m.equipo}</td><td class="p-4 text-slate-500 text-xs font-mono font-medium align-top">${m.fecha_programada}${notifTag}</td><td class="p-4 text-indigo-600 text-[10px] font-bold uppercase align-top">${m.responsable}</td><td class="p-4 text-right align-top"><div class="flex flex-wrap justify-end gap-1">${actions}${trashBtn}</div></td></tr>`;
     }); tb.innerHTML = html || '<tr><td colspan="5" class="p-4 text-center text-slate-400">No hay mantenimientos.</td></tr>';
 };
@@ -298,14 +337,19 @@ window.renderMantenimiento = function() {
 window.renderCompras = function() {
     const btnComprar = document.getElementById("panel-registrar-compra"); if(window.tienePermiso('compras', 'gestionar') && btnComprar) btnComprar.classList.remove("hidden");
     const tb = document.getElementById("lista-compras-db"); if(!tb) return; let html = "";
-    const comprasGrupo = window.rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo && c.estado === 'recibido').sort((a,b) => b.timestamp - a.timestamp); const isGestor = window.tienePermiso('compras', 'gestionar');
+    
+    // Aquí solo se muestran las RECIBIDAS (historial)
+    const comprasGrupo = window.rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo && c.estado === 'recibido').sort((a,b) => b.timestamp - a.timestamp); 
+    const isGestor = window.tienePermiso('compras', 'gestionar');
+    
     comprasGrupo.forEach(c => {
         let badge = `<span class="badge status-recibido">Recibido</span>`;
         let itemsList = `<ul class="text-[11px] text-slate-600 font-medium mt-3 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200 h-24 overflow-y-auto custom-scroll shadow-inner">`;
         let totalCosto = 0; c.items.forEach(i => { let pStr = i.precio > 0 ? `($${i.precio.toFixed(2)})` : ''; itemsList += `<li><span class="font-black text-slate-800">${i.cantidad}x</span> ${i.insumo} <span class="text-emerald-600 font-bold ml-1">${pStr}</span></li>`; totalCosto += i.precio; }); itemsList += `</ul>`;
         let trashBtn = isGestor ? `<button onclick="window.eliminarDato('compras','${c.id}')" class="text-red-300 hover:text-red-500 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash text-xs"></i></button>` : '';
         html += `<div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-md flex flex-col justify-between hover:shadow-lg transition"><div class="flex justify-between items-start mb-2"><div>${badge}<h4 class="font-black text-slate-800 uppercase text-base mt-2">${c.proveedor}</h4></div>${trashBtn}</div><p class="text-[10px] font-mono text-slate-400 mt-1">Fac: <span class="font-bold">${c.factura || 'N/A'}</span> • ${c.fecha_compra}</p>${itemsList}<div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-100"><span class="text-[10px] uppercase text-indigo-500 font-black tracking-wide"><i class="fas fa-user mr-1 text-indigo-300"></i> ${c.registrado_por}</span><span class="text-emerald-600 font-black text-lg">$${totalCosto.toFixed(2)}</span></div></div>`;
-    }); tb.innerHTML = html || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay compras finalizadas en este grupo.</p>`;
+    }); 
+    tb.innerHTML = html || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay compras finalizadas en este grupo.</p>`;
 };
 
 window.procesarDatosFacturas = function() {
@@ -345,9 +389,11 @@ window.procesarDatosInventario = function() {
 
 window.procesarDatosPedidos = function() {
     window.cachePedidos = window.pedidosRaw.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
-    let grupos = {}; let htmlAdmin = "";
     
-    // Agrupar pedidos para las tarjetas de Aprobación
+    // ============================================
+    // APROBACIONES GESTOR
+    // ============================================
+    let grupos = {}; let htmlAdmin = "";
     window.cachePedidos.forEach(p => { const bKey = p.batchId || p.timestamp; if(!grupos[bKey]) grupos[bKey] = { items:[], user:p.usuarioId, sede:p.ubicacion, date:p.fecha, ts:p.timestamp, notas: p.notas || '' }; grupos[bKey].items.push(p); });
     
     if(window.tienePermiso('aprobaciones', 'gestionar')) {
@@ -363,9 +409,12 @@ window.procesarDatosPedidos = function() {
     }
     if(document.getElementById("lista-pendientes-admin")) document.getElementById("lista-pendientes-admin").innerHTML = htmlAdmin || `<p class="col-span-full text-slate-400 text-sm font-medium">No hay solicitudes pendientes.</p>`;
 
-    // Renderizar "Mis Pedidos" (y compras en tránsito para los gestores)
+    // ============================================
+    // MIS PEDIDOS (USUARIO) Y COMPRAS EN TRÁNSITO (GESTOR)
+    // ============================================
     let htmlActive = "", htmlHistory = "";
     
+    // Inyectar compras en tránsito para los gestores
     if(window.tienePermiso('compras', 'gestionar')) {
         const comprasTransito = window.rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo && c.estado !== 'recibido').sort((a,b) => b.timestamp - a.timestamp);
         if(comprasTransito.length > 0) {
@@ -373,7 +422,7 @@ window.procesarDatosPedidos = function() {
             comprasTransito.forEach(c => {
                 let itemsList = `<ul class="text-[11px] text-indigo-900 font-medium mt-3 space-y-1.5 bg-indigo-50 p-3 rounded-xl border border-indigo-100 h-20 overflow-y-auto custom-scroll shadow-inner">`;
                 c.items.forEach(i => { itemsList += `<li><span class="font-black">${i.cantidad}x</span> ${i.insumo}</li>`; }); itemsList += `</ul>`;
-                let btnRecibir = `<button onclick="window.confirmarRecepcionCompra('${c.id}')" class="bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-600 mt-4 w-full transition flex items-center justify-center gap-2"><i class="fas fa-box-open"></i> Recibir Físicamente</button>`;
+                let btnRecibir = `<button onclick="window.confirmarRecepcionCompra('${c.id}')" class="bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-600 mt-4 w-full transition flex items-center justify-center gap-2"><i class="fas fa-box-open"></i> Recibir Inventario Físico</button>`;
                 htmlActive += `<div class="bg-white p-5 rounded-[1.5rem] border-2 border-indigo-200 shadow-md item-tarjeta"><div class="flex justify-between items-start mb-2"><div><span class="badge status-en_transito animate-pulse border-indigo-200">COMPRA EN TRÁNSITO</span><h4 class="font-black text-slate-800 uppercase text-sm mt-2">${c.proveedor}</h4><p class="text-[10px] text-slate-400 mt-1">${c.fecha_compra}</p></div></div>${itemsList}${btnRecibir}</div>`;
             });
             htmlActive += `<div class="col-span-full border-b-2 border-slate-100 pb-2 mb-2 mt-6"><h3 class="text-slate-500 font-black text-sm uppercase tracking-widest"><i class="fas fa-user mr-2"></i>Mis Pedidos Personales</h3></div>`;
@@ -405,16 +454,19 @@ window.iniciarScanner = function(inputIdTarget) { document.getElementById("modal
 window.detenerScanner = function() { if(window.html5QrcodeScanner) window.html5QrcodeScanner.stop().catch(()=>{}); document.getElementById("modal-scanner").classList.add("hidden"); };
 
 // ==========================================
-// 9. LÓGICA DE NEGOCIO CRUD Y COMPRAS
+// 9. LÓGICA DE NEGOCIO CRUD
 // ==========================================
 window.ajustarCantidad = function(idInsumo, delta) {
     const safeId = idInsumo.replace(/[^a-zA-Z0-9]/g, '_');
     const item = window.rawInventario.find(p => p.id === idInsumo && (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
     const stockMaximo = item ? parseInt(item.cantidad) || 0 : 0;
+    
     let current = window.carritoGlobal[idInsumo] || 0;
     let nuevoValor = current + delta;
+    
     if (nuevoValor < 0) nuevoValor = 0;
     if (nuevoValor > stockMaximo) { nuevoValor = stockMaximo; if(delta > 0) alert(`Límite alcanzado: Solo hay ${stockMaximo} unidades disponibles en inventario.`); }
+    
     window.carritoGlobal[idInsumo] = nuevoValor; window.renderCarritoPedidos();
 };
 
@@ -465,7 +517,7 @@ window.procesarCompra = async function() {
         window.renderCarritoCompras();
         document.getElementById("compra-proveedor").value = "";
         document.getElementById("compra-factura").value = "";
-        alert("Compra registrada. Está en tránsito y visible en 'Mis Pedidos'.");
+        alert("Compra registrada en tránsito. Aparecerá en 'Mis Pedidos' para recibirla.");
     } catch(e) { alert("Error registrando compra."); }
 };
 
