@@ -48,15 +48,15 @@ header.bg-white\/95 { background-color: var(--header-bg) !important; border-bott
 .status-pendiente, .status-en_transito { background-color: #fffbeb !important; color: #b45309 !important; border-color: #fde68a !important; }
 .status-aprobado { background-color: #eef2ff !important; color: #4338ca !important; border-color: #c7d2fe !important; }
 .status-rechazado { background-color: #fef2f2 !important; color: #b91c1c !important; border-color: #fecaca !important; }
-.status-recibido { background-color: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important; }
+.status-recibido, .status-completado { background-color: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important; }
 .status-devuelto, .status-con_incidencia { background-color: #fff1f2 !important; color: #be123c !important; border-color: #fecdd3 !important; }
 .status-en_proceso { background-color: #eff6ff !important; color: #1d4ed8 !important; border-color: #bfdbfe !important; }
-.status-completado { background-color: #f0fdfa !important; color: #0f766e !important; border-color: #99f6e4 !important; }
+
 .status-pri-normal { border-radius: 6px; padding: 3px 8px; font-size: 10px; }
 .status-pri-alta { background-color: #fef2f2 !important; color: #ef4444 !important; border: 1px solid #fca5a5 !important; font-weight: 900; animation: pulse 2s infinite; }
 
 /* ANIMACIONES */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in { animation: fadeIn 0.4s forwards; }
 .item-tarjeta { box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.2s ease-in-out; border: 1px solid var(--border-color); cursor: pointer; }
 .item-tarjeta:hover { border-color: #a5b4fc !important; box-shadow: 0 10px 15px rgba(99,102,241,0.1); transform: translateY(-2px); }
