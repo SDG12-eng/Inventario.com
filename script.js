@@ -22,7 +22,7 @@ if(EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
 }
 
 // ==========================================
-// 2. DEFINICIÓN SEGURA DE VARIABLES GLOBALES
+// 2. DEFINICIÓN DE GLOBALES
 // ==========================================
 window.usuarioActual = null;
 window.carritoGlobal = {};
@@ -33,12 +33,10 @@ window.grupoActivo = "SERVICIOS GENERALES";
 window.miGraficoStock = null;
 window.miGraficoUbicacion = null;
 window.html5QrcodeScanner = null;
-
 window.configCorreosData = {};
 window.configStockData = {};
 window.adminEmailGlobal = "";
 window.stockAlertEmailGlobal = "";
-
 window.chartPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16', '#d946ef', '#14b8a6', '#3b82f6', '#f97316', '#a855f7', '#ef4444'];
 window.rawInventario = [];
 window.rawEntradas = [];
@@ -51,8 +49,13 @@ window.rawCategorias = [];
 window.timeoutBusqueda = null;
 
 // ==========================================
-// 3. FUNCIONES BASE Y UTILIDADES
+// 3. FUNCIONES DE UTILIDAD (HOISTING)
 // ==========================================
+window.cambiarTema = function(tema) {
+    document.documentElement.setAttribute('data-theme', tema);
+    localStorage.setItem('fcilog_theme', tema);
+    if(window.miGraficoStock && window.actualizarDashboard) window.actualizarDashboard();
+};
 
 window.tienePermiso = function(modulo, accion = 'ver') {
     if (!window.usuarioActual) return false;
@@ -188,7 +191,7 @@ window.renderChart = function(id, labels, data, title, palette, chartInstance, s
 };
 
 // ==========================================
-// 4. AUTENTICACIÓN
+// 4. LÓGICA DE AUTENTICACIÓN
 // ==========================================
 window.iniciarSesion = async function() {
     const user = document.getElementById("login-user").value.trim().toLowerCase();
@@ -341,7 +344,7 @@ window.actualizarCheckboxesGrupos = function() {
 };
 
 // ==========================================
-// 5. ONSNAPSHOTS (FIREBASE REALTIME)
+// 5. SINCRONIZACIÓN DE FIREBASE (ONSNAPSHOT)
 // ==========================================
 window.activarSincronizacion = function() {
     
@@ -433,9 +436,14 @@ window.activarSincronizacion = function() {
     onSnapshot(collection(db, "pedidos"), snap => {
         if (!isInitialPedidos) {
             snap.docChanges().forEach(change => {
-                const p = change.doc.data(); const miId = window.usuarioActual?.id;
-                if (change.type === "added" && p.estado === 'pendiente' && window.tienePermiso('aprobaciones', 'gestionar') && p.usuarioId !== miId) { window.enviarNotificacionNavegador("🚨 Nueva Solicitud", `${p.usuarioId.toUpperCase()} pide ${p.cantidad}x ${p.insumoNom}.\nSede: ${p.ubicacion}`); }
-                if (change.type === "modified" && p.usuarioId === miId && ['aprobado', 'rechazado'].includes(p.estado)) { window.enviarNotificacionNavegador("Actualización de Pedido", `Tu pedido de ${p.insumoNom} fue ${p.estado.toUpperCase()}.`); }
+                const p = change.doc.data();
+                const miId = window.usuarioActual?.id;
+                if (change.type === "added" && p.estado === 'pendiente' && window.tienePermiso('aprobaciones', 'gestionar') && p.usuarioId !== miId) {
+                    window.enviarNotificacionNavegador("🚨 Nueva Solicitud", `${p.usuarioId.toUpperCase()} pide ${p.cantidad}x ${p.insumoNom}.\nSede: ${p.ubicacion}`);
+                }
+                if (change.type === "modified" && p.usuarioId === miId && ['aprobado', 'rechazado'].includes(p.estado)) {
+                    window.enviarNotificacionNavegador("Actualización de Pedido", `Tu pedido de ${p.insumoNom} fue ${p.estado.toUpperCase()}.`);
+                }
             });
         }
         window.pedidosRaw = [];
@@ -481,7 +489,8 @@ window.activarSincronizacion = function() {
             let html = "";
             const isManager = window.tienePermiso('usuarios', 'gestionar');
             snap.forEach(d => {
-                const u = d.data(); const jsId = d.id.replace(/'/g, "\\'");
+                const u = d.data();
+                const jsId = d.id.replace(/'/g, "\\'");
                 let btns = isManager ? `<div class="flex gap-2"><button onclick="window.prepararEdicionUsuario('${jsId}')" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 p-2 rounded-lg transition"><i class="fas fa-pen"></i></button><button onclick="window.eliminarDato('usuarios','${jsId}')" class="text-red-400 hover:text-red-600 bg-red-50 p-2 rounded-lg transition"><i class="fas fa-trash"></i></button></div>` : '';
                 html += `<div class="bg-white p-5 rounded-[1.5rem] border border-slate-200 shadow-sm flex justify-between items-center"><div class="truncate w-full"><div class="flex items-center gap-2"><span class="font-black text-sm uppercase text-slate-800">${d.id}</span><span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold border border-slate-200">${u.rol}</span></div><span class="text-[10px] text-indigo-500 font-bold block truncate mt-1.5"><i class="fas fa-folder-open text-indigo-300"></i> ${(u.grupos||[]).join(", ")}</span></div>${btns}</div>`;
             });
@@ -491,9 +500,8 @@ window.activarSincronizacion = function() {
 };
 
 // ==========================================
-// 6. RENDERIZACIÓN DE VISTAS INTERACTIVAS
+// 6. RENDERIZACIÓN DE VISTAS (COMPRAS, PEDIDOS, STOCK)
 // ==========================================
-
 window.renderCatalogoCompras = function() {
     const contenedor = document.getElementById("compra-insumo");
     if(!contenedor) return;
@@ -697,7 +705,20 @@ window.renderActivos = function() {
         
         let controls = isGestor ? `<button onclick="window.abrirModalActivo('${jsId}')" class="text-indigo-400 hover:bg-indigo-50 p-2 rounded-lg transition"><i class="fas fa-pen"></i></button><button onclick="window.eliminarDato('activos','${jsId}')" class="text-red-300 hover:bg-red-50 p-2 rounded-lg transition"><i class="fas fa-trash"></i></button>` : "";
         
-        html += `<div class="bg-white p-5 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-indigo-200 transition flex items-center gap-6">${img}<div class="flex-1 min-w-0 grid grid-cols-2 lg:grid-cols-4 gap-4 items-center"><div class="col-span-1"><h4 class="font-black text-slate-800 uppercase text-sm truncate">${a.nombre}</h4><p class="text-[10px] font-mono text-indigo-500 font-bold">${a.id}</p><span class="badge ${bColor} mt-1">${a.estado}</span></div><div><p class="text-[9px] font-black text-slate-400 uppercase">Marca / Modelo</p><p class="text-xs font-bold text-slate-700 uppercase truncate">${a.marca || 'N/A'}</p></div><div><p class="text-[9px] font-black text-slate-400 uppercase">Ubicación Actual</p><p class="text-xs font-bold text-slate-700 uppercase truncate"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${a.ubicacion || 'N/A'}</p></div><div class="flex justify-end gap-2 items-center"><button onclick="window.abrirDetallesActivo('${jsId}')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md hover:bg-indigo-700 transition">Ver Ficha</button>${controls}</div></div></div>`;
+        html += `
+        <div class="bg-white p-5 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-indigo-200 transition flex items-center gap-6">
+            ${img}
+            <div class="flex-1 min-w-0 grid grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+                <div class="col-span-1">
+                    <h4 class="font-black text-slate-800 uppercase text-sm truncate">${a.nombre}</h4>
+                    <p class="text-[10px] font-mono text-indigo-500 font-bold">${a.id}</p>
+                    <span class="badge ${bColor} mt-1">${a.estado}</span>
+                </div>
+                <div><p class="text-[9px] font-black text-slate-400 uppercase">Marca / Modelo</p><p class="text-xs font-bold text-slate-700 uppercase truncate">${a.marca || 'N/A'}</p></div>
+                <div><p class="text-[9px] font-black text-slate-400 uppercase">Ubicación Actual</p><p class="text-xs font-bold text-slate-700 uppercase truncate"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${a.ubicacion || 'N/A'}</p></div>
+                <div class="flex justify-end gap-2 items-center"><button onclick="window.abrirDetallesActivo('${jsId}')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md hover:bg-indigo-700 transition">Ver Ficha</button>${controls}</div>
+            </div>
+        </div>`;
     });
     list.innerHTML = html || `<p class="text-center text-slate-400 py-10 font-bold">No hay activos en este entorno.</p>`;
 };
@@ -714,17 +735,19 @@ window.renderMantenimiento = function() {
         else if (m.estado === 'en_proceso') { badgeHtml = `<span class="badge status-aprobado mb-1 animate-pulse">En Proceso</span>`; if(isGestor) actions = `<button onclick="window.completarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition mr-1 mb-1"><i class="fas fa-flag-checkered"></i> Finalizar</button>`; } 
         else { badgeHtml = `<span class="badge status-pendiente">Pendiente</span>`; if(isGestor) actions = `<button onclick="window.iniciarMantenimiento('${m.id}')" class="text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition mr-1 mb-1"><i class="fas fa-play"></i> Iniciar</button>`; }
         
-        actions += `<button onclick="window.abrirBitacora('${m.id}')" class="text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition"><i class="fas fa-book"></i> Bitácora</button>`;
+        actions += `<button onclick="window.abrirBitacora('${m.id}')" class="text-slate-600 bg-slate-100 border border-slate-200 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition"><i class="fas fa-book"></i> Bitácora</button>`;
         const trashBtn = isGestor ? `<button onclick="window.eliminarDato('mantenimiento','${m.id}')" class="text-red-400 hover:text-red-600 ml-2 p-1"><i class="fas fa-trash"></i></button>` : '';
-        let notifTag = m.fecha_notificacion ? `<br><span class="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 rounded mt-1 inline-block font-bold"><i class="fas fa-bell"></i> Alerta: ${m.fecha_notificacion}</span>` : '';
+        let notifTag = m.fecha_notificacion ? `<br><span class="text-[9px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded mt-1 inline-block font-bold"><i class="fas fa-bell"></i> Alerta: ${m.fecha_notificacion}</span>` : '';
         
-        html += `<tr class="hover:bg-slate-50 border-b border-slate-100 transition ${m.estado === 'completado' ? 'bg-slate-50/30' : ''}"><td class="p-4 align-top w-32">${badgeHtml}</td><td class="p-4 font-bold text-slate-700 uppercase text-xs align-top">${m.equipo}</td><td class="p-4 text-slate-500 text-xs font-mono font-medium align-top">${m.fecha_programada}${notifTag}</td><td class="p-4 text-indigo-600 text-[10px] font-bold uppercase align-top">${m.responsable}</td><td class="p-4 text-right align-top"><div class="flex flex-wrap justify-end gap-1">${actions}${trashBtn}</div></td></tr>`;
+        html += `<tr class="hover:bg-slate-50 border-b border-slate-100 transition ${m.estado === 'completado' ? 'bg-slate-50/50' : ''}"><td class="p-4 align-top w-32">${badgeHtml}</td><td class="p-4 font-bold text-slate-700 uppercase text-xs align-top">${m.equipo}</td><td class="p-4 text-slate-500 text-xs font-mono font-medium align-top">${m.fecha_programada}${notifTag}</td><td class="p-4 text-indigo-600 text-[10px] font-bold uppercase align-top">${m.responsable}</td><td class="p-4 text-right align-top"><div class="flex flex-wrap justify-end gap-1">${actions}${trashBtn}</div></td></tr>`;
     });
     tb.innerHTML = html || '<tr><td colspan="5" class="p-4 text-center text-slate-400">No hay mantenimientos.</td></tr>';
 };
 
 window.renderCompras = function() {
     const tb = document.getElementById("lista-compras-db"); if(!tb) return; let html = "";
+    
+    // Aquí solo se muestran las RECIBIDAS (historial)
     const comprasGrupo = window.rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo && c.estado === 'recibido').sort((a,b) => b.timestamp - a.timestamp); 
     const isGestor = window.tienePermiso('compras', 'gestionar');
     
@@ -732,12 +755,12 @@ window.renderCompras = function() {
         let badge = `<span class="badge status-recibido">Recibido</span>`;
         let itemsList = `<ul class="text-[11px] text-slate-600 font-medium mt-3 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200 h-24 overflow-y-auto custom-scroll shadow-inner">`;
         let totalCosto = 0;
-        c.items.forEach(i => { let pStr = i.precio > 0 ? `($${i.precio.toFixed(2)})` : ''; itemsList += `<li><span class="font-black text-slate-800">${i.cantidad}x</span> ${i.insumo} <span class="text-emerald-600 font-bold ml-1">${pStr}</span></li>`; totalCosto += i.precio; });
+        c.items.forEach(i => { let pStr = i.precio > 0 ? `($${i.precio.toFixed(2)})` : ''; itemsList += `<li><span class="font-black">${i.cantidad}x</span> ${i.insumo} <span class="text-emerald-600 font-bold ml-1">${pStr}</span></li>`; totalCosto += i.precio; });
         itemsList += `</ul>`;
         
         let trashBtn = isGestor ? `<button onclick="window.eliminarDato('compras','${c.id}')" class="text-red-300 hover:text-red-500 bg-red-50 p-1.5 rounded-lg transition"><i class="fas fa-trash text-xs"></i></button>` : '';
         html += `<div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-md flex flex-col justify-between hover:shadow-lg transition"><div class="flex justify-between items-start mb-2"><div>${badge}<h4 class="font-black text-slate-800 uppercase text-base mt-2">${c.proveedor}</h4></div>${trashBtn}</div><p class="text-[10px] font-mono text-slate-400 mt-1">Fac: <span class="font-bold">${c.factura || 'N/A'}</span> • ${c.fecha_compra}</p>${itemsList}<div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-100"><span class="text-[10px] uppercase text-indigo-500 font-black tracking-wide"><i class="fas fa-user mr-1 text-indigo-300"></i> ${c.registrado_por}</span><span class="text-emerald-600 font-black text-lg">$${totalCosto.toFixed(2)}</span></div></div>`;
-    });
+    }); 
     tb.innerHTML = html || `<p class="col-span-full text-center text-slate-400 py-10 text-sm font-medium">No hay compras finalizadas en este grupo.</p>`;
 };
 
@@ -758,8 +781,7 @@ window.procesarDatosFacturas = function() {
 window.renderListaInsumos = function() {
     const contenedor = document.getElementById("lista-inventario"); if(!contenedor) return;
     let gridHTML = ""; let tr = 0, ts = 0;
-    const invFiltrado = window.rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
-    const isGestor = window.tienePermiso('stock', 'gestionar');
+    const invFiltrado = window.rawInventario.filter(p => (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo); const isGestor = window.tienePermiso('stock', 'gestionar');
     
     invFiltrado.forEach(p => {
         const nombreMostrar = (p.nombre || p.id || '').toUpperCase();
@@ -820,15 +842,15 @@ window.procesarDatosPedidos = function() {
 
     let htmlActive = "", htmlHistory = "";
     
-    // Inyectar compras en tránsito para gestores
+    // Inyectar compras en tránsito para los gestores
     if(window.tienePermiso('compras', 'gestionar')) {
         const comprasTransito = window.rawCompras.filter(c => (c.grupo || "SERVICIOS GENERALES") === window.grupoActivo && c.estado !== 'recibido').sort((a,b) => b.timestamp - a.timestamp);
         if(comprasTransito.length > 0) {
-            htmlActive += `<div class="col-span-full border-b-2 border-indigo-100 pb-2 mb-2 mt-2"><h3 class="text-indigo-800 font-black text-sm uppercase tracking-widest"><i class="fas fa-truck-loading mr-2 text-indigo-500"></i>Recepciones de Compra Pendientes</h3></div>`;
+            htmlActive += `<div class="col-span-full border-b-2 border-indigo-100 pb-2 mb-2 mt-2"><h3 class="text-indigo-800 font-black text-sm uppercase tracking-widest"><i class="fas fa-truck-loading mr-2 text-indigo-500"></i>Recepciones Pendientes</h3></div>`;
             comprasTransito.forEach(c => {
                 let itemsList = `<ul class="text-[11px] text-indigo-900 font-medium mt-3 space-y-1.5 bg-indigo-50 p-3 rounded-xl border border-indigo-100 h-20 overflow-y-auto custom-scroll shadow-inner">`;
                 c.items.forEach(i => { itemsList += `<li><span class="font-black">${i.cantidad}x</span> ${i.insumo}</li>`; }); itemsList += `</ul>`;
-                let btnRecibir = `<button onclick="window.confirmarRecepcionCompra('${c.id}')" class="bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-600 mt-4 w-full transition flex items-center justify-center gap-2"><i class="fas fa-box-open"></i> Recibir Inventario Físico</button>`;
+                let btnRecibir = `<button onclick="window.confirmarRecepcionCompra('${c.id}')" class="bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-lg hover:bg-emerald-600 mt-4 w-full transition flex items-center justify-center gap-2"><i class="fas fa-box-open"></i> Recibir Físicamente</button>`;
                 htmlActive += `<div class="bg-white p-5 rounded-[1.5rem] border-2 border-indigo-200 shadow-md item-tarjeta"><div class="flex justify-between items-start mb-2"><div><span class="badge status-en_transito animate-pulse border-indigo-200">COMPRA EN TRÁNSITO</span><h4 class="font-black text-slate-800 uppercase text-sm mt-2">${c.proveedor}</h4><p class="text-[10px] text-slate-400 mt-1">${c.fecha_compra}</p></div></div>${itemsList}${btnRecibir}</div>`;
             });
             htmlActive += `<div class="col-span-full border-b-2 border-slate-100 pb-2 mb-2 mt-6"><h3 class="text-slate-500 font-black text-sm uppercase tracking-widest"><i class="fas fa-user mr-2"></i>Mis Pedidos Personales</h3></div>`;
@@ -854,7 +876,7 @@ window.procesarDatosPedidos = function() {
 };
 
 // ==========================================
-// 10. ESCÁNER QR
+// 8. ESCÁNER QR Y ACCIONES DE LÓGICA DE NEGOCIO CRUD
 // ==========================================
 window.iniciarScanner = function(inputIdTarget) {
     document.getElementById("modal-scanner").classList.remove("hidden");
@@ -876,9 +898,6 @@ window.detenerScanner = function() {
     document.getElementById("modal-scanner").classList.add("hidden");
 };
 
-// ==========================================
-// 11. LÓGICA CRUD E INVENTARIO
-// ==========================================
 window.ajustarCantidad = function(idInsumo, delta) {
     const safeId = idInsumo.replace(/[^a-zA-Z0-9]/g, '_');
     const item = window.rawInventario.find(p => p.id === idInsumo && (p.grupo || "SERVICIOS GENERALES") === window.grupoActivo);
@@ -890,10 +909,12 @@ window.ajustarCantidad = function(idInsumo, delta) {
     if (nuevoValor < 0) nuevoValor = 0;
     if (nuevoValor > stockMaximo) {
         nuevoValor = stockMaximo;
-        if(delta > 0) alert(`Solo hay ${stockMaximo} unidades disponibles en inventario.`);
+        if(delta > 0) alert(`Límite alcanzado: Solo hay ${stockMaximo} unidades disponibles en inventario.`);
     }
     
-    window.carritoGlobal[idInsumo] = nuevoValor; window.renderCarritoPedidos(); window.renderCatalogoSolicitud();
+    window.carritoGlobal[idInsumo] = nuevoValor;
+    window.renderCarritoPedidos();
+    window.renderCatalogoSolicitud();
 };
 
 window.prepararEdicionProducto = async function(id) {
@@ -920,9 +941,6 @@ window.guardarDetallesProducto = async function() {
     document.getElementById('modal-detalles').classList.add('hidden');
 };
 
-// ==========================================
-// 12. COMPRAS Y PEDIDOS
-// ==========================================
 window.agregarItemCompra = function() {
     let insumoSelect = document.getElementById("compra-insumo").value;
     let insumoName = "";
@@ -987,8 +1005,10 @@ window.confirmarRecepcionCompra = async function(compraId) {
     if(!confirm("¿Confirmas recibir la compra en físico? Esto sumará el stock al inventario general.")) return;
     const cRef = doc(db, "compras", compraId);
     try {
-        const cSnap = await getDoc(cRef); if(!cSnap.exists()) return;
-        const cData = cSnap.data(); const batch = writeBatch(db);
+        const cSnap = await getDoc(cRef);
+        if(!cSnap.exists()) return;
+        const cData = cSnap.data();
+        const batch = writeBatch(db);
         
         for (const item of cData.items) {
             const idTarget = item.idRef || item.insumo;
@@ -1012,12 +1032,20 @@ window.agregarProductoRapido = async function() {
     const c = parseInt(document.getElementById("cantidad-prod").value);
     const imgUrl = document.getElementById("new-prod-img-url").value;
     const cat = document.getElementById("categoria-prod").value;
+    
     if(n && c>0){
         const r = doc(db, "inventario", n); const s = await getDoc(r);
         let dataToSave = { nombre: n, cantidad: c, grupo: window.grupoActivo, categoria: cat };
         if (imgUrl) dataToSave.imagen = imgUrl;
-        if(s.exists()) { let updateData = { cantidad: s.data().cantidad + c }; if (imgUrl) updateData.imagen = imgUrl; if (cat) updateData.categoria = cat; await updateDoc(r, updateData); } 
+        
+        if(s.exists()) { 
+            let updateData = { cantidad: s.data().cantidad + c }; 
+            if (imgUrl) updateData.imagen = imgUrl; 
+            if (cat) updateData.categoria = cat; 
+            await updateDoc(r, updateData); 
+        } 
         else { await setDoc(r, dataToSave); }
+        
         await addDoc(collection(db, "entradas_stock"), { insumo: n, cantidad: c, grupo: window.grupoActivo, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now(), motivo_edicion: "Ajuste Directo" });
         document.getElementById("modal-insumo").classList.add("hidden"); document.getElementById("nombre-prod").value = ""; document.getElementById("cantidad-prod").value = ""; document.getElementById("new-prod-img-url").value = ""; document.getElementById("new-prod-preview-img").src = ""; document.getElementById("new-prod-preview-img").classList.add("hidden");
     }
@@ -1068,18 +1096,77 @@ window.gestionarPedido = async function(pid, accion, ins) {
     }
 };
 
-window.abrirModalGrupo = function(bKey) { const items = window.cachePedidos.filter(p => p.batchId === bKey || p.timestamp.toString() === bKey); if(items.length===0) return; document.getElementById("modal-grupo-titulo").innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion}`; if(items[0].notas) { document.getElementById("modal-grupo-notas").innerHTML = `"${items[0].notas}"`; document.getElementById("modal-grupo-notas-container").classList.remove('hidden'); } else { document.getElementById("modal-grupo-notas-container").classList.add('hidden'); } let h = ""; items.forEach(p => { let act = `<span class="badge status-${p.estado}">${p.estado}</span>`; if(p.estado === 'pendiente' && window.tienePermiso('aprobaciones', 'gestionar')) { act = `<div class="flex gap-2"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border rounded text-center font-bold text-xs"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom.replace(/'/g,"\\'")}')" class="text-white bg-emerald-500 px-2 rounded"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-red-400 bg-red-50 px-2 rounded"><i class="fas fa-times"></i></button></div>`; } h += `<div class="flex justify-between items-center p-3 border-b"><div class="text-xs"><b>${p.insumoNom}</b> <span class="badge status-pri-${p.prioridad}">${p.prioridad}</span><br>Cant Original: ${p.cantidad}</div>${act}</div>`; }); document.getElementById("modal-grupo-contenido").innerHTML = h; document.getElementById("modal-grupo-admin").classList.remove("hidden"); };
+window.abrirModalGrupo = function(bKey) {
+    const items = window.cachePedidos.filter(p => p.batchId === bKey || p.timestamp.toString() === bKey);
+    if(items.length===0) return;
+    document.getElementById("modal-grupo-titulo").innerHTML = `${items[0].usuarioId.toUpperCase()} | ${items[0].ubicacion}`;
+    if(items[0].notas) { document.getElementById("modal-grupo-notas").innerHTML = `"${items[0].notas}"`; document.getElementById("modal-grupo-notas-container").classList.remove('hidden'); } 
+    else { document.getElementById("modal-grupo-notas-container").classList.add('hidden'); }
+    
+    let h = "";
+    items.forEach(p => {
+        let act = `<span class="badge status-${p.estado}">${p.estado}</span>`;
+        if(p.estado === 'pendiente' && window.tienePermiso('aprobaciones', 'gestionar')) {
+            act = `<div class="flex gap-2"><input type="number" id="qty-${p.id}" value="${p.cantidad}" class="w-12 border rounded text-center font-bold text-xs"><button onclick="window.gestionarPedido('${p.id}','aprobar','${p.insumoNom.replace(/'/g,"\\'")}')" class="text-white bg-emerald-500 px-2 rounded"><i class="fas fa-check"></i></button><button onclick="window.gestionarPedido('${p.id}','rechazar')" class="text-red-400 bg-red-50 px-2 rounded"><i class="fas fa-times"></i></button></div>`;
+        }
+        h += `<div class="flex justify-between items-center p-3 border-b"><div class="text-xs"><b>${p.insumoNom}</b> <span class="badge status-pri-${p.prioridad}">${p.prioridad}</span><br>Cant Original: ${p.cantidad}</div>${act}</div>`;
+    });
+    document.getElementById("modal-grupo-contenido").innerHTML = h; document.getElementById("modal-grupo-admin").classList.remove("hidden");
+};
+
 window.confirmarRecibido = async function(pid) { if(confirm("¿Recibido?")) await updateDoc(doc(db, "pedidos", pid), { estado: "recibido", timestamp_recibido: Date.now(), fecha_recibido: new Date().toLocaleString() }); };
 window.abrirIncidencia = function(pid) { document.getElementById('incidencia-pid').value = pid; document.getElementById('modal-incidencia').classList.remove('hidden'); };
-window.confirmarIncidencia = async function(dev) { const pid = document.getElementById('incidencia-pid').value; const pRef = doc(db, "pedidos", pid); const pData = (await getDoc(pRef)).data(); if(dev){ const invTarget = window.rawInventario.find(x => x.nombre === pData.insumoNom || x.id === pData.insumoNom); if(invTarget) { const iRef = doc(db, "inventario", invTarget.id); const iSnap = await getDoc(iRef); if(iSnap.exists()) await updateDoc(iRef, { cantidad: iSnap.data().cantidad + pData.cantidad }); } } await updateDoc(pRef, { estado: dev ? "devuelto" : "con_incidencia", detalleIncidencia: document.getElementById('incidencia-detalle').value, timestamp_incidencia: Date.now() }); document.getElementById('modal-incidencia').classList.add('hidden'); };
+window.confirmarIncidencia = async function(dev) {
+    const pid = document.getElementById('incidencia-pid').value; const pRef = doc(db, "pedidos", pid); const pData = (await getDoc(pRef)).data();
+    if(dev){
+        const invTarget = window.rawInventario.find(x => x.nombre === pData.insumoNom || x.id === pData.insumoNom);
+        if(invTarget) { const iRef = doc(db, "inventario", invTarget.id); const iSnap = await getDoc(iRef); if(iSnap.exists()) await updateDoc(iRef, { cantidad: iSnap.data().cantidad + pData.cantidad }); }
+    }
+    await updateDoc(pRef, { estado: dev ? "devuelto" : "con_incidencia", detalleIncidencia: document.getElementById('incidencia-detalle').value, timestamp_incidencia: Date.now() });
+    document.getElementById('modal-incidencia').classList.add('hidden');
+};
+
 window.eliminarDato = async function(col, id) { if(confirm("¿Seguro que deseas eliminar este dato?")) await deleteDoc(doc(db, col, id)); };
 
-// ==========================================
-// 13. ACTIVOS Y MANTENIMIENTO
-// ==========================================
-window.abrirModalActivo = function(id = null) { document.getElementById("activo-preview-img").classList.add("hidden"); document.getElementById("activo-img-url").value = ""; if (id) { const a = window.rawActivos.find(x => x.id === id); if(!a) return; document.getElementById("activo-id").value = id; document.getElementById("activo-nombre").value = a.nombre || ""; document.getElementById("activo-categoria").value = a.categoria || ""; document.getElementById("activo-marca").value = a.marca || ""; document.getElementById("activo-proveedor").value = a.proveedor || ""; document.getElementById("activo-ubicacion").value = a.ubicacion || ""; document.getElementById("activo-precio").value = a.precio || ""; document.getElementById("activo-estado").value = a.estado || "Operativo"; document.getElementById("activo-descripcion").value = a.descripcion || ""; document.getElementById("activo-observacion").value = a.observacion || ""; if(a.imagen) { document.getElementById("activo-img-url").value = a.imagen; document.getElementById("activo-preview-img").src = a.imagen; document.getElementById("activo-preview-img").classList.remove("hidden"); } } else { document.getElementById("activo-id").value = ""; document.getElementById("activo-nombre").value = ""; document.getElementById("activo-categoria").value = ""; document.getElementById("activo-marca").value = ""; document.getElementById("activo-proveedor").value = ""; document.getElementById("activo-ubicacion").value = ""; document.getElementById("activo-precio").value = ""; document.getElementById("activo-estado").value = "Operativo"; document.getElementById("activo-descripcion").value = ""; document.getElementById("activo-observacion").value = ""; } document.getElementById("modal-activo").classList.remove("hidden"); };
-window.guardarActivo = async function() { const actId = document.getElementById("activo-id").value; const nombre = document.getElementById("activo-nombre").value.trim().toUpperCase(); if (!nombre) return alert("El nombre del activo es obligatorio."); const data = { nombre: nombre, categoria: document.getElementById("activo-categoria").value.trim().toUpperCase(), marca: document.getElementById("activo-marca").value.trim().toUpperCase(), proveedor: document.getElementById("activo-proveedor").value.trim().toUpperCase(), ubicacion: document.getElementById("activo-ubicacion").value.trim().toUpperCase(), precio: parseFloat(document.getElementById("activo-precio").value) || 0, estado: document.getElementById("activo-estado").value, descripcion: document.getElementById("activo-descripcion").value.trim(), observacion: document.getElementById("activo-observacion").value.trim(), imagen: document.getElementById("activo-img-url").value, grupo: window.grupoActivo }; try { if (actId) { await updateDoc(doc(db, "activos", actId), data); alert("Activo actualizado."); } else { const newId = "ACT-" + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*100); data.id = newId; data.creado_por = window.usuarioActual.id; data.fecha_registro = new Date().toLocaleString(); data.timestamp = Date.now(); data.bitacora = []; await setDoc(doc(db, "activos", newId), data); alert("Activo registrado. ID: " + newId); } document.getElementById("modal-activo").classList.add("hidden"); } catch(e) { alert("Error al guardar activo."); } };
-window.abrirDetallesActivo = function(id) { const a = window.rawActivos.find(x => x.id === id); if(!a) return; document.getElementById("activo-bitacora-id").value = id; document.getElementById("activo-det-nombre").innerText = a.nombre; document.getElementById("activo-det-id").innerText = "ID: " + a.id; document.getElementById("activo-det-qr-container").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=${encodeURIComponent(a.id)}" alt="QR Code" class="w-16 h-16 object-contain">`; const imgEl = document.getElementById("activo-det-img"); if(a.imagen) { imgEl.src = a.imagen; imgEl.classList.remove("hidden"); } else { imgEl.classList.add("hidden"); } document.getElementById("activo-det-estado").innerHTML = `<span class="px-2 py-1 bg-slate-100 rounded text-slate-700 text-xs">${a.estado}</span>`; document.getElementById("activo-det-cat").innerText = a.categoria || '-'; document.getElementById("activo-det-marca").innerText = a.marca || '-'; document.getElementById("activo-det-ubi").innerText = a.ubicacion || '-'; document.getElementById("activo-det-fecha").innerText = a.fecha_registro || '-'; document.getElementById("activo-det-desc").innerText = a.descripcion || 'Sin detalles'; let bHtml = ""; if (a.observacion) bHtml += `<div class="relative pl-4 border-l-2 border-indigo-200 pb-3"><div class="absolute w-2.5 h-2.5 bg-indigo-500 rounded-full -left-[6px] top-1"></div><p class="text-[9px] text-slate-400 font-bold mb-1">NOTA ORIGINAL</p><p class="text-xs font-medium text-slate-700 italic">${a.observacion}</p></div>`; if(a.bitacora && a.bitacora.length > 0) { a.bitacora.forEach(b => { let mediaHtml = ""; if(b.mediaUrl) { if(b.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) mediaHtml = `<video src="${b.mediaUrl}" controls class="max-h-32 rounded-lg mt-2 border"></video>`; else mediaHtml = `<a href="${b.mediaUrl}" target="_blank"><img src="${b.mediaUrl}" loading="lazy" class="max-h-24 object-contain rounded-lg mt-2 border hover:opacity-80"></a>`; } bHtml += `<div class="relative pl-4 border-l-2 border-slate-200 pb-4"><div class="absolute w-2.5 h-2.5 bg-slate-400 rounded-full -left-[7px] top-1"></div><div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p class="text-[9px] text-slate-400 font-bold mb-1 flex justify-between"><span>${b.usuario.toUpperCase()}</span><span>${b.fecha}</span></p><p class="text-xs text-slate-700 whitespace-pre-wrap">${b.nota}</p>${mediaHtml}</div></div>`; }); } else if (!a.observacion) bHtml += `<p class="text-xs text-slate-400 italic">No hay notas registradas.</p>`; document.getElementById("activo-bitacora-timeline").innerHTML = bHtml; document.getElementById("activo-bitacora-texto").value = ""; document.getElementById("activo-bitacora-url").value = ""; const bitacoraForm = document.getElementById("activo-bitacora-form"); if(window.tienePermiso('activos', 'gestionar')) { bitacoraForm.classList.remove("hidden"); } else { bitacoraForm.classList.add("hidden"); } document.getElementById("modal-activo-detalles").classList.remove("hidden"); };
+window.abrirModalActivo = function(id = null) {
+    document.getElementById("activo-preview-img").classList.add("hidden"); document.getElementById("activo-img-url").value = "";
+    if (id) {
+        const a = window.rawActivos.find(x => x.id === id); if(!a) return;
+        document.getElementById("activo-id").value = id; document.getElementById("activo-nombre").value = a.nombre || ""; document.getElementById("activo-categoria").value = a.categoria || ""; document.getElementById("activo-marca").value = a.marca || ""; document.getElementById("activo-proveedor").value = a.proveedor || ""; document.getElementById("activo-ubicacion").value = a.ubicacion || ""; document.getElementById("activo-precio").value = a.precio || ""; document.getElementById("activo-estado").value = a.estado || "Operativo"; document.getElementById("activo-descripcion").value = a.descripcion || ""; document.getElementById("activo-observacion").value = a.observacion || "";
+        if(a.imagen) { document.getElementById("activo-img-url").value = a.imagen; document.getElementById("activo-preview-img").src = a.imagen; document.getElementById("activo-preview-img").classList.remove("hidden"); }
+    } else {
+        document.getElementById("activo-id").value = ""; document.getElementById("activo-nombre").value = ""; document.getElementById("activo-categoria").value = ""; document.getElementById("activo-marca").value = ""; document.getElementById("activo-proveedor").value = ""; document.getElementById("activo-ubicacion").value = ""; document.getElementById("activo-precio").value = ""; document.getElementById("activo-estado").value = "Operativo"; document.getElementById("activo-descripcion").value = ""; document.getElementById("activo-observacion").value = "";
+    }
+    document.getElementById("modal-activo").classList.remove("hidden");
+};
+window.guardarActivo = async function() {
+    const actId = document.getElementById("activo-id").value; const nombre = document.getElementById("activo-nombre").value.trim().toUpperCase();
+    if (!nombre) return alert("El nombre del activo es obligatorio.");
+    const data = { nombre: nombre, categoria: document.getElementById("activo-categoria").value.trim().toUpperCase(), marca: document.getElementById("activo-marca").value.trim().toUpperCase(), proveedor: document.getElementById("activo-proveedor").value.trim().toUpperCase(), ubicacion: document.getElementById("activo-ubicacion").value.trim().toUpperCase(), precio: parseFloat(document.getElementById("activo-precio").value) || 0, estado: document.getElementById("activo-estado").value, descripcion: document.getElementById("activo-descripcion").value.trim(), observacion: document.getElementById("activo-observacion").value.trim(), imagen: document.getElementById("activo-img-url").value, grupo: window.grupoActivo };
+    try {
+        if (actId) { await updateDoc(doc(db, "activos", actId), data); alert("Activo actualizado."); } 
+        else { const newId = "ACT-" + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*100); data.id = newId; data.creado_por = window.usuarioActual.id; data.fecha_registro = new Date().toLocaleString(); data.timestamp = Date.now(); data.bitacora = []; await setDoc(doc(db, "activos", newId), data); alert("Activo registrado. ID: " + newId); }
+        document.getElementById("modal-activo").classList.add("hidden");
+    } catch(e) { alert("Error al guardar activo."); }
+};
+window.abrirDetallesActivo = function(id) {
+    const a = window.rawActivos.find(x => x.id === id); if(!a) return;
+    document.getElementById("activo-bitacora-id").value = id; document.getElementById("activo-det-nombre").innerText = a.nombre; document.getElementById("activo-det-id").innerText = "ID: " + a.id; document.getElementById("activo-det-qr-container").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=${encodeURIComponent(a.id)}" alt="QR Code" class="w-16 h-16 object-contain">`;
+    const imgEl = document.getElementById("activo-det-img"); if(a.imagen) { imgEl.src = a.imagen; imgEl.classList.remove("hidden"); } else { imgEl.classList.add("hidden"); }
+    document.getElementById("activo-det-estado").innerHTML = `<span class="px-2 py-1 bg-slate-100 rounded text-slate-700 text-xs">${a.estado}</span>`; document.getElementById("activo-det-cat").innerText = a.categoria || '-'; document.getElementById("activo-det-marca").innerText = a.marca || '-'; document.getElementById("activo-det-ubi").innerText = a.ubicacion || '-'; document.getElementById("activo-det-fecha").innerText = a.fecha_registro || '-'; document.getElementById("activo-det-desc").innerText = a.descripcion || 'Sin detalles';
+    let bHtml = "";
+    if (a.observacion) bHtml += `<div class="relative pl-4 border-l-2 border-indigo-200 pb-3"><div class="absolute w-2.5 h-2.5 bg-indigo-500 rounded-full -left-[6px] top-1"></div><p class="text-[9px] text-slate-400 font-bold mb-1">NOTA ORIGINAL</p><p class="text-xs font-medium text-slate-700 italic">${a.observacion}</p></div>`;
+    if(a.bitacora && a.bitacora.length > 0) {
+        a.bitacora.forEach(b => {
+            let mediaHtml = "";
+            if(b.mediaUrl) { if(b.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) mediaHtml = `<video src="${b.mediaUrl}" controls class="max-h-32 rounded-lg mt-2 border"></video>`; else mediaHtml = `<a href="${b.mediaUrl}" target="_blank"><img src="${b.mediaUrl}" loading="lazy" class="max-h-24 object-contain rounded-lg mt-2 border hover:opacity-80"></a>`; }
+            bHtml += `<div class="relative pl-4 border-l-2 border-slate-200 pb-4"><div class="absolute w-2.5 h-2.5 bg-slate-400 rounded-full -left-[7px] top-1"></div><div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p class="text-[9px] text-slate-400 font-bold mb-1 flex justify-between"><span>${b.usuario.toUpperCase()}</span><span>${b.fecha}</span></p><p class="text-xs text-slate-700 whitespace-pre-wrap">${b.nota}</p>${mediaHtml}</div></div>`;
+        });
+    } else if (!a.observacion) bHtml += `<p class="text-xs text-slate-400 italic">No hay notas registradas.</p>`;
+    document.getElementById("activo-bitacora-timeline").innerHTML = bHtml; document.getElementById("activo-bitacora-texto").value = ""; document.getElementById("activo-bitacora-url").value = "";
+    const bitacoraForm = document.getElementById("activo-bitacora-form"); if(window.tienePermiso('activos', 'gestionar')) { bitacoraForm.classList.remove("hidden"); } else { bitacoraForm.classList.add("hidden"); }
+    document.getElementById("modal-activo-detalles").classList.remove("hidden");
+};
 window.cerrarDetallesActivo = function() { document.getElementById("modal-activo-detalles").classList.add("hidden"); };
 window.guardarBitacoraActivo = async function() { const id = document.getElementById("activo-bitacora-id").value; const txt = document.getElementById("activo-bitacora-texto").value.trim(); const url = document.getElementById("activo-bitacora-url").value; if(!txt && !url) return alert("Escribe o adjunta algo."); const aRef = doc(db, "activos", id); const aSnap = await getDoc(aRef); if(aSnap.exists()) { const bitacoraAnterior = aSnap.data().bitacora || []; await updateDoc(aRef, { bitacora: [...bitacoraAnterior, { nota: txt, mediaUrl: url, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() }] }); window.abrirDetallesActivo(id); } };
 
@@ -1091,9 +1178,6 @@ window.abrirBitacora = function(id) { document.getElementById("bitacora-mant-id"
 window.guardarBitacora = async function() { const id = document.getElementById("bitacora-mant-id").value; const txt = document.getElementById("bitacora-texto").value.trim(); const url = document.getElementById("bitacora-media-url").value; if(!txt && !url) return alert("Escribe o adjunta algo."); const mRef = doc(db, "mantenimiento", id); const mSnap = await getDoc(mRef); if(mSnap.exists()) { const bitacoraAnterior = mSnap.data().bitacora || []; await updateDoc(mRef, { bitacora: [...bitacoraAnterior, { observacion: txt, mediaUrl: url, usuario: window.usuarioActual.id, fecha: new Date().toLocaleString(), timestamp: Date.now() }] }); window.abrirBitacora(id); } };
 window.cerrarBitacora = function() { document.getElementById("modal-bitacora").classList.add("hidden"); };
 
-// ==========================================
-// 14. CONFIGURACIÓN Y USUARIOS
-// ==========================================
 window.guardarCategoria = async function() { const c = document.getElementById("new-categoria").value.trim().toUpperCase(); if(!c) return alert("Ingrese categoría."); try { await addDoc(collection(db, "categorias"), { nombre: c, timestamp: Date.now() }); document.getElementById("new-categoria").value = ""; alert("Categoría guardada."); } catch(e) { alert("Error."); } };
 window.guardarSede = async function() { const s = document.getElementById("new-sede").value.trim().toUpperCase(); if(!s) return alert("Ingrese sede."); try { await addDoc(collection(db, "sedes"), { nombre: s, timestamp: Date.now() }); document.getElementById("new-sede").value = ""; alert("Sede guardada."); } catch(e) { alert("Error."); } };
 window.guardarGrupo = async function() { const g = document.getElementById("new-grupo").value.trim().toUpperCase(); if(!g) return alert("Ingrese grupo."); try { await addDoc(collection(db, "grupos"), { nombre: g, timestamp: Date.now() }); document.getElementById("new-grupo").value = ""; alert("Grupo creado."); } catch(e) { alert("Error."); } };
@@ -1128,7 +1212,7 @@ window.descargarReporte = async function() {
 };
 
 // ==========================================
-// 15. INICIALIZACIÓN FINAL
+// 13. INICIALIZACIÓN FINAL
 // ==========================================
 window.addEventListener('DOMContentLoaded', () => {
     
